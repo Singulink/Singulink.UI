@@ -121,18 +121,7 @@ public class TaskRunner : ITaskRunner
     /// <inheritdoc cref="ITaskRunner.Post"/>
     public void Post(Action action)
     {
-        IncrementTaskCount(false);
-
-        _syncContext.Post(_ => {
-            try
-            {
-                action.Invoke();
-            }
-            finally
-            {
-                DecrementTaskCount(false);
-            }
-        }, null);
+        _syncContext.Post(s => ((Action)s!).Invoke(), action);
     }
 
     /// <inheritdoc cref="ITaskRunner.SendAsync(Action)"/>
@@ -144,19 +133,10 @@ public class TaskRunner : ITaskRunner
             return;
         }
 
-        IncrementTaskCount(false);
+        var tcs = new ActionTaskCompletionSource(action);
+        PostActionTaskCompletionSource(tcs);
 
-        try
-        {
-            var tcs = new ActionTaskCompletionSource(action);
-            PostActionTaskCompletionSource(tcs);
-
-            await tcs.Task;
-        }
-        finally
-        {
-            DecrementTaskCount(false);
-        }
+        await tcs.Task;
     }
 
     /// <inheritdoc cref="ITaskRunner.SendAsync{T}(T, Action{T})"/>
@@ -168,17 +148,10 @@ public class TaskRunner : ITaskRunner
             return;
         }
 
-        try
-        {
-            var tcs = new ActionTaskCompletionSource<T>(action, state);
-            PostActionTaskCompletionSource(tcs);
+        var tcs = new ActionTaskCompletionSource<T>(action, state);
+        PostActionTaskCompletionSource(tcs);
 
-            await tcs.Task;
-        }
-        finally
-        {
-            DecrementTaskCount(false);
-        }
+        await tcs.Task;
     }
 
     /// <summary>
@@ -213,7 +186,8 @@ public class TaskRunner : ITaskRunner
         if (tcs is not null)
             await tcs.Task;
 
-        // Wait for synchronization context to process any pending messages.
+        // Yield one more sync context message cycle to ensure all currently posted messages are processed.
+        // Bonus: allows us to skip incrementing/decrementing task counts in Post() and SendAsync().
 
         if (HasThreadAccess)
             await Task.Yield();
