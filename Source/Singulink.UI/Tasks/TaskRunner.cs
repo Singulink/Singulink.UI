@@ -41,7 +41,7 @@ public class TaskRunner : ITaskRunner
     public bool HasThreadAccess => Thread.CurrentThread == _thread;
 
     /// <inheritdoc cref="ITaskRunner.RunAndForget(bool, Func{Task})"/>
-    public void RunAndForget(bool setBusyWhileRunning, Func<Task> taskFunc)
+    public void RunAndForget(bool setBusy, Func<Task> taskFunc)
     {
         Task task;
 
@@ -57,16 +57,16 @@ public class TaskRunner : ITaskRunner
             return;
         }
 
-        RunAndForget(setBusyWhileRunning, task);
+        RunAndForget(setBusy, task);
     }
 
     /// <inheritdoc cref="ITaskRunner.RunAndForget(bool, Task)"/>
-    public async void RunAndForget(bool setBusyWhileRunning, Task task)
+    public async void RunAndForget(bool setBusy, Task task)
     {
         bool taskWasCompleted = task.IsCompleted;
 
         if (!taskWasCompleted)
-            IncrementTaskCount(setBusyWhileRunning);
+            IncrementTaskCount(setBusy);
 
         try
         {
@@ -80,7 +80,7 @@ public class TaskRunner : ITaskRunner
         finally
         {
             if (!taskWasCompleted)
-                DecrementTaskCount(setBusyWhileRunning);
+                DecrementTaskCount(setBusy);
         }
     }
 
@@ -121,7 +121,18 @@ public class TaskRunner : ITaskRunner
     /// <inheritdoc cref="ITaskRunner.Post"/>
     public void Post(Action action)
     {
-        _syncContext.Post(s => ((Action)s!).Invoke(), action);
+        IncrementTaskCount(false);
+
+        _syncContext.Post(_ => {
+            try
+            {
+                action.Invoke();
+            }
+            finally
+            {
+                DecrementTaskCount(false);
+            }
+        }, null);
     }
 
     /// <inheritdoc cref="ITaskRunner.SendAsync(Action)"/>
@@ -133,10 +144,19 @@ public class TaskRunner : ITaskRunner
             return;
         }
 
-        var tcs = new ActionTaskCompletionSource(action);
-        PostActionTaskCompletionSource(tcs);
+        IncrementTaskCount(false);
 
-        await tcs.Task;
+        try
+        {
+            var tcs = new InvokeActionTaskCompletionSource(action);
+            PostInvocable(tcs);
+
+            await tcs.Task;
+        }
+        finally
+        {
+            DecrementTaskCount(false);
+        }
     }
 
     /// <inheritdoc cref="ITaskRunner.SendAsync{T}(T, Action{T})"/>
@@ -148,14 +168,65 @@ public class TaskRunner : ITaskRunner
             return;
         }
 
-        var tcs = new ActionTaskCompletionSource<T>(action, state);
-        PostActionTaskCompletionSource(tcs);
+        IncrementTaskCount(false);
 
-        await tcs.Task;
+        try
+        {
+            var tcs = new InvokeActionTaskCompletionSource<T>(state, action);
+            PostInvocable(tcs);
+
+            await tcs.Task;
+        }
+        finally
+        {
+            DecrementTaskCount(false);
+        }
+    }
+
+    /// <inheritdoc cref="ITaskRunner.SendAsync{TResult}(Func{TResult})"/>
+    public async ValueTask<TResult> SendAsync<TResult>(Func<TResult> func)
+    {
+        if (HasThreadAccess)
+            return func.Invoke();
+
+        IncrementTaskCount(false);
+
+        try
+        {
+            var tcs = new InvokeFuncTaskCompletionSource<TResult>(func);
+            PostInvocable(tcs);
+
+            return await tcs.Task;
+        }
+        finally
+        {
+            DecrementTaskCount(false);
+        }
+    }
+
+    /// <inheritdoc cref="ITaskRunner.SendAsync{T, TResult}(T, Func{T, TResult})"/>
+    public async ValueTask<TResult> SendAsync<T, TResult>(T state, Func<T, TResult> func)
+    {
+        if (HasThreadAccess)
+            return func.Invoke(state);
+
+        IncrementTaskCount(false);
+
+        try
+        {
+            var tcs = new InvokeFuncTaskCompletionSource<T, TResult>(state, func);
+            PostInvocable(tcs);
+
+            return await tcs.Task;
+        }
+        finally
+        {
+            DecrementTaskCount(false);
+        }
     }
 
     /// <summary>
-    /// Waits for all tasks to complete, optionally also waiting for non-busy tasks.
+    /// Waits for all busy tasks to complete, optionally also waiting for non-busy tasks (and posted/sent messages).
     /// </summary>
     public async Task WaitForIdle(bool waitForNonBusyTasks = false)
     {
@@ -186,8 +257,7 @@ public class TaskRunner : ITaskRunner
         if (tcs is not null)
             await tcs.Task;
 
-        // Yield one more sync context message cycle to ensure all currently posted messages are processed.
-        // Bonus: allows us to skip incrementing/decrementing task counts in Post() and SendAsync().
+        // Yield one more message cycle to ensure all currently posted messages are processed.
 
         if (HasThreadAccess)
             await Task.Yield();
@@ -254,42 +324,30 @@ public class TaskRunner : ITaskRunner
         if (busyCount < 0 || nonBusyCount < 0)
             throw new UnreachableException($"Invalid decremented task counts ({busyCount} / {nonBusyCount}).");
 
-        if (busyTask && busyCount is 0)
+        if (busyCount is 0)
         {
-            try
+            if (busyTask)
             {
-                if (HasThreadAccess)
-                    OnIsBusyChanged();
-                else
-                    Post(OnIsBusyChanged);
+                try
+                {
+                    if (HasThreadAccess)
+                        OnIsBusyChanged();
+                    else
+                        Post(OnIsBusyChanged);
+                }
+                finally
+                {
+                    TasksCompleted?.Invoke();
+                }
             }
-            finally
+            else if (nonBusyCount is 0)
             {
                 TasksCompleted?.Invoke();
             }
         }
-        else if (busyCount is 0 && nonBusyCount is 0)
-        {
-            TasksCompleted?.Invoke();
-        }
     }
 
-    private void PostActionTaskCompletionSource<T>(T tcs) where T : TaskCompletionSource, IInvokeAction
-    {
-        _syncContext.Post(static s => {
-            var tcs = (T)s!;
-
-            try
-            {
-                tcs.InvokeAction();
-                tcs.SetResult();
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-            }
-        }, tcs);
-    }
+    private void PostInvocable(IInvokable invokable) => _syncContext.Post(static s => ((IInvokable)s!).Invoke(), invokable);
 
     private void OnIsBusyChanged() => IsBusyChanged?.Invoke(this);
 }
