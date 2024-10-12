@@ -1,15 +1,17 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 
 namespace Singulink.UI.Tasks;
 
-/// <summary>
-/// Represents a task runner that executes tasks while managing busy state and ensuring that exceptions propagate to the UI thread.
-/// </summary>
-public class TaskRunner : ITaskRunner
+/// <inheritdoc cref="ITaskRunner"/>
+public partial class TaskRunner : ITaskRunner
 {
+    private static readonly PropertyChangedEventArgs IsBusyPropertyChangedArgs = new(nameof(IsBusy));
+
     private readonly Thread _thread;
     private readonly SynchronizationContext _syncContext;
+    private readonly Action<bool>? _busyChangedAction;
     private readonly object _syncRoot = new();
 
     private int _busyTaskCount;
@@ -19,20 +21,23 @@ public class TaskRunner : ITaskRunner
     /// Initializes a new instance of the <see cref="TaskRunner"/> class using the current UI thread and synchronization context. Must be called on the
     /// UI thread that this task runner will be associated with.
     /// </summary>
+    /// <param name="busyChangedAction">Optional action to execute on the UI thread whenever busy state changes. Can be used to control UI state when busy
+    /// tasks are running, such as disabling input or showing a loading spinner.</param>
     /// <exception cref="InvalidOperationException">A current synchronization context was not found.</exception>
-    public TaskRunner()
+    public TaskRunner(Action<bool>? busyChangedAction = null)
     {
         _syncContext = SynchronizationContext.Current ?? throw new InvalidOperationException("Synchronization context not available on the current thread.");
         _thread = Thread.CurrentThread;
+        _busyChangedAction = busyChangedAction;
     }
 
-    /// <inheritdoc cref="ITaskRunner.IsBusyChanged"/>
-    public event Action<ITaskRunner>? IsBusyChanged;
+    /// <inheritdoc cref="INotifyPropertyChanged.PropertyChanged"/>
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
     /// Occurs whenever all busy tasks have completed as well as when all tasks (including non-busy tasks) have completed.
     /// </summary>
-    private event Action? TasksCompleted;
+    private event Action? BusyTasksOrAllTasksCompleted;
 
     /// <inheritdoc cref="ITaskRunner.IsBusy"/>
     public bool IsBusy => Volatile.Read(ref _busyTaskCount) > 0;
@@ -49,7 +54,7 @@ public class TaskRunner : ITaskRunner
         {
             task = taskFunc();
         }
-        catch (Exception ex) when (!HasThreadAccess)
+        catch (Exception ex)
         {
             var edi = ExceptionDispatchInfo.Capture(ex);
             _syncContext.Post(static s => ((ExceptionDispatchInfo)s!).Throw(), edi);
@@ -72,16 +77,21 @@ public class TaskRunner : ITaskRunner
         {
             await task;
         }
-        catch (Exception ex) when (!HasThreadAccess)
+        catch (Exception ex)
         {
-            var edi = ExceptionDispatchInfo.Capture(ex);
-            _syncContext.Post(static s => ((ExceptionDispatchInfo)s)!.Throw(), edi);
+            CaptureAndPostException(ex);
         }
         finally
         {
             if (!taskWasCompleted)
                 DecrementTaskCount(setBusy);
         }
+    }
+
+    private void CaptureAndPostException(Exception ex)
+    {
+        var edi = ExceptionDispatchInfo.Capture(ex);
+        _syncContext.Post(static s => ((ExceptionDispatchInfo)s)!.Throw(), edi);
     }
 
     /// <inheritdoc cref="ITaskRunner.RunAsBusyAsync(Task)"/>
@@ -225,6 +235,73 @@ public class TaskRunner : ITaskRunner
         }
     }
 
+    /// <inheritdoc cref="ITaskRunner.SendAsync(Func{Task})"/>
+    public async Task SendAsync(Func<Task> taskFunc)
+    {
+        Task task = null;
+
+        if (HasThreadAccess)
+        {
+            task = taskFunc.Invoke();
+
+            if (task.IsCompleted)
+            {
+                await task;
+                return;
+            }
+        }
+
+        IncrementTaskCount(false);
+
+        try
+        {
+            if (task is null)
+            {
+                var tcs = new InvokeFuncTaskCompletionSource<Task>(taskFunc);
+                PostInvocable(tcs);
+                task = await tcs.Task;
+            }
+
+            await task;
+        }
+        finally
+        {
+            DecrementTaskCount(false);
+        }
+    }
+
+    /// <inheritdoc cref="ITaskRunner.SendAsync{TResult}(Func{Task{TResult}})"/>
+    public async Task<TResult> SendAsync<TResult>(Func<Task<TResult>> taskFunc)
+    {
+        Task<TResult> task = null;
+
+        if (HasThreadAccess)
+        {
+            task = taskFunc.Invoke();
+
+            if (task.IsCompleted)
+                return await task;
+        }
+
+        IncrementTaskCount(false);
+
+        try
+        {
+            if (task is null)
+            {
+                var tcs = new InvokeFuncTaskCompletionSource<Task<TResult>>(taskFunc);
+                PostInvocable(tcs);
+                task = await tcs.Task;
+            }
+
+            return await task;
+        }
+        finally
+        {
+            DecrementTaskCount(false);
+        }
+    }
+
     /// <summary>
     /// Waits for all busy tasks to complete, optionally also waiting for non-busy tasks (and posted/sent messages).
     /// </summary>
@@ -234,7 +311,7 @@ public class TaskRunner : ITaskRunner
 
         lock (_syncRoot)
         {
-            if (_busyTaskCount is not 0 || (waitForNonBusyTasks && _nonBusyTaskCount is not 0))
+            if (_busyTaskCount > 0 || (waitForNonBusyTasks && _nonBusyTaskCount > 0))
             {
                 tcs = new();
 
@@ -247,17 +324,18 @@ public class TaskRunner : ITaskRunner
                     }
 
                     tcs.TrySetResult();
-                    TasksCompleted -= OnTasksCompleted;
+                    BusyTasksOrAllTasksCompleted -= OnTasksCompleted;
                 }
 
-                TasksCompleted += OnTasksCompleted;
+                BusyTasksOrAllTasksCompleted += OnTasksCompleted;
             }
         }
 
         if (tcs is not null)
             await tcs.Task;
 
-        // Yield one more message cycle to ensure all currently posted messages are processed.
+        // Yield one more message cycle to ensure all currently posted messages are processed,
+        // i.e. if exceptions were posted in one of the tasks we were waiting for.
 
         if (HasThreadAccess)
             await Task.Yield();
@@ -285,14 +363,6 @@ public class TaskRunner : ITaskRunner
             return;
 
         if (busyCount is 1)
-        {
-            if (HasThreadAccess)
-                OnIsBusyChangedWithCountRollback();
-            else
-                Post(OnIsBusyChanged);
-        }
-
-        void OnIsBusyChangedWithCountRollback()
         {
             try
             {
@@ -330,24 +400,33 @@ public class TaskRunner : ITaskRunner
             {
                 try
                 {
-                    if (HasThreadAccess)
-                        OnIsBusyChanged();
-                    else
-                        Post(OnIsBusyChanged);
+                    OnIsBusyChanged();
                 }
                 finally
                 {
-                    TasksCompleted?.Invoke();
+                    BusyTasksOrAllTasksCompleted?.Invoke();
                 }
             }
             else if (nonBusyCount is 0)
             {
-                TasksCompleted?.Invoke();
+                BusyTasksOrAllTasksCompleted?.Invoke();
             }
         }
     }
 
     private void PostInvocable(IInvokable invokable) => _syncContext.Post(static s => ((IInvokable)s!).Invoke(), invokable);
 
-    private void OnIsBusyChanged() => IsBusyChanged?.Invoke(this);
+    private void OnIsBusyChanged()
+    {
+        if (!HasThreadAccess)
+        {
+            if (_busyChangedAction is not null || PropertyChanged is not null)
+                Post(OnIsBusyChanged);
+
+            return;
+        }
+
+        _busyChangedAction?.Invoke(IsBusy);
+        PropertyChanged?.Invoke(this, IsBusyPropertyChangedArgs);
+    }
 }
