@@ -1,23 +1,23 @@
+using System.ComponentModel;
+
 namespace Singulink.UI.Tasks;
 
 /// <summary>
-/// Represents a task runner than can execute tasks while managing busy state and ensuring exceptions don't get swallowed.
+/// Represents a task runner that executes tasks while managing busy state and ensuring that exceptions propagate to the UI thread.
 /// </summary>
-public interface ITaskRunner
+/// <remarks>
+/// Instances are fully thread-safe and all methods can be safely called from any thread.
+/// </remarks>
+public interface ITaskRunner : INotifyPropertyChanged
 {
-    /// <summary>
-    /// Occurs when the value of <see cref="IsBusy"/> changes. Always executed on the UI thread. Can be used to trigger UI changes when busy tasks are running,
-    /// such as disabling input or showing a loading spinner.
-    /// </summary>
-    public event Action<ITaskRunner> IsBusyChanged;
-
     /// <summary>
     /// Gets a value indicating whether the current thread is the UI thread associated with this task runner.
     /// </summary>
     public bool HasThreadAccess { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the task runner is currently executing busy tasks.
+    /// Gets a value indicating whether the task runner is currently executing busy tasks. Bindings to this property can be used to control UI state when busy
+    /// tasks are running, such as disabling input or showing a loading spinner.
     /// </summary>
     public bool IsBusy { get; }
 
@@ -30,7 +30,7 @@ public interface ITaskRunner
     /// <remarks>
     /// This method does not force the task to run on the UI thread if this method is called from a non-UI thread, but unhandled exceptions from the task will
     /// be propagated to the UI thread. If this method is expected to be called from a non-UI thread, the <see cref="SendAsync(Action)"/> method can be used to
-    /// run some (or all) of the task on the UI thread.
+    /// synchronize some (or all) of the execution to the UI thread.
     /// </remarks>
     public void RunAndForget(bool setBusy, Task task);
 
@@ -54,26 +54,38 @@ public interface ITaskRunner
     public void Post(Action action);
 
     /// <summary>
-    /// Synchronously executes the specified <see cref="Action"/> if the current thread is the UI thread, otherwise asynchronously posts it to the UI thread for
+    /// Synchronously executes the specified action if the current thread is the UI thread, otherwise asynchronously posts it to the UI thread for
     /// execution and returns a task that completes when execution finishes. Tracked as a non-busy task.
     /// </summary>
     public ValueTask SendAsync(Action action);
 
     /// <summary>
-    /// Synchronously executes the specified <see cref="Action{T}"/> if the current thread is the UI thread, otherwise asynchronously posts it to the UI thread
+    /// Synchronously executes the specified action if the current thread is the UI thread, otherwise asynchronously posts it to the UI thread
     /// for execution and returns a task that completes when execution finishes. Tracked as a non-busy task.
     /// </summary>
     public ValueTask SendAsync<T>(T state, Action<T> action);
 
     /// <summary>
-    /// Synchronously executes the specified <see cref="Func{TResult}"/> if the current thread is the UI thread, otherwise asynchronously posts it to the UI
+    /// Synchronously executes the specified function if the current thread is the UI thread, otherwise asynchronously posts it to the UI
     /// thread for execution and returns a task that contains the result when execution finishes. Tracked as a non-busy task.
     /// </summary>
     public ValueTask<TResult> SendAsync<TResult>(Func<TResult> func);
 
     /// <summary>
-    /// Synchronously executes the specified <see cref="Func{T, TResult}"/> if the current thread is the UI thread, otherwise asynchronously posts it to the UI
-    /// thread for execution and returns a task that contains the result when execution finishes. Tracked as a non-busy task.
+    /// Synchronously executes the specified function using the provided state if the current thread is the UI thread, otherwise asynchronously posts them to
+    /// the UI thread for execution and returns a task that contains the result of the function when execution finishes. Tracked as a non-busy task.
     /// </summary>
     public ValueTask<TResult> SendAsync<T, TResult>(T state, Func<T, TResult> func);
+
+    /// <summary>
+    /// Synchronously executes the specified function if the current thread is the UI thread, otherwise asynchronously posts it to the UI thread for execution,
+    /// and then returns a task that completes when the execution of the task returned by the function completes. Tracked as a non-busy task.
+    /// </summary>
+    public Task SendAsync(Func<Task> taskFunc);
+
+    /// <summary>
+    /// Synchronously executes the specified function if the current thread is the UI thread, otherwise asynchronously posts it to the UI thread for execution,
+    /// and then returns a task that contains the result of the task returned by the function when it completes. Tracked as a non-busy task.
+    /// </summary>
+    public Task<TResult> SendAsync<TResult>(Func<Task<TResult>> taskFunc);
 }
