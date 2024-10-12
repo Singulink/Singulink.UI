@@ -1,0 +1,28 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <Authors>Singulink</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>© Singulink. All rights reserved.</Copyright>
+    <PackageIcon>Singulink Icon 128x128.png</PackageIcon>
+
+    <AssemblyOriginatorKeyFile>..\key.snk</AssemblyOriginatorKeyFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
+
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Source Link" Condition="'$(Configuration)' == 'Release'">
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\Resources\Singulink Icon 128x128.png" Pack="true" PackagePath="\"/>
+    <None Include="..\key.snk" Link="key.snk" />
+  </ItemGroup>
+</Project>

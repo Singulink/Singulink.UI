@@ -440,3 +440,9 @@ dotnet_diagnostic.SA1116.severity = none
 
 # SA1117: Parameters should be on same line or separate lines
 dotnet_diagnostic.SA1117.severity = none
+
+# CS9113: Parameter is unread.
+dotnet_diagnostic.CS9113.severity = suggestion
+
+# SA1401: Fields should be private
+dotnet_diagnostic.SA1401.severity = suggestion

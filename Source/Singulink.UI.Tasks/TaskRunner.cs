@@ -3,9 +3,7 @@ using System.Runtime.ExceptionServices;
 
 namespace Singulink.UI.Tasks;
 
-/// <summary>
-/// Represents a task runner that executes tasks while managing busy state and ensuring that exceptions propagate to the UI thread.
-/// </summary>
+/// <inheritdoc cref="ITaskRunner"/>
 public class TaskRunner : ITaskRunner
 {
     private readonly Thread _thread;
@@ -49,7 +47,7 @@ public class TaskRunner : ITaskRunner
         {
             task = taskFunc();
         }
-        catch (Exception ex) when (!HasThreadAccess)
+        catch (Exception ex)
         {
             var edi = ExceptionDispatchInfo.Capture(ex);
             _syncContext.Post(static s => ((ExceptionDispatchInfo)s!).Throw(), edi);
@@ -72,16 +70,21 @@ public class TaskRunner : ITaskRunner
         {
             await task;
         }
-        catch (Exception ex) when (!HasThreadAccess)
+        catch (Exception ex)
         {
-            var edi = ExceptionDispatchInfo.Capture(ex);
-            _syncContext.Post(static s => ((ExceptionDispatchInfo)s)!.Throw(), edi);
+            CaptureAndPostException(ex);
         }
         finally
         {
             if (!taskWasCompleted)
                 DecrementTaskCount(setBusy);
         }
+    }
+
+    private void CaptureAndPostException(Exception ex)
+    {
+        var edi = ExceptionDispatchInfo.Capture(ex);
+        _syncContext.Post(static s => ((ExceptionDispatchInfo)s)!.Throw(), edi);
     }
 
     /// <inheritdoc cref="ITaskRunner.RunAsBusyAsync(Task)"/>
@@ -225,6 +228,73 @@ public class TaskRunner : ITaskRunner
         }
     }
 
+    /// <inheritdoc cref="ITaskRunner.SendAsync(Func{Task})"/>
+    public async Task SendAsync(Func<Task> taskFunc)
+    {
+        Task task = null;
+
+        if (HasThreadAccess)
+        {
+            task = taskFunc.Invoke();
+
+            if (task.IsCompleted)
+            {
+                await task;
+                return;
+            }
+        }
+
+        IncrementTaskCount(false);
+
+        try
+        {
+            if (task is null)
+            {
+                var tcs = new InvokeFuncTaskCompletionSource<Task>(taskFunc);
+                PostInvocable(tcs);
+                task = await tcs.Task;
+            }
+
+            await task;
+        }
+        finally
+        {
+            DecrementTaskCount(false);
+        }
+    }
+
+    /// <inheritdoc cref="ITaskRunner.SendAsync{TResult}(Func{Task{TResult}})"/>
+    public async Task<TResult> SendAsync<TResult>(Func<Task<TResult>> taskFunc)
+    {
+        Task<TResult> task = null;
+
+        if (HasThreadAccess)
+        {
+            task = taskFunc.Invoke();
+
+            if (task.IsCompleted)
+                return await task;
+        }
+
+        IncrementTaskCount(false);
+
+        try
+        {
+            if (task is null)
+            {
+                var tcs = new InvokeFuncTaskCompletionSource<Task<TResult>>(taskFunc);
+                PostInvocable(tcs);
+                task = await tcs.Task;
+            }
+
+            return await task;
+        }
+        finally
+        {
+            DecrementTaskCount(false);
+        }
+    }
+
     /// <summary>
     /// Waits for all busy tasks to complete, optionally also waiting for non-busy tasks (and posted/sent messages).
     /// </summary>
@@ -234,7 +304,7 @@ public class TaskRunner : ITaskRunner
 
         lock (_syncRoot)
         {
-            if (_busyTaskCount is not 0 || (waitForNonBusyTasks && _nonBusyTaskCount is not 0))
+            if (_busyTaskCount > 0 || (waitForNonBusyTasks && _nonBusyTaskCount > 0))
             {
                 tcs = new();
 
@@ -257,7 +327,8 @@ public class TaskRunner : ITaskRunner
         if (tcs is not null)
             await tcs.Task;
 
-        // Yield one more message cycle to ensure all currently posted messages are processed.
+        // Yield one more message cycle to ensure all currently posted messages are processed,
+        // i.e. if exceptions were posted in one of the tasks we were waiting for.
 
         if (HasThreadAccess)
             await Task.Yield();
@@ -287,12 +358,12 @@ public class TaskRunner : ITaskRunner
         if (busyCount is 1)
         {
             if (HasThreadAccess)
-                OnIsBusyChangedWithCountRollback();
+                OnIsBusyChangedWithRollback();
             else
                 Post(OnIsBusyChanged);
         }
 
-        void OnIsBusyChangedWithCountRollback()
+        void OnIsBusyChangedWithRollback()
         {
             try
             {
