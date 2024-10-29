@@ -19,7 +19,7 @@ public abstract class RoutedViewModel : IRoutedViewModel
 public abstract class RoutedViewModel<TParam> : IRoutedViewModel<TParam>
     where TParam : notnull
 {
-    private RequiredSingleSet<TParam> _parameter;
+    private RequiredSetOnce<TParam> _parameter;
 
     /// <inheritdoc cref="IRoutedViewModel{TParam}.Parameter"/>
     public TParam Parameter

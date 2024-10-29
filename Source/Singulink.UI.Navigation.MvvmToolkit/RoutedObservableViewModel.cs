@@ -24,7 +24,7 @@ public abstract class RoutedObservableViewModel : ObservableObject, IRoutedViewM
 public abstract class RoutedObservableViewModel<TParam> : ObservableObject, IRoutedViewModel<TParam>
     where TParam : notnull
 {
-    private RequiredSingleSet<TParam> _parameter;
+    private RequiredSetOnce<TParam> _parameter;
 
     /// <inheritdoc cref="IRoutedViewModel{TParam}.Parameter"/>
     public TParam Parameter
