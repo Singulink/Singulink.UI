@@ -305,7 +305,7 @@ public partial class TaskRunner : ITaskRunner
     /// <summary>
     /// Waits for all busy tasks to complete, optionally also waiting for non-busy tasks (and posted/sent messages).
     /// </summary>
-    public async Task WaitForIdle(bool waitForNonBusyTasks = false)
+    public async Task WaitForIdleAsync(bool waitForNonBusyTasks = false)
     {
         TaskCompletionSource tcs = null;
 
