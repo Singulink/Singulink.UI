@@ -48,6 +48,8 @@ public class App
 
   public void OnAppStart()
   {
+    // Assign to a singleton you can pass around, or register with your DI container here
+
     TaskRunner = new TaskRunner(
       busy => YourRootControl.IsEnabled = !busy);
   }
@@ -70,7 +72,7 @@ public class YourViewModel(ITaskRunner taskRunner)
         Items.Add(item);
       }
     });
-    }
+  }
 }
 ```
 
@@ -98,7 +100,6 @@ public class YourViewModelTests
   }
 }
 ```
-
 
 **Supported Platforms**: .NET 8.0+, any UI framework (i.e. UWP/WinUI, Uno Platform, Avalonia, WPF, etc)
 
