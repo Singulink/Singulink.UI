@@ -1,11 +1,5 @@
-﻿using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Input;
 using Windows.System;
-
-
-
-
-
-
 
 #if __ANDROID__
 using Android.Views.InputMethods;
@@ -69,7 +63,9 @@ public static class KeyActions
 #endif
         }
         else
+        {
             throw new ArgumentException($"Unsupported control type '{d.GetType()}'.", nameof(d));
+        }
     }
 
     private static void OnKeyUp(object sender, KeyRoutedEventArgs e)
