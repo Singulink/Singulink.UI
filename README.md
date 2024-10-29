@@ -39,11 +39,94 @@ There is an additional 'Singulink.UI.Navigation.MvvmToolkit' package that provid
 
 Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with integrated support for managing UI busy-state while tasks are running. Supports running "fire-and-forget" tasks that can be tracked and fully tested. Inspired by [AmbientTasks](https://github.com/Techsola/AmbientTasks) (thanks [@jnm2](https://github.com/jnm2))
 
+Example fire-and-forget usage:
+
+```cs
+public class App
+{
+  public static ITaskRunner TaskRunner { get; private set; }
+
+  public void OnAppStart()
+  {
+    TaskRunner = new TaskRunner(
+      busy => YourRootControl.IsEnabled = !busy);
+  }
+}
+
+public class YourViewModel(ITaskRunner taskRunner)
+{
+  public ObservableCollection<Item> Items { get; } = [];
+
+  public void OnNavigatedTo()
+  {
+    // YourRootControl.IsEnabled will be false while this runs
+
+    taskRunner.RunAndForget(setBusy: true, async () =>
+    {
+      var items = await LoadItemsAsync();
+
+      foreach (var item in items)
+      {
+        Items.Add(item);
+      }
+    });
+    }
+}
+```
+
+Our philosophy is that testing view models without a proper synchronization context is asking for trouble, so `TaskRunner` requires one. The [AsyncEx.Context](https://github.com/StephenCleary/AsyncEx) library has a perfect `AsyncContext` class that can be used for this purpose. Your test would then look something like this:
+
+```cs
+[TestClass]
+public class YourViewModelTests
+{
+  [TestMethod]
+  public void TestLoadsItemsAsync()
+  {
+    AsyncContext.Run(async () =>
+    {
+      var taskRunner = new TaskRunner();
+
+      var vm = new YourViewModel(taskRunner);
+      vm.OnNavigatedTo();
+
+      // Wait for all busy tasks to complete
+      await taskRunner.WaitForIdleAsync();
+
+      Assert.AreEqual(3, vm.Items.Count);
+    });
+  }
+}
+```
+
+
 **Supported Platforms**: .NET 8.0+, any UI framework (i.e. UWP/WinUI, Uno Platform, Avalonia, WPF, etc)
 
 ### Singulink.UI.Xaml.WinUI
 
 Contains useful XAML extensions (behaviors, converters, static convert methods for use with `x:Bind`) for WinUI and Uno-based applications.
+
+Here is a small sampling of the massive collection of static convert methods available:
+
+```cs
+xmlns:suxc="using:Singulink.UI.Xaml.Converters"
+
+IsEnabled="{x:Bind suxc:If.Zero(Model.Items.Count)}"
+IsEnabled="{x:Bind suxc:If.NotZero(Model.Items.Count)}"
+IsEnabled="{x:Bind suxc:If.Null(Model.Item)}"
+IsEnabled="{x:Bind suxc:If.NotNullOrWhiteSpace(Model.Name)}"
+IsEnabled="{x:Bind suxc:If.NotDefault(Model.SomeEnumValue)}"
+
+Visibility="{x:Bind suxc:Visible.IfEqualsAnyString(Model.EnumValue, 'EnumName1', 'EnumName2')}"
+Visibility="{x:Bind suxc:Visible.IfFocused(SomeOtherControl.FocusState)}"
+Visibility="{x:Bind suxc:Visible.IfFalse(Model.Hide)}"
+
+Opacity="{x:Bind suxc:Opaque.IfTrue(Model.ShowValue)}"}
+
+Uri="{x:Bind suxc:Uri.Email(Model.EmailString)}"
+Uri="{x:Bind suxc:Uri.Phone(Model.PhoneString)}"
+Uri="{x:Bind suxc:Uri.Website(Model.WebsiteString)}"
+```
 
 **Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK), Uno Platform 5.2+
 
