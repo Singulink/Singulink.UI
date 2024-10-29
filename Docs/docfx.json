@@ -17,6 +17,7 @@
         }
       ],
       "dest": "api",
+      "filter": "filterConfig.yml",
       "memberLayout": "separatePages",
       "includeExplicitInterfaceImplementations": true,
       "disableGitFeatures": true,
