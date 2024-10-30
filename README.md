@@ -37,7 +37,7 @@ There is an additional 'Singulink.UI.Navigation.MvvmToolkit' package that provid
 
 ### Singulink.UI.Tasks
 
-Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with integrated support for managing UI busy-state while tasks are running. Supports running "fire-and-forget" tasks that can be tracked and fully tested. Inspired by [AmbientTasks](https://github.com/Techsola/AmbientTasks) (thanks [@jnm2](https://github.com/jnm2))
+Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with integrated support for managing UI busy-state while tasks are running. Supports running "fire-and-forget" tasks that can be tracked and fully tested. Inspired by [AmbientTasks](https://github.com/Techsola/AmbientTasks) (thanks [@jnm2](https://github.com/jnm2)!).
 
 Example fire-and-forget usage:
 
@@ -118,7 +118,7 @@ IsEnabled="{x:Bind suxc:If.Null(Model.Item)}"
 IsEnabled="{x:Bind suxc:If.NotNullOrWhiteSpace(Model.Name)}"
 IsEnabled="{x:Bind suxc:If.NotDefault(Model.SomeEnumValue)}"
 
-Visibility="{x:Bind suxc:Visible.IfEqualsAnyString(Model.EnumValue, 'EnumName1', 'EnumName2')}"
+Visibility="{x:Bind suxc:Visible.IfToStringEqualsAny(Model.EnumValue, 'EnumName1', 'EnumName2')}"
 Visibility="{x:Bind suxc:Visible.IfFocused(SomeOtherControl.FocusState)}"
 Visibility="{x:Bind suxc:Visible.IfFalse(Model.Hide)}"
 
