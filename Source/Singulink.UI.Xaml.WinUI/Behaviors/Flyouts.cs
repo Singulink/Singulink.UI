@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Documents;
 
 namespace Singulink.UI.Xaml.Behaviors;
@@ -6,7 +6,7 @@ namespace Singulink.UI.Xaml.Behaviors;
 /// <summary>
 /// Provides attached properties for working with flyouts.
 /// </summary>
-public partial class Flyouts : DependencyObject
+public static class Flyouts
 {
     #region CloseAllOnClick
 
