@@ -7,7 +7,7 @@
     <!-- Ensures the .xr.xml files are generated in a proper layout folder -->
     <GenerateLibraryLayout>true</GenerateLibraryLayout>
 
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <PackageTags>WinUI; Uno Platform; Navigation; Mvvm; Toolkit;</PackageTags>
     <Description>WinUI 3 / Uno Platform support for the Singulink.Navigation framework.</Description>
   </PropertyGroup>
