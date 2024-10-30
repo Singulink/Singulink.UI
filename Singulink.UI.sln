@@ -23,6 +23,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{66927C86-3EBF-46DA-9D63-2FB5B5795F89}"
 	ProjectSection(SolutionItems) = preProject
 		Docs\docfx.json = Docs\docfx.json
+		Docs\filterConfig.yml = Docs\filterConfig.yml
 		Docs\index.md = Docs\index.md
 		Docs\toc.yml = Docs\toc.yml
 	EndProjectSection
@@ -45,7 +46,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Singulink.UI.Navigation", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Singulink.UI.Navigation.WinUI", "Source\Singulink.UI.Navigation.WinUI\Singulink.UI.Navigation.WinUI.csproj", "{25B100D6-5BD6-4022-A8D1-556AF791D848}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Singulink.UI.Navigation.MvvmToolkit", "Source\Singulink.UI.Navigation.MvvmToolkit\Singulink.UI.Navigation.MvvmToolkit.csproj", "{1D1874F7-1E70-47D4-BDAB-0213F503FC6F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Singulink.UI.Navigation.MvvmToolkit", "Source\Singulink.UI.Navigation.MvvmToolkit\Singulink.UI.Navigation.MvvmToolkit.csproj", "{1D1874F7-1E70-47D4-BDAB-0213F503FC6F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
