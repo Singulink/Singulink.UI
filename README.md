@@ -29,11 +29,11 @@ This package is part of our **Singulink Libraries** collection. Visit https://gi
 
 ### Singulink.UI.Navigation
 
-Strongly-typed AOT-friendly navigation framework with comprehensive deep-linking support. The base library is UI framework-agnostic and can be referenced from framework-agnostic view model projects, but currently only a WinUI/Uno-specific `INavigator` implementation is provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. Can be extended to support other UI frameworks, and contributions are welcome.
+Strongly-typed navigation framework with comprehensive deep-linking support. The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. We plan to add more UI framework implementations (probably WPF and Avalonia initially) shortly after the base library is released in a public state.
 
-There is an additional 'Singulink.UI.Navigation.MvvmToolkit' package that provides base implementations of routed view models that inherit from the MVVM Community Toolkit's `ObservableObject` type.
+There is an additional `Singulink.UI.Navigation.MvvmToolkit` package that provides base implementations of routed view models that inherit from the various MVVM Community Toolkit `ObservableObject` types that simplifies usage when working with that library.
 
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK), Uno Platform 5.2+
+**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.6+), Uno Platform 5.2+
 
 ### Singulink.UI.Tasks
 
@@ -93,7 +93,7 @@ public class YourViewModelTests
       vm.OnNavigatedTo();
 
       // Wait for all busy tasks to complete
-      await taskRunner.WaitForIdleAsync();
+      await taskRunner.WaitForIdleAsync(waitForNonBusyTasks: false);
 
       Assert.AreEqual(3, vm.Items.Count);
     });
@@ -107,29 +107,29 @@ public class YourViewModelTests
 
 Contains useful XAML extensions (behaviors, converters, static convert methods for use with `x:Bind`) for WinUI and Uno-based applications.
 
-Here is a small sampling of the massive collection of static convert methods available:
+Here is a small sampling of the huge collection of static convert methods available:
 
 ```cs
-xmlns:suxc="using:Singulink.UI.Xaml.Converters"
+xmlns:c="using:Singulink.UI.Xaml.Converters"
 
-IsEnabled="{x:Bind suxc:If.Zero(Model.Items.Count)}"
-IsEnabled="{x:Bind suxc:If.NotZero(Model.Items.Count)}"
-IsEnabled="{x:Bind suxc:If.Null(Model.Item)}"
-IsEnabled="{x:Bind suxc:If.NotNullOrWhiteSpace(Model.Name)}"
-IsEnabled="{x:Bind suxc:If.NotDefault(Model.SomeEnumValue)}"
+IsEnabled="{x:Bind c:If.Zero(Model.Items.Count)}"
+IsEnabled="{x:Bind c:If.NotZero(Model.Items.Count)}"
+IsEnabled="{x:Bind c:If.Null(Model.Item)}"
+IsEnabled="{x:Bind c:If.NotNullOrWhiteSpace(Model.Name)}"
+IsEnabled="{x:Bind c:If.NotDefault(Model.SomeEnumValue)}"
 
-Visibility="{x:Bind suxc:Visible.IfToStringEqualsAny(Model.EnumValue, 'EnumName1', 'EnumName2')}"
-Visibility="{x:Bind suxc:Visible.IfFocused(SomeOtherControl.FocusState)}"
-Visibility="{x:Bind suxc:Visible.IfFalse(Model.Hide)}"
+Visibility="{x:Bind c:Visible.IfToStringEqualsAny(Model.EnumValue, 'EnumName1', 'EnumName2')}"
+Visibility="{x:Bind c:Visible.IfFocused(SomeOtherControl.FocusState)}"
+Visibility="{x:Bind c:Visible.IfFalse(Model.Hide)}"
 
-Opacity="{x:Bind suxc:Opaque.IfTrue(Model.ShowValue)}"}
+Opacity="{x:Bind c:Opaque.IfTrue(Model.ShowValue)}"}
 
-Uri="{x:Bind suxc:Uri.Email(Model.EmailString)}"
-Uri="{x:Bind suxc:Uri.Phone(Model.PhoneString)}"
-Uri="{x:Bind suxc:Uri.Website(Model.WebsiteString)}"
+Uri="{x:Bind c:Uri.Email(Model.EmailString)}"
+Uri="{x:Bind c:Uri.Phone(Model.PhoneString)}"
+Uri="{x:Bind c:Uri.Website(Model.WebsiteString)}"
 ```
 
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK), Uno Platform 5.2+
+**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.6+), Uno Platform 5.2+
 
 ## Further Reading
 
