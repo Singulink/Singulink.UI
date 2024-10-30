@@ -46,7 +46,7 @@ public partial class TaskRunner : ITaskRunner
     public bool HasThreadAccess => Thread.CurrentThread == _thread;
 
     /// <inheritdoc cref="ITaskRunner.RunAndForget(bool, Func{Task})"/>
-    public void RunAndForget(bool setBusy, Func<Task> taskFunc)
+    public void RunAndForget(bool asBusyTask, Func<Task> taskFunc)
     {
         Task task;
 
@@ -62,16 +62,16 @@ public partial class TaskRunner : ITaskRunner
             return;
         }
 
-        RunAndForget(setBusy, task);
+        RunAndForget(asBusyTask, task);
     }
 
     /// <inheritdoc cref="ITaskRunner.RunAndForget(bool, Task)"/>
-    public async void RunAndForget(bool setBusy, Task task)
+    public async void RunAndForget(bool asBusyTask, Task task)
     {
         bool taskWasCompleted = task.IsCompleted;
 
         if (!taskWasCompleted)
-            IncrementTaskCount(setBusy);
+            IncrementTaskCount(asBusyTask);
 
         try
         {
@@ -84,7 +84,7 @@ public partial class TaskRunner : ITaskRunner
         finally
         {
             if (!taskWasCompleted)
-                DecrementTaskCount(setBusy);
+                DecrementTaskCount(asBusyTask);
         }
     }
 

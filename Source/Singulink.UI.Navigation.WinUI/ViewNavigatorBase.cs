@@ -5,9 +5,6 @@ namespace Singulink.UI.Navigation;
 /// <summary>
 /// Represents a navigator that sets the active view for a control.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="ViewNavigatorBase{TTargetControl}"/> class using the specified function to get the target control.
-/// </remarks>
 public abstract class ViewNavigatorBase<TNavControl>(TNavControl navControl) : IViewNavigator where TNavControl : UIElement
 {
     /// <summary>
