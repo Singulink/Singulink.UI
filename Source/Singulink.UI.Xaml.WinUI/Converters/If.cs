@@ -75,11 +75,8 @@ public static class If
     /// <summary>
     /// Returns <see langword="true"/> if the specified value is equal to zero; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool Zero(object? value)
+    public static bool Zero(object value)
     {
-        if (value is null)
-            return false;
-
         var type = value.GetType();
 
         if (!type.IsPrimitive && !type.IsEnum && type != typeof(decimal))
@@ -97,7 +94,7 @@ public static class If
     /// <summary>
     /// Returns <see langword="true"/> if the specified value is not equal to zero; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool NotZero(object? value) => value is null ? false : !Zero(value);
+    public static bool NotZero(object value) => !Zero(value);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value is not equal to zero; otherwise <see langword="false"/>.
@@ -105,96 +102,107 @@ public static class If
     public static bool NotZero<T>(T value) where T : unmanaged => !Zero(value);
 
     /// <summary>
-    /// Returns <see langword="true"/> if the specified value is <see langword="null"/> or an empty string; otherwise to <see langword="false"/>.
+    /// Returns <see langword="true"/> if the specified focus state is any state other than <see cref="FocusState.Unfocused"/>; otherwise <see
+    /// langword="false"/>.
+    /// </summary>
+    public static bool Focused(FocusState focusState) => focusState is not FocusState.Unfocused;
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the specified focus state is <see cref="FocusState.Unfocused"/>; otherwise <see langword="false"/>.
+    /// </summary>
+    public static bool Unfocused(FocusState focusState) => focusState is FocusState.Unfocused;
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the specified value is <see langword="null"/> or an empty string; otherwise <see langword="false"/>.
     /// </summary>
     public static bool NullOrEmpty(string? value) => string.IsNullOrEmpty(value);
 
     /// <summary>
-    /// Returns <see langword="true"/> if the specified value is not <see langword="null"/> or an empty string; otherwise to <see langword="false"/>.
+    /// Returns <see langword="true"/> if the specified value is not <see langword="null"/> or an empty string; otherwise <see langword="false"/>.
     /// </summary>
     public static bool NotNullOrEmpty(string? value) => !string.IsNullOrEmpty(value);
 
     /// <summary>
-    /// Returns <see langword="true"/> if the specified value is <see langword="null"/>, empty, or consists only of white-space characters; otherwise to <see
+    /// Returns <see langword="true"/> if the specified value is <see langword="null"/>, empty, or consists only of white-space characters; otherwise <see
     /// langword="false"/>.
     /// </summary>
     public static bool NullOrWhiteSpace(string? value) => string.IsNullOrWhiteSpace(value);
 
     /// <summary>
-    /// Returns <see langword="true"/> if the specified value is not <see langword="null"/>, empty, or consists only of white-space characters; otherwise to
-    /// <see langword="false"/>.
+    /// Returns <see langword="true"/> if the specified value is not <see langword="null"/>, empty, or consists only of white-space characters; otherwise <see
+    /// langword="false"/>.
     /// </summary>
     public static bool NotNullOrWhiteSpace(string? value) => !string.IsNullOrWhiteSpace(value);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool EqualsString(object? value, string match) => value?.ToString() == match;
+    public static bool ToStringEquals(object? value, string match) => value?.ToString() == match;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool EqualsString<T>(T value, string match) => value?.ToString() == match;
+    public static bool ToStringEquals<T>(T value, string match) => value?.ToString() == match;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals any of the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool EqualsAnyString(object? value, string match1, string match2)
+    public static bool ToStringEqualsAny(object? value, string match1, string match2)
         => value?.ToString() is string s && (s == match1 || s == match2);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals any of the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool EqualsAnyString<T>(T value, string match1, string match2)
+    public static bool ToStringEqualsAny<T>(T value, string match1, string match2)
         => value?.ToString() is string s && (s == match1 || s == match2);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals any of the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool EqualsAnyString(object? value, string match1, string match2, string match3)
+    public static bool ToStringEqualsAny(object? value, string match1, string match2, string match3)
         => value?.ToString() is string s && (s == match1 || s == match2 || s == match3);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals any of the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool EqualsAnyString<T>(T value, string match1, string match2, string match3)
+    public static bool ToStringEqualsAny<T>(T value, string match1, string match2, string match3)
         => value?.ToString() is string s && (s == match1 || s == match2 || s == match3);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool NotEqualsString(object? value, string match) => value?.ToString() != match;
+    public static bool ToStringNotEquals(object? value, string match) => value?.ToString() != match;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool NotEqualsString<T>(T value, string match) => value?.ToString() != match;
+    public static bool ToStringNotEquals<T>(T value, string match) => value?.ToString() != match;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// langword="false"/>.
     /// </summary>
-    public static bool NotEqualsAllStrings(object? value, string match1, string match2)
+    public static bool ToStringNotEqualsAny(object? value, string match1, string match2)
         => value?.ToString() is var s && s != match1 && s != match2;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// langword="false"/>.
     /// </summary>
-    public static bool NotEqualsAllStrings<T>(T value, string match1, string match2)
+    public static bool ToStringNotEqualsAny<T>(T value, string match1, string match2)
         => value?.ToString() is var s && s != match1 && s != match2;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// langword="false"/>.
     /// </summary>
-    public static bool NotEqualsAllStrings(object? value, string match1, string match2, string match3)
+    public static bool ToStringNotEqualsAny(object? value, string match1, string match2, string match3)
         => value?.ToString() is var s && s != match1 && s != match2 && s != match3;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// langword="false"/>.
     /// </summary>
-    public static bool NotEqualsAllStrings<T>(T value, string match1, string match2, string match3)
+    public static bool ToStringNotEqualsAny<T>(T value, string match1, string match2, string match3)
         => value?.ToString() is var s && s != match1 && s != match2 && s != match3;
 }
