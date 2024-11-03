@@ -1,5 +1,5 @@
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Documents;
+using Microsoft.UI.Xaml.Media;
 
 namespace Singulink.UI.Xaml.Behaviors;
 

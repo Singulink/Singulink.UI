@@ -3,7 +3,7 @@
     <TargetFrameworks>net8.0;net8.0-windows10.0.19041</TargetFrameworks>
 
     <Version>1.0.1</Version>
-    <PackageTags>WinUI; Uno Platform; Mvvm; Async;</PackageTags>
+    <PackageTags>WinUI; Uno Platform; Wpf; Avalonia; Mvvm; Async;</PackageTags>
     <Description>DI-friendly and UI framework-agnostic task runner/dispatcher with integrated support for managing UI busy-state while tasks are running.</Description>
   </PropertyGroup>
 </Project>

@@ -32,7 +32,8 @@ public static class Visible
     public static Visibility IfFalse(bool value) => !value ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
-    /// Returns <see cref="Visibility.Visible"/> if the specified value is <see langword="false"/>; otherwise <see cref="Visibility.Collapsed"/>.
+    /// Returns <see cref="Visibility.Visible"/> if the specified value is <see langword="false"/> or <see langword="null"/>; otherwise <see
+    /// cref="Visibility.Collapsed"/>.
     /// </summary>
     public static Visibility IfFalseOrNull(bool? value) => value is not true ? Visibility.Visible : Visibility.Collapsed;
 

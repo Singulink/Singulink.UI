@@ -35,9 +35,4 @@
     <None Include="..\..\Resources\Singulink Icon 128x128.png" Pack="true" PackagePath="\"/>
     <None Include="..\key.snk" Link="key.snk" />
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="NuGet.Build.Tasks.Pack" Version="6.11.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
-  </ItemGroup>
 </Project>

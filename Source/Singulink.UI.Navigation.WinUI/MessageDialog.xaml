@@ -7,23 +7,25 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   Title="{x:Bind Model.Title}">
 
+  <ContentDialog.Resources>
+    <Style x:Key="DefaultMessageDialogAccentButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+      <Setter Property="Padding" Value="5"/>
+      <Setter Property="MinWidth" Value="80"/>
+    </Style>
+
+    <Style x:Key="DefaultMessageDialogNormalButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+      <Setter Property="Padding" Value="5"/>
+      <Setter Property="MinWidth" Value="80"/>
+    </Style>
+
+    <Thickness x:Key="ContentDialogPadding">12</Thickness>
+  </ContentDialog.Resources>
+
   <Grid RowDefinitions="*,Auto" MaxWidth="750">
     <ScrollViewer>
       <TextBlock Text="{x:Bind Model.Message}" TextWrapping="Wrap" />
     </ScrollViewer>
 
-    <ItemsControl x:Name="ButtonItemsControl" Grid.Row="1" Margin="0,20,0,0" HorizontalAlignment="Right" ItemsSource="{x:Bind Model.ButtonLabels}">
-      <ItemsControl.ItemsPanel>
-        <ItemsPanelTemplate>
-          <StackPanel Orientation="Horizontal" />
-        </ItemsPanelTemplate>
-      </ItemsControl.ItemsPanel>
-
-      <ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="sys:String">
-          <Button Content="{x:Bind}" Click="OnButtonClick" />
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
+    <StackPanel x:Name="ButtonsPanel" Orientation="Horizontal" Grid.Row="1" Margin="0,20,0,0" HorizontalAlignment="Right" Spacing="8" />
   </Grid>
 </ContentDialog>
