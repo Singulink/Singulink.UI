@@ -33,7 +33,7 @@ Strongly-typed navigation framework with comprehensive deep-linking support. The
 
 There is an additional `Singulink.UI.Navigation.MvvmToolkit` package that provides base implementations of routed view models that inherit from the various MVVM Community Toolkit `ObservableObject` types that simplifies usage when working with that library.
 
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.6+), Uno Platform 5.2+
+**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.6+), Uno Platform 5.0+
 
 ### Singulink.UI.Tasks
 
@@ -76,7 +76,7 @@ public class YourViewModel(ITaskRunner taskRunner)
 }
 ```
 
-Our philosophy is that testing view models without a proper synchronization context is asking for trouble, so `TaskRunner` requires one. The [AsyncEx.Context](https://github.com/StephenCleary/AsyncEx) library has a perfect `AsyncContext` class that can be used for this purpose. Your test would then look something like this:
+Our philosophy is that testing view models without a proper synchronization context that simulates a main UI thread is asking for trouble, so `TaskRunner` requires one. The [AsyncEx.Context](https://github.com/StephenCleary/AsyncEx) library has a perfect `AsyncContext` class that can be used for this purpose. Your test would then look something like this:
 
 ```cs
 [TestClass]
@@ -129,7 +129,7 @@ Uri="{x:Bind c:Uri.Phone(Model.PhoneString)}"
 Uri="{x:Bind c:Uri.Website(Model.WebsiteString)}"
 ```
 
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.6+), Uno Platform 5.2+
+**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.6+), Uno Platform 5.0+
 
 ## Further Reading
 
