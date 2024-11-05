@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Singulink.UI.Navigation;
 
 /// <content>
-/// Provides ....
+/// Provides the nested <see cref="RouteInfo"/> and <see cref="RouteInfoItem"/> classes.
 /// </content>
 public partial class Navigator
 {
@@ -24,7 +24,7 @@ public partial class Navigator
 
         public UIElement? View { get; private set; }
 
-        public IRoutedViewModelBase? ViewModel => (View as IRoutedView)?.Model;
+        public IRoutedViewModelBase? ViewModel { get; private set; }
 
         public bool IsFirstNavigation { get; set; } = true;
 
@@ -36,9 +36,14 @@ public partial class Navigator
         [MemberNotNull(nameof(ViewModel))]
         public void EnsureViewCreatedAndModelInitialized()
         {
-            View ??= _createViewFunc();
-            Debug.Assert(ViewModel is not null, "View model should not be null after view is created.");
-            SpecifiedRoute.Route.InitializeViewModel(ViewModel, SpecifiedRoute);
+            if (View is null)
+            {
+                View = _createViewFunc();
+                ViewModel = ((IRoutedView)View).Model ?? throw new InvalidOperationException($"View of type '{View.GetType()}' returned a null view model. View model must be created in the view's constructor.");
+                SpecifiedRoute.Route.InitializeViewModel(ViewModel, SpecifiedRoute);
+            }
+
+            Debug.Assert(ViewModel is not null, "View model should not be null after view is set.");
         }
     }
 }
