@@ -8,7 +8,7 @@
     <GenerateLibraryLayout>true</GenerateLibraryLayout>
     <UseWinUI>true</UseWinUI>
 
-    <Version>2.1.1</Version>
+    <Version>2.2</Version>
     <PackageTags>WinUI; Uno Platform; Behaviors; Convert; Converters; Mvvm; Toolkit;</PackageTags>
     <Description>Singulink WinUI 3 / Uno Platform extensions (behaviors, converters, static convert methods).</Description>
   </PropertyGroup>

@@ -8,7 +8,24 @@ namespace Singulink.UI.Xaml.Converters;
 /// </summary>
 public static class Uri
 {
-    #region Conversions to Uri
+    /// <summary>
+    /// Converts the specified string to a URI.
+    /// </summary>
+    public static SysUri? FromString(string? uriString)
+    {
+        if (string.IsNullOrWhiteSpace(uriString))
+            return null;
+
+        try
+        {
+            return new SysUri(uriString.Trim());
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI3] Failed to convert string '{uriString}' to URI: " + ex);
+            return null;
+        }
+    }
 
     /// <summary>
     /// Converts the specified phone number string to a phone URI.
@@ -24,7 +41,7 @@ public static class Uri
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning("[Singulink.UI.Xaml.WinUI3] Failed to convert phone number string to URI: " + ex);
+            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI3] Failed to convert phone number string '{phoneNumber}' to URI: " + ex);
             return null;
         }
     }
@@ -43,7 +60,7 @@ public static class Uri
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning("[Singulink.UI.Xaml.WinUI3] Failed to convert email string to URI: " + ex);
+            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI3] Failed to convert email string '{email}' to URI: " + ex);
             return null;
         }
     }
@@ -67,10 +84,8 @@ public static class Uri
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning("[Singulink.UI.Xaml.WinUI3] Failed to convert website string to URI: " + ex);
+            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI3] Failed to convert website string '{website}' to URI: " + ex);
             return null;
         }
     }
-
-    #endregion
 }
