@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml.Media;
+
 namespace Singulink.UI.Navigation;
 
 /// <content>
@@ -8,8 +10,14 @@ public partial class Navigator
     /// <inheritdoc cref="INavigator.GoBackAsync"/>
     public async Task<NavigationResult> GoBackAsync(bool userInitiated)
     {
+        EnsureThreadAccess();
+        bool closedPopups = CloseLightDismissPopups();
+
         if (userInitiated)
         {
+            if (closedPopups)
+                return NavigationResult.Success;
+
             if (!CanUserGoBack)
                 return NavigationResult.Cancelled;
 
@@ -31,6 +39,9 @@ public partial class Navigator
     /// <inheritdoc cref="INavigator.GoForwardAsync"/>
     public async Task<NavigationResult> GoForwardAsync(bool userInitiated)
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         if (userInitiated && !CanUserGoForward)
             return NavigationResult.Cancelled;
 
@@ -40,9 +51,26 @@ public partial class Navigator
     /// <inheritdoc cref="INavigator.RefreshAsync"/>
     public async Task<NavigationResult> RefreshAsync(bool userInitiated)
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         if (userInitiated && IsNavigating)
             return NavigationResult.Cancelled;
 
         return await NavigateAsync(NavigationType.Refresh, null, null);
+    }
+
+    private bool CloseLightDismissPopups()
+    {
+        var popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(_rootViewNavigator.XamlRoot);
+        bool closedPopup = false;
+
+        foreach (var f in popups.Reverse().TakeWhile(f => f.IsLightDismissEnabled))
+        {
+            f.IsOpen = false;
+            closedPopup = true;
+        }
+
+        return closedPopup;
     }
 }

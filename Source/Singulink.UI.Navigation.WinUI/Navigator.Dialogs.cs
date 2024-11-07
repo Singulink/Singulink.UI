@@ -29,6 +29,7 @@ public partial class Navigator
         EnsureThreadAccess();
         EnsureCanShowDialog();
         EnsureDialogIsTopDialog(requestingParentDialog);
+        CloseLightDismissPopups();
 
         var dn = _vmToDialogNavigator.GetValue(viewModel, vm => {
             var dialog = CreateDialogFor<TViewModel>();
@@ -46,6 +47,7 @@ public partial class Navigator
         EnsureThreadAccess();
         EnsureCanShowDialog();
         EnsureDialogIsTopDialog(requestingParentDialog);
+        CloseLightDismissPopups();
 
         var dialog = CreateDialogFor<TViewModel>();
         var dialogNavigator = new DialogNavigator(this, dialog);
@@ -69,6 +71,7 @@ public partial class Navigator
 #pragma warning restore CS1998
 
         EnsureThreadAccess();
+        CloseLightDismissPopups();
 
         if (!_dialogInfoStack.TryPeek(out var dialogInfo) || dialogInfo.Dialog != dialog)
             throw new InvalidOperationException("Dialog is not currently the top showing dialog.");

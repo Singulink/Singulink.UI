@@ -10,6 +10,9 @@ public partial class Navigator
     /// <inheritdoc cref="INavigator.NavigatePartialAsync(RouteOptions)"/>
     public async Task<NavigationResult> NavigatePartialAsync(RouteOptions routeOptions)
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         return await NavigateAsync(NavigationType.New, null, routeOptions);
     }
 
@@ -20,6 +23,9 @@ public partial class Navigator
         where TParentViewModel : class
         where TNestedViewModel : class
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         return await NavigatePartialAsync(typeof(TParentViewModel), [nestedRoute], routeOptions);
     }
 
@@ -32,6 +38,9 @@ public partial class Navigator
         where TNestedViewModel1 : class
         where TNestedViewModel2 : class
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         return await NavigatePartialAsync(typeof(TParentViewModel), [nestedRoute1, nestedRoute2], routeOptions);
     }
 
@@ -46,6 +55,9 @@ public partial class Navigator
         where TNestedViewModel2 : class
         where TNestedViewModel3 : class
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         return await NavigatePartialAsync(typeof(TParentViewModel), [nestedRoute1, nestedRoute2, nestedRoute3], routeOptions);
     }
 

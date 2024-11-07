@@ -14,6 +14,7 @@ public partial class Navigator
     public async Task<NavigationResult> NavigateAsync(string route)
     {
         EnsureThreadAccess();
+        CloseLightDismissPopups();
 
         string anchor = null;
         int anchorIndex = route.IndexOf('#');
@@ -43,6 +44,9 @@ public partial class Navigator
     public async Task<NavigationResult> NavigateAsync<TViewModel>(ISpecifiedRootRoute<TViewModel> route, RouteOptions? routeOptions = null)
         where TViewModel : class
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         return await NavigateNewWithEnsureMatched([route], routeOptions);
     }
 
@@ -54,6 +58,9 @@ public partial class Navigator
         where TParentViewModel : class
         where TNestedViewModel : class
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         return await NavigateNewWithEnsureMatched([parentRoute, nestedRoute], routeOptions);
     }
 
@@ -67,6 +74,9 @@ public partial class Navigator
         where TNestedViewModel1 : class
         where TNestedViewModel2 : class
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         return await NavigateNewWithEnsureMatched([parentRoute, nestedRoute1, nestedRoute2], routeOptions);
     }
 
@@ -82,6 +92,9 @@ public partial class Navigator
         where TNestedViewModel2 : class
         where TNestedViewModel3 : class
     {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
         return await NavigateNewWithEnsureMatched([parentRoute, nestedRoute1, nestedRoute2, nestedRoute3], routeOptions);
     }
 
@@ -122,8 +135,6 @@ public partial class Navigator
         List<ISpecifiedRoute>? requestedSpecifiedRouteItems,
         RouteOptions? routeOptions)
     {
-        EnsureThreadAccess();
-
         if (_dialogInfoStack.Count > 0)
             throw new InvalidOperationException("Cannot navigate while a dialog is shown.");
 
