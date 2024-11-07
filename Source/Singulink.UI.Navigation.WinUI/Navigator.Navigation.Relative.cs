@@ -62,13 +62,18 @@ public partial class Navigator
 
     private bool CloseLightDismissPopups()
     {
-        var popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(_rootViewNavigator.XamlRoot);
+        var xamlRoot = _rootViewNavigator.XamlRoot;
         bool closedPopup = false;
 
-        foreach (var f in popups.Reverse().TakeWhile(f => f.IsLightDismissEnabled))
+        if (xamlRoot is not null)
         {
-            f.IsOpen = false;
-            closedPopup = true;
+            var popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(xamlRoot);
+
+            foreach (var popup in popups.Where(p => p.IsLightDismissEnabled))
+            {
+                popup.IsOpen = false;
+                closedPopup = true;
+            }
         }
 
         return closedPopup;

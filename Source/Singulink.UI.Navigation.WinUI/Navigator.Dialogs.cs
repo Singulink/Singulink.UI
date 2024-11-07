@@ -122,7 +122,7 @@ public partial class Navigator
             throw new KeyNotFoundException($"No dialog registered for view model of type '{typeof(TViewModel)}'.");
 
         var dialog = ctorFunc.Invoke();
-        dialog.XamlRoot = _rootViewNavigator.XamlRoot;
+        dialog.XamlRoot = _rootViewNavigator.XamlRoot ?? throw new InvalidOperationException("XamlRoot is not available");
 
         dialog.PrimaryButtonClick += OnDialogButtonClick;
         dialog.SecondaryButtonClick += OnDialogButtonClick;

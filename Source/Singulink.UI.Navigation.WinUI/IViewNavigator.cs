@@ -7,7 +7,7 @@ namespace Singulink.UI.Navigation;
 /// </summary>
 public interface IViewNavigator
 {
-    internal XamlRoot XamlRoot { get; }
+    internal XamlRoot? XamlRoot { get; }
 
     internal DispatcherQueue DispatcherQueue { get; }
 

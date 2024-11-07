@@ -8,7 +8,7 @@
     <GenerateLibraryLayout>true</GenerateLibraryLayout>
     <UseWinUI>true</UseWinUI>
 
-    <Version>1.1</Version>
+    <Version>1.1.1</Version>
     <PackageTags>WinUI; Uno Platform; Navigation; Mvvm; Toolkit;</PackageTags>
     <Description>WinUI 3 / Uno Platform support for the Singulink.Navigation framework.</Description>
   </PropertyGroup>

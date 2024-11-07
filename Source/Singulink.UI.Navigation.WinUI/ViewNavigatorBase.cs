@@ -23,7 +23,7 @@ public abstract class ViewNavigatorBase<TNavControl>(TNavControl navControl) : I
     DispatcherQueue IViewNavigator.DispatcherQueue => NavControl.DispatcherQueue ?? throw new InvalidOperationException("Dispatcher queue is not available.");
 
     /// <inheritdoc/>
-    XamlRoot IViewNavigator.XamlRoot => NavControl.XamlRoot ?? throw new InvalidOperationException("XAML root is not available.");
+    XamlRoot? IViewNavigator.XamlRoot => NavControl.XamlRoot;
 
     /// <inheritdoc/>
     void IViewNavigator.SetActiveView(UIElement? view) => SetActiveView(view);
