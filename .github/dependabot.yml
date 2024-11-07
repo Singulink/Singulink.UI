@@ -3,6 +3,10 @@ updates:
 - package-ecosystem: nuget
   target-branch: main
   directory: "/"
+  ignore:
+    - dependency-name: "Microsoft.WindowsAppSDK"
+    - dependency-name: "Microsoft.WindowsAppSDK.BuildTools"
+    - dependency-name: "Uno.WinUI"
   schedule:
     interval: weekly
 - package-ecosystem: "github-actions"
