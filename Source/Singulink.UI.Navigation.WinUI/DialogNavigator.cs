@@ -11,11 +11,18 @@ internal class DialogNavigator(Navigator navigator, ContentDialog dialog) : IDia
         return ShowDialogAsync(task);
     }
 
-    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(Func{IDialogNavigator, TViewModel}, out TViewModel)"/>"
-    public Task ShowDialogAsync<TViewModel>(Func<IDialogNavigator, TViewModel> getModelFunc, out TViewModel viewModel)
+    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(Func{IDialogNavigator, TViewModel})"/>
+    public async Task<TViewModel> ShowDialogAsync<TViewModel>(Func<IDialogNavigator, TViewModel> createModelFunc) where TViewModel : class
+    {
+        await navigator.ShowDialogAsync(dialog, out var viewModel, createModelFunc);
+        return viewModel;
+    }
+
+    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(out TViewModel, Func{IDialogNavigator, TViewModel})"/>"
+    public Task ShowDialogAsync<TViewModel>(out TViewModel viewModel, Func<IDialogNavigator, TViewModel> getModelFunc)
         where TViewModel : class
     {
-        var task = navigator.ShowDialogAsync(dialog, getModelFunc, out viewModel);
+        var task = navigator.ShowDialogAsync(dialog, out viewModel, getModelFunc);
         return ShowDialogAsync(task);
     }
 

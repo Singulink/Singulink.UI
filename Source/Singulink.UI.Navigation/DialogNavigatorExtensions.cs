@@ -52,7 +52,7 @@ public static class DialogNavigatorExtensions
     /// <param name="options">The options for the dialog, such as title, message and button labels.</param>
     public static async Task<int> ShowMessageDialogAsync(this IDialogNavigatorBase navigator, MessageDialogOptions options)
     {
-        await navigator.ShowDialogAsync(navigator => new MessageDialogViewModel(navigator, options), out var viewModel);
+        await navigator.ShowDialogAsync(out var viewModel, navigator => new MessageDialogViewModel(navigator, options));
         return viewModel.ResultButtonIndex;
     }
 }

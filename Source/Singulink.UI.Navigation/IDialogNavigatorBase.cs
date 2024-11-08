@@ -28,15 +28,26 @@ public interface IDialogNavigatorBase
     public Task ShowDialogAsync<TViewModel>(TViewModel viewModel, out IDialogNavigator dialogNavigator) where TViewModel : class;
 
     /// <summary>
-    /// Shows a dialog with the view model created by the specified function and returns a task that completes when the dialog closes.
+    /// Shows a dialog with the view model created by the specified function and returns a task that contains the view model when the dialog closes.
     /// </summary>
     /// <param name="createModelFunc">A function that creates the view model for the dialog. The dialog navigator provided by the function can be used to show
     /// nested dialogs or close the dialog.</param>
-    /// <param name="viewModel">Contains the view model for the dialog when the method returns.</param>
     /// <remarks>
     /// This method should only be used when showing a dialog for the first time when its view model has an <see cref="IDialogNavigator"/> constructor parameter
-    /// that needs to be provided, which should be done in <paramref name="createModelFunc"/>. For all other cases, use the <see
-    /// cref="ShowDialogAsync{TViewModel}(TViewModel, out IDialogNavigator)"/> overload instead.
+    /// that needs to be provided (which should be done in <paramref name="createModelFunc"/>). For all other cases, use a different overload.
     /// </remarks>
-    public Task ShowDialogAsync<TViewModel>(Func<IDialogNavigator, TViewModel> createModelFunc, out TViewModel viewModel) where TViewModel : class;
+    public Task<TViewModel> ShowDialogAsync<TViewModel>(Func<IDialogNavigator, TViewModel> createModelFunc) where TViewModel : class;
+
+    /// <summary>
+    /// Shows a dialog with the view model created by the specified function and returns a task that completes when the dialog closes.
+    /// </summary>
+    /// <param name="viewModel">Contains the view model for the dialog when the method returns.</param>
+    /// <param name="createModelFunc">A function that creates the view model for the dialog. The dialog navigator provided by the function can be used to show
+    /// nested dialogs or close the dialog.</param>
+    /// <remarks>
+    /// This method should only be used when showing a dialog for the first time when its view model has an <see cref="IDialogNavigator"/> constructor parameter
+    /// that needs to be provided (which should be done in <paramref name="createModelFunc"/>) and the view model is needed before the task returns. For all
+    /// other cases, use a different overload.
+    /// </remarks>
+    public Task ShowDialogAsync<TViewModel>(out TViewModel viewModel, Func<IDialogNavigator, TViewModel> createModelFunc) where TViewModel : class;
 }

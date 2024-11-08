@@ -16,11 +16,18 @@ public partial class Navigator
         return ShowDialogAsync(null, viewModel, out dialogNavigator);
     }
 
-    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(Func{IDialogNavigator, TViewModel}, out TViewModel)"/>"
-    public Task ShowDialogAsync<TViewModel>(Func<IDialogNavigator, TViewModel> createModelFunc, out TViewModel viewModel)
+    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(Func{IDialogNavigator, TViewModel})"/>
+    public async Task<TViewModel> ShowDialogAsync<TViewModel>(Func<IDialogNavigator, TViewModel> createModelFunc) where TViewModel : class
+    {
+        await ShowDialogAsync(null, out var viewModel, createModelFunc);
+        return viewModel;
+    }
+
+    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(out TViewModel, Func{IDialogNavigator, TViewModel})"/>"
+    public Task ShowDialogAsync<TViewModel>(out TViewModel viewModel, Func<IDialogNavigator, TViewModel> createModelFunc)
         where TViewModel : class
     {
-        return ShowDialogAsync(null, createModelFunc, out viewModel);
+        return ShowDialogAsync(null, out viewModel, createModelFunc);
     }
 
     internal Task ShowDialogAsync<TViewModel>(ContentDialog? requestingParentDialog, TViewModel viewModel, out IDialogNavigator dialogNavigator)
@@ -41,7 +48,7 @@ public partial class Navigator
         return ShowDialogAsync(dn.Dialog, requestingParentDialog);
     }
 
-    internal Task ShowDialogAsync<TViewModel>(ContentDialog? requestingParentDialog, Func<IDialogNavigator, TViewModel> createModelFunc, out TViewModel viewModel)
+    internal Task ShowDialogAsync<TViewModel>(ContentDialog? requestingParentDialog, out TViewModel viewModel, Func<IDialogNavigator, TViewModel> createModelFunc)
         where TViewModel : class
     {
         EnsureThreadAccess();
