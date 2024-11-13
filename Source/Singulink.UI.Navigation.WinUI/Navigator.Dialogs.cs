@@ -92,10 +92,11 @@ public partial class Navigator
 #endif
         dialog.Hide();
         notifier.Update();
-        dialogInfo.Tcs.SetResult();
 
         if (_dialogInfoStack.TryPeek(out var parentDialogInfo))
             _ = parentDialogInfo.Dialog.ShowAsync();
+
+        dialogInfo.Tcs.SetResult();
     }
 
     private void EnsureCanShowDialog()
