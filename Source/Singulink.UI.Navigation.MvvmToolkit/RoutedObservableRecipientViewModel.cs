@@ -1,5 +1,4 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using Singulink.UI.Navigation.Utilities;
 
 namespace Singulink.UI.Navigation.MvvmToolkit;
 

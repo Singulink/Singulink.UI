@@ -1,5 +1,3 @@
-using Microsoft.UI.Xaml.Media;
-
 namespace Singulink.UI.Navigation;
 
 /// <content>
@@ -58,24 +56,5 @@ public partial class Navigator
             return NavigationResult.Cancelled;
 
         return await NavigateAsync(NavigationType.Refresh, null, null);
-    }
-
-    private bool CloseLightDismissPopups()
-    {
-        var xamlRoot = _rootViewNavigator.XamlRoot;
-        bool closedPopup = false;
-
-        if (xamlRoot is not null)
-        {
-            var popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(xamlRoot);
-
-            foreach (var popup in popups.Where(p => p.IsLightDismissEnabled))
-            {
-                popup.IsOpen = false;
-                closedPopup = true;
-            }
-        }
-
-        return closedPopup;
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.UI.Xaml.Media;
 
 namespace Singulink.UI.Navigation;
 
@@ -182,5 +183,24 @@ public partial class Navigator : INavigator
             const string message = "Navigator members can only be accessed from the UI thread of the root view that this navigator is assigned to.";
             throw new InvalidOperationException(message);
         }
+    }
+
+    private bool CloseLightDismissPopups()
+    {
+        var xamlRoot = _rootViewNavigator.XamlRoot;
+        bool closedPopup = false;
+
+        if (xamlRoot is not null)
+        {
+            var popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(xamlRoot);
+
+            foreach (var popup in popups.Where(p => p.IsLightDismissEnabled))
+            {
+                popup.IsOpen = false;
+                closedPopup = true;
+            }
+        }
+
+        return closedPopup;
     }
 }
