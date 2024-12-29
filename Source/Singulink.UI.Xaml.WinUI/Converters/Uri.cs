@@ -22,7 +22,7 @@ public static class Uri
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI3] Failed to convert string '{uriString}' to URI: " + ex);
+            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI] Failed to convert string '{uriString}' to URI: " + ex);
             return null;
         }
     }
@@ -41,7 +41,7 @@ public static class Uri
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI3] Failed to convert phone number string '{phoneNumber}' to URI: " + ex);
+            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI] Failed to convert phone number string '{phoneNumber}' to URI: " + ex);
             return null;
         }
     }
@@ -60,7 +60,7 @@ public static class Uri
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI3] Failed to convert email string '{email}' to URI: " + ex);
+            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI] Failed to convert email string '{email}' to URI: " + ex);
             return null;
         }
     }
@@ -84,7 +84,7 @@ public static class Uri
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI3] Failed to convert website string '{website}' to URI: " + ex);
+            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI] Failed to convert website string '{website}' to URI: " + ex);
             return null;
         }
     }

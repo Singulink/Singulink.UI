@@ -22,7 +22,7 @@ public static class BitmapImage
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI3] Failed to create BitmapImage from URI '{uri}': " + ex);
+            Trace.TraceWarning($"[Singulink.UI.Xaml.WinUI] Failed to create BitmapImage from URI '{uri}': " + ex);
             return null;
         }
     }
