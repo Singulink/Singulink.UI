@@ -7,6 +7,7 @@
     <!-- Ensures the .xr.xml files are generated in a proper layout folder -->
     <GenerateLibraryLayout>true</GenerateLibraryLayout>
     <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
 
     <Version>1.2.1</Version>
     <PackageTags>WinUI; Uno Platform; Navigation; Mvvm; Toolkit;</PackageTags>
