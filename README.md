@@ -33,7 +33,7 @@ Strongly-typed navigation framework with comprehensive deep-linking support. The
 
 There is an additional `Singulink.UI.Navigation.MvvmToolkit` package that provides base implementations of routed view models that inherit from the various MVVM Community Toolkit `ObservableObject` types that simplifies usage when working with that library.
 
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.6+), Uno Platform 5.0+
+**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
 
 ### Singulink.UI.Tasks
 
@@ -118,7 +118,7 @@ IsEnabled="{x:Bind c:If.Null(Model.Item)}"
 IsEnabled="{x:Bind c:If.NotNullOrWhiteSpace(Model.Name)}"
 IsEnabled="{x:Bind c:If.NotDefault(Model.SomeEnumValue)}"
 
-Visibility="{x:Bind c:Visible.IfToStringEqualsAny(Model.EnumValue, 'EnumName1', 'EnumName2')}"
+Visibility="{x:Bind c:Visible.IfStringEqualsAny(Model.EnumValue, 'EnumName1', 'EnumName2')}"
 Visibility="{x:Bind c:Visible.IfFocused(SomeOtherControl.FocusState)}"
 Visibility="{x:Bind c:Visible.IfFalse(Model.Hide)}"
 
@@ -129,7 +129,7 @@ Uri="{x:Bind c:Uri.Phone(Model.PhoneString)}"
 Uri="{x:Bind c:Uri.Website(Model.WebsiteString)}"
 ```
 
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.6+), Uno Platform 5.0+
+**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
 
 ## Further Reading
 

@@ -1,4 +1,4 @@
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 /// <summary>
 /// Represents a parent view that can navigate to nested child views.

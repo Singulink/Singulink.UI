@@ -30,13 +30,13 @@ public abstract class RouteBase
     /// Internal use.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public abstract bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out ISpecifiedRoute specifiedRoute, out ReadOnlySpan<char> rest);
+    public abstract bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out IConcreteRoute concreteRoute, out ReadOnlySpan<char> rest);
 
     /// <summary>
     /// Internal use.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public virtual void InitializeViewModel(IRoutedViewModelBase viewModel, ISpecifiedRoute route) { }
+    public virtual void InitializeViewModel(IRoutedViewModelBase viewModel, IConcreteRoute route) { }
 }
 
 /// <summary>
@@ -56,9 +56,9 @@ public abstract class RouteBase<TViewModel> : RouteBase
 /// <summary>
 /// Represents a route with parameters that can be navigated to.
 /// </summary>
-public abstract class RouteBase<TParam, TViewModel> : RouteBase
-    where TParam : notnull
+public abstract class RouteBase<TViewModel, TParam> : RouteBase
     where TViewModel : class, IRoutedViewModel<TParam>
+    where TParam : notnull
 {
     internal RouteBuilder<TParam> RouteBuilder { get; }
 
@@ -69,12 +69,12 @@ public abstract class RouteBase<TParam, TViewModel> : RouteBase
 
     /// <inheritdoc />
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override void InitializeViewModel(IRoutedViewModelBase viewModel, ISpecifiedRoute route)
+    public override void InitializeViewModel(IRoutedViewModelBase viewModel, IConcreteRoute route)
     {
         var vm = (TViewModel)viewModel;
-        var parameterizedRoute = (IParameterizedSpecifiedRoute<TParam, TViewModel>)route;
+        var parameterizedRoute = (IParameterizedConcreteRoute<TViewModel, TParam>)route;
         vm.Parameter = parameterizedRoute.Parameter;
     }
 
-    internal string GetSpecifiedRouteString(TParam parameter) => RouteBuilder.GetRouteString(parameter);
+    internal string GetConcreteRouteString(TParam parameter) => RouteBuilder.GetRouteString(parameter);
 }

@@ -41,8 +41,8 @@ public sealed class NavigationArgs(NavigationType type, NavigationFlags flags, R
     /// Any logic that depends on being paired with navigations away from the view model (i.e. adding/removing event handlers) should be conditional on this
     /// property being <see langword="false"/>, otherwise the navigated to logic may be executed more times than the navigated away logic. Additionally, the
     /// view model will not be transitioned to a "navigated to" state if it cancels/reroutes the navigation, so logic that should be paired with navigations
-    /// away from the view model should not be executed if the view model cancels the navigation - a subsequent navigated away from call will not occur if the
-    /// navigation is cancelled.</para>
+    /// away from the view model should not be executed if this view model cancels the navigation - a subsequent navigated away from call will not occur in that
+    /// case.</para>
     /// </remarks>
     public bool AlreadyNavigatedTo => _flags.HasFlag(NavigationFlags.AlreadyNavigatedTo);
 

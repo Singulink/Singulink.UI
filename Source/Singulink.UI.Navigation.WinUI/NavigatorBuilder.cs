@@ -1,13 +1,15 @@
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 /// <summary>
 /// Represents a builder for mapping routed views to view models.
 /// </summary>
 public class NavigatorBuilder : INavigatorBuilder
 {
-    internal readonly Dictionary<Type, ViewInfo> _vmTypeToViewInfo = [];
-    internal readonly Dictionary<Type, Func<ContentDialog>> _vmTypeToDialogCtor = [];
-    internal readonly List<RouteBase> _routeList = [];
+    internal Dictionary<Type, ViewInfo> VmTypeToViewInfo { get; } = [];
+
+    internal Dictionary<Type, Func<ContentDialog>> VmTypeToDialogCtor { get; } = [];
+
+    internal List<RouteBase> RouteList { get; } = [];
 
     /// <inheritdoc cref="INavigatorBuilder.MaxBackStackDepth"/>
     public int MaxBackStackDepth { get; set; } = 15;
@@ -17,24 +19,24 @@ public class NavigatorBuilder : INavigatorBuilder
     /// <inheritdoc cref="INavigatorBuilder.AddRoute"/>
     public void AddRoute(RouteBase route)
     {
-        if (_routeList.Contains(route))
+        if (RouteList.Contains(route))
             throw new InvalidOperationException("Route has already been added.");
 
         if (route.ParentViewModelType is not null)
         {
-            if (!_routeList.Any(r => r.ViewModelType == route.ParentViewModelType))
+            if (!RouteList.Any(r => r.ViewModelType == route.ParentViewModelType))
                 throw new InvalidOperationException($"Route's parent view model type '{route.ParentViewModelType}' does not have any routes added yet. Add parent routes before child routes.");
 
-            var parentViewType = _vmTypeToViewInfo[route.ParentViewModelType].ViewType;
+            var parentViewType = VmTypeToViewInfo[route.ParentViewModelType].ViewType;
 
             if (!parentViewType.IsAssignableTo(typeof(IParentView)))
                 throw new InvalidOperationException($"Route's parent view type '{parentViewType}' must implement '{typeof(IParentView)}' in order to support nested routes.");
         }
 
-        if (!_vmTypeToViewInfo.ContainsKey(route.ViewModelType))
+        if (!VmTypeToViewInfo.ContainsKey(route.ViewModelType))
             throw new InvalidOperationException($"Route's view model type '{route.ViewModelType}' has not been mapped to a view.");
 
-        _routeList.Add(route);
+        RouteList.Add(route);
     }
 
     /// <summary>
@@ -44,7 +46,7 @@ public class NavigatorBuilder : INavigatorBuilder
         where TViewModel : class, IRoutedViewModelBase
         where TView : UIElement, IRoutedView<TViewModel>, new()
     {
-        _vmTypeToViewInfo.Add(typeof(TViewModel), new ViewInfo(typeof(TView), () => new TView()));
+        VmTypeToViewInfo.Add(typeof(TViewModel), new ViewInfo(typeof(TView), () => new TView()));
     }
 
     /// <summary>
@@ -53,15 +55,13 @@ public class NavigatorBuilder : INavigatorBuilder
     public void MapDialog<TViewModel, TDialog>()
         where TDialog : ContentDialog, new()
     {
-        _vmTypeToDialogCtor.Add(typeof(TViewModel), () => new TDialog());
+        VmTypeToDialogCtor.Add(typeof(TViewModel), () => new TDialog());
     }
 
     internal void Validate()
     {
-        foreach (var (viewModelType, viewInfo) in _vmTypeToViewInfo)
-        {
-            if (!_routeList.Any(r => r.ViewModelType == viewModelType))
+        foreach (var (viewModelType, viewInfo) in VmTypeToViewInfo)
+            if (!RouteList.Any(r => r.ViewModelType == viewModelType))
                 throw new InvalidOperationException($"View model '{viewModelType}' (mapped to view '{viewInfo.ViewType}') has no routes to it.");
-        }
     }
 }

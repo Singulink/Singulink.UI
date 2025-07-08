@@ -1,14 +1,13 @@
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Singulink.UI.Navigation;
 
 /// <content>
 /// Provides navigation related implementations for the navigator.
 /// </content>
-public partial class Navigator
+partial class Navigator
 {
     /// <inheritdoc cref="INavigator.NavigateAsync(string)"/>
     public async Task<NavigationResult> NavigateAsync(string route)
@@ -40,8 +39,8 @@ public partial class Navigator
         return await NavigateAsync(NavigationType.New, requestedSpecifiedRouteItems, routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigateAsync{TViewModel}(ISpecifiedRootRoute{TViewModel}, RouteOptions)"/>
-    public async Task<NavigationResult> NavigateAsync<TViewModel>(ISpecifiedRootRoute<TViewModel> route, RouteOptions? routeOptions = null)
+    /// <inheritdoc cref="INavigator.NavigateAsync{TViewModel}(IConcreteRootRoute{TViewModel}, RouteOptions)"/>
+    public async Task<NavigationResult> NavigateAsync<TViewModel>(IConcreteRootRoute<TViewModel> route, RouteOptions? routeOptions = null)
         where TViewModel : class
     {
         EnsureThreadAccess();
@@ -50,10 +49,10 @@ public partial class Navigator
         return await NavigateNewWithEnsureMatched([route], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigateAsync{TParentViewModel, TNestedViewModel}(ISpecifiedRootRoute{TParentViewModel}, ISpecifiedNestedRoute{TParentViewModel, TNestedViewModel}, RouteOptions)"/>
+    /// <inheritdoc cref="INavigator.NavigateAsync{TParentViewModel, TNestedViewModel}(IConcreteRootRoute{TParentViewModel}, IConcreteNestedRoute{TParentViewModel, TNestedViewModel}, RouteOptions)"/>
     public async Task<NavigationResult> NavigateAsync<TParentViewModel, TNestedViewModel>(
-        ISpecifiedRootRoute<TParentViewModel> parentRoute,
-        ISpecifiedNestedRoute<TParentViewModel, TNestedViewModel> nestedRoute,
+        IConcreteRootRoute<TParentViewModel> parentRoute,
+        IConcreteNestedRoute<TParentViewModel, TNestedViewModel> nestedRoute,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
         where TNestedViewModel : class
@@ -64,11 +63,11 @@ public partial class Navigator
         return await NavigateNewWithEnsureMatched([parentRoute, nestedRoute], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigateAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2}(ISpecifiedRootRoute{TParentViewModel}, ISpecifiedNestedRoute{TParentViewModel, TNestedViewModel1}, ISpecifiedNestedRoute{TNestedViewModel1, TNestedViewModel2}, RouteOptions)"/>
+    /// <inheritdoc cref="INavigator.NavigateAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2}(IConcreteRootRoute{TParentViewModel}, IConcreteNestedRoute{TParentViewModel, TNestedViewModel1}, IConcreteNestedRoute{TNestedViewModel1, TNestedViewModel2}, RouteOptions)"/>
     public async Task<NavigationResult> NavigateAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2>(
-        ISpecifiedRootRoute<TParentViewModel> parentRoute,
-        ISpecifiedNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        ISpecifiedNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+        IConcreteRootRoute<TParentViewModel> parentRoute,
+        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
+        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
         where TNestedViewModel1 : class
@@ -80,12 +79,12 @@ public partial class Navigator
         return await NavigateNewWithEnsureMatched([parentRoute, nestedRoute1, nestedRoute2], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigateAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3}(ISpecifiedRootRoute{TParentViewModel}, ISpecifiedNestedRoute{TParentViewModel, TNestedViewModel1}, ISpecifiedNestedRoute{TNestedViewModel1, TNestedViewModel2}, ISpecifiedNestedRoute{TNestedViewModel2, TNestedViewModel3}, RouteOptions)"/>
+    /// <inheritdoc cref="INavigator.NavigateAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3}(IConcreteRootRoute{TParentViewModel}, IConcreteNestedRoute{TParentViewModel, TNestedViewModel1}, IConcreteNestedRoute{TNestedViewModel1, TNestedViewModel2}, IConcreteNestedRoute{TNestedViewModel2, TNestedViewModel3}, RouteOptions)"/>
     public async Task<NavigationResult> NavigateAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3>(
-        ISpecifiedRootRoute<TParentViewModel> parentRoute,
-        ISpecifiedNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        ISpecifiedNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
-        ISpecifiedNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
+        IConcreteRootRoute<TParentViewModel> parentRoute,
+        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
+        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+        IConcreteNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
         where TNestedViewModel1 : class
@@ -98,9 +97,9 @@ public partial class Navigator
         return await NavigateNewWithEnsureMatched([parentRoute, nestedRoute1, nestedRoute2, nestedRoute3], routeOptions);
     }
 
-    private string GetRouteString(List<ISpecifiedRoute> routes) => string.Join("/", routes.Select(r => r.ToString()).Where(r => !string.IsNullOrEmpty(r)));
+    private string GetRouteString(List<IConcreteRoute> routes) => string.Join("/", routes.Select(r => r.ToString()).Where(r => !string.IsNullOrEmpty(r)));
 
-    private async Task<NavigationResult> NavigateNewWithEnsureMatched(List<ISpecifiedRoute> specifiedRouteItems, RouteOptions? routeOptions)
+    private async Task<NavigationResult> NavigateNewWithEnsureMatched(List<IConcreteRoute> specifiedRouteItems, RouteOptions? routeOptions)
     {
         string routeString = GetRouteString(specifiedRouteItems);
 
@@ -119,20 +118,20 @@ public partial class Navigator
 
     private Task<NavigationResult> NavigateAsync(
         NavigationType navigationType,
-        List<ISpecifiedRoute>? requestedSpecifiedRouteItems,
+        List<IConcreteRoute>? requestedSpecifiedRouteItems,
         RouteOptions? routeOptions)
     {
         var task = GetNavigateTaskAsync(navigationType, requestedSpecifiedRouteItems, routeOptions);
 
         if (!task.IsCompleted)
-            AsyncNavigationTaskReceivers?.Invoke(task);
+            _asyncNavigationHandler?.Invoke(task);
 
         return task;
     }
 
     private async Task<NavigationResult> GetNavigateTaskAsync(
         NavigationType navigationType,
-        List<ISpecifiedRoute>? requestedSpecifiedRouteItems,
+        List<IConcreteRoute>? requestedSpecifiedRouteItems,
         RouteOptions? routeOptions)
     {
         if (_dialogInfoStack.Count > 0)
@@ -300,7 +299,7 @@ public partial class Navigator
             _blockNavigation = true;
             _blockDialogs = true;
 
-            routeItemInfo.EnsureViewCreatedAndModelInitialized();
+            routeItemInfo.EnsureViewCreatedAndModelInitialized(_initializeViewHandler);
             viewNavigator.SetActiveView(routeItemInfo.View);
 
             _blockNavigation = false;
@@ -335,7 +334,7 @@ public partial class Navigator
 
         return NavigationResult.Success;
 
-        RouteInfo BuildRouteInfo(List<ISpecifiedRoute> requestedSpecifiedRouteItems, RouteOptions routeOptions)
+        RouteInfo BuildRouteInfo(List<IConcreteRoute> requestedSpecifiedRouteItems, RouteOptions routeOptions)
         {
             var commonItemInfoCandidates = _routeInfoList;
             int i; // number of common items
@@ -351,12 +350,12 @@ public partial class Navigator
                 commonItemInfoCandidates = newCandidates;
             }
 
-            var routeInfoItems = new RouteInfoItem?[requestedSpecifiedRouteItems.Count];
+            var routeInfoItems = new RouteInfoItem[requestedSpecifiedRouteItems.Count];
 
             // Copy common items
 
             if (i > 0)
-                commonItemInfoCandidates[0].Items.CopyTo(0, routeInfoItems!, 0, i);
+                commonItemInfoCandidates[0].Items.CopyTo(0, routeInfoItems, 0, i);
 
             // Create remaining items
 
@@ -367,7 +366,7 @@ public partial class Navigator
                 routeInfoItems[i] = new(item, createViewFunc);
             }
 
-            return new RouteInfo(Unsafe.As<RouteInfoItem?[], ImmutableArray<RouteInfoItem>>(ref routeInfoItems), routeOptions);
+            return new RouteInfo(ImmutableCollectionsMarshal.AsImmutableArray(routeInfoItems), routeOptions);
         }
 
         void TrimRouteInfoList()
@@ -383,19 +382,7 @@ public partial class Navigator
         }
     }
 
-    /// <inheritdoc cref="INavigator.RegisterAsyncNavigationTaskReceiver(Action{Task})"/>
-    public void RegisterAsyncNavigationTaskReceiver(Action<Task> asyncNavigationTaskReceiver)
-    {
-        AsyncNavigationTaskReceivers += asyncNavigationTaskReceiver;
-    }
-
-    /// <inheritdoc cref="INavigator.UnregisterAsyncNavigationTaskReceiver(Action{Task})"/>
-    public void UnregisterAsyncNavigationTaskReceiver(Action<Task> asyncNavigationTaskReceiver)
-    {
-        AsyncNavigationTaskReceivers -= asyncNavigationTaskReceiver;
-    }
-
-    private bool TryMatchRoute(string route, [MaybeNullWhen(false)] out List<ISpecifiedRoute> specifiedRouteItems)
+    private bool TryMatchRoute(string route, [MaybeNullWhen(false)] out List<IConcreteRoute> specifiedRouteItems)
     {
         specifiedRouteItems = [];
 
@@ -408,7 +395,7 @@ public partial class Navigator
         return false;
     }
 
-    private bool TryMatchRoute(ReadOnlySpan<char> routeString, Type? parentViewModelType, List<ISpecifiedRoute> specifiedRouteItems, out ReadOnlySpan<char> rest)
+    private bool TryMatchRoute(ReadOnlySpan<char> routeString, Type? parentViewModelType, List<IConcreteRoute> specifiedRouteItems, out ReadOnlySpan<char> rest)
     {
         EnsureThreadAccess();
 

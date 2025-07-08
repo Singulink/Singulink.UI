@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.MvvmToolkit\Singulink.UI.Navigation.MvvmToolkit.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Navigation\Singulink.UI.Navigation.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Tasks\Singulink.UI.Tasks.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+
+</Project>

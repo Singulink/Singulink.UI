@@ -1,6 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <RootNamespace>Singulink.UI.Navigation</RootNamespace>
+    <RootNamespace>Singulink.UI.Navigation.WinUI</RootNamespace>
     <!-- ;net8.0-browserwasm;net8.0-desktop -->
     <TargetFrameworks>net8.0;net8.0-windows10.0.19041;net8.0-ios;net8.0-maccatalyst;net8.0-android</TargetFrameworks>
     <OutputType>Library</OutputType>
@@ -9,28 +9,24 @@
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
 
-    <Version>1.2.1</Version>
-    <PackageTags>WinUI; Uno Platform; Navigation; Mvvm; Toolkit;</PackageTags>
+    <Version>2.0</Version>
+    <PackageTags>WinUI; Uno Platform; Navigation; MVVM; Toolkit;</PackageTags>
     <Description>WinUI 3 / Uno Platform support for the Singulink.Navigation framework.</Description>
   </PropertyGroup>
 
   <Choose>
     <When Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
       <ItemGroup>
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.240923002" />
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
       </ItemGroup>
     </When>
     <Otherwise>
-      <PropertyGroup>
-        <SignAssembly>false</SignAssembly>
-      </PropertyGroup>
-
       <ItemGroup>
-        <Using Remove="Android.Widget"/>
+        <Using Remove="Android.Widget" />
       </ItemGroup>
 
       <ItemGroup>
-        <PackageReference Include="Uno.WinUI" Version="5.0.19" />
+        <PackageReference Include="Uno.WinUI" Version="6.0.797" />
       </ItemGroup>
 
       <ItemGroup>
@@ -43,14 +39,6 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
-
-  <ItemGroup>
-    <Compile Remove="FrameNavigator.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="FrameNavigator.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Singulink.UI.Navigation\Singulink.UI.Navigation.csproj" />

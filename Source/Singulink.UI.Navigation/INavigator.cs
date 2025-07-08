@@ -13,26 +13,6 @@ namespace Singulink.UI.Navigation;
 public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
 {
     /// <summary>
-    /// Gets a value indicating whether the navigator is currently in the process of navigating to a new view.
-    /// </summary>
-    public bool IsNavigating { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether the navigator is currently showing a dialog.
-    /// </summary>
-    public bool IsShowingDialog { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether the navigator has back history. This property should be checked prior to doing a programmatic back navigation.
-    /// </summary>
-    public bool HasBackHistory { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether the navigator has forward history. This property should be checked prior to doing a programmatic forward navigation.
-    /// </summary>
-    public bool HasForwardHistory { get; }
-
-    /// <summary>
     /// Gets a value indicating whether the navigator can navigate back to the previous view from a user-initiated request. This property can be used to bind
     /// the enabled state of a back button in the UI.
     /// </summary>
@@ -51,6 +31,36 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     public bool CanUserRefresh { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the navigator has back history. This property should be checked prior to doing a programmatic back navigation.
+    /// </summary>
+    public bool HasBackHistory { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the navigator has forward history. This property should be checked prior to doing a programmatic forward navigation.
+    /// </summary>
+    public bool HasForwardHistory { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the navigator has navigated to any route since it was created.
+    /// </summary>
+    public bool DidNavigate { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the navigator is currently in the process of navigating to a new view.
+    /// </summary>
+    public bool IsNavigating { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the navigator is currently showing a dialog.
+    /// </summary>
+    public bool IsShowingDialog { get; }
+
+    /// <summary>
+    /// Clears back and forward navigation history.
+    /// </summary>
+    public void ClearHistory();
+
+    /// <summary>
     /// Gets the route options for the current route.
     /// </summary>
     public RouteOptions GetRouteOptions();
@@ -60,6 +70,14 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// </summary>
     /// <param name="userInitiated">Indicates whether the navigation was initiated by the user.</param>
     public Task<NavigationResult> GoBackAsync(bool userInitiated);
+
+    /// <summary>
+    /// Navigates back to the previous view and returns a value indicating whether the back navigation was handled. This overload is useful for determining the
+    /// handled state of a system back navigation request, such as when the user presses the back button on a mobile device or uses a hardware back button on a
+    /// desktop application.
+    /// </summary>
+    /// <param name="handled">When this method returns, contains a value indicating whether the back navigation was handled.</param>
+    public Task<NavigationResult> GoBackAsync(out bool handled);
 
     /// <summary>
     /// Navigates forward to the next view.
@@ -75,15 +93,15 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// <summary>
     /// Navigates to the specified route.
     /// </summary>
-    public Task<NavigationResult> NavigateAsync<TViewModel>(ISpecifiedRootRoute<TViewModel> route, RouteOptions? routeOptions = null)
+    public Task<NavigationResult> NavigateAsync<TViewModel>(IConcreteRootRoute<TViewModel> route, RouteOptions? routeOptions = null)
         where TViewModel : class;
 
     /// <summary>
     /// Navigates to the specified route.
     /// </summary>
     public Task<NavigationResult> NavigateAsync<TRootViewModel, TNestedViewModel>(
-        ISpecifiedRootRoute<TRootViewModel> rootRoute,
-        ISpecifiedNestedRoute<TRootViewModel, TNestedViewModel> nestedRoute,
+        IConcreteRootRoute<TRootViewModel> rootRoute,
+        IConcreteNestedRoute<TRootViewModel, TNestedViewModel> nestedRoute,
         RouteOptions? routeOptions = null)
         where TRootViewModel : class
         where TNestedViewModel : class;
@@ -92,9 +110,9 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// Navigates to the specified route.
     /// </summary>
     public Task<NavigationResult> NavigateAsync<TRootViewModel, TNestedViewModel1, TNestedViewModel2>(
-        ISpecifiedRootRoute<TRootViewModel> rootRoute,
-        ISpecifiedNestedRoute<TRootViewModel, TNestedViewModel1> nestedRoute1,
-        ISpecifiedNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+        IConcreteRootRoute<TRootViewModel> rootRoute,
+        IConcreteNestedRoute<TRootViewModel, TNestedViewModel1> nestedRoute1,
+        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
         RouteOptions? routeOptions = null)
         where TRootViewModel : class
         where TNestedViewModel1 : class
@@ -104,10 +122,10 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// Navigates to the specified route.
     /// </summary>
     public Task<NavigationResult> NavigateAsync<TRootViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3>(
-        ISpecifiedRootRoute<TRootViewModel> rootRoute,
-        ISpecifiedNestedRoute<TRootViewModel, TNestedViewModel1> nestedRoute1,
-        ISpecifiedNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
-        ISpecifiedNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
+        IConcreteRootRoute<TRootViewModel> rootRoute,
+        IConcreteNestedRoute<TRootViewModel, TNestedViewModel1> nestedRoute1,
+        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+        IConcreteNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
         RouteOptions? routeOptions = null)
         where TRootViewModel : class
         where TNestedViewModel1 : class
@@ -124,7 +142,7 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// cref="InvalidOperationException"/> is thrown.
     /// </summary>
     public Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TNestedViewModel>(
-        ISpecifiedNestedRoute<TParentViewModel, TNestedViewModel> nestedRoute,
+        IConcreteNestedRoute<TParentViewModel, TNestedViewModel> nestedRoute,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
         where TNestedViewModel : class;
@@ -134,8 +152,8 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// cref="InvalidOperationException"/> is thrown.
     /// </summary>
     public Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2>(
-        ISpecifiedNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        ISpecifiedNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
+        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
         where TNestedViewModel1 : class
@@ -146,9 +164,9 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// cref="InvalidOperationException"/> is thrown.
     /// </summary>
     public Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3>(
-        ISpecifiedNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        ISpecifiedNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
-        ISpecifiedNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
+        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
+        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+        IConcreteNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
         where TNestedViewModel1 : class
@@ -162,27 +180,32 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     public Task<NavigationResult> RefreshAsync(bool userInitiated);
 
     /// <summary>
-    /// Registers a task receiver that gets invoked whenever an asynchronous navigation occurs. The task passed into the receiver completes at the end of the
+    /// Registers a handler that gets invoked whenever an asynchronous navigation occurs. The task passed into the handler completes at the end of the
     /// navigation.
     /// </summary>
     /// <remarks>
-    /// This method can be used to register a task receiver that can control UI state while an asynchronous navigation is in progress, such as showing a loading
-    /// indicator or disabling controls. The task receiver is not invoked if the navigation completes synchronously. Particularly useful for allowing you to run
-    /// asynchronous navigations as busy tasks with a TaskRunner from the Singulink.UI.Tasks library.
+    /// This method can be used to register a handler that can control UI state while an asynchronous navigation is in progress, such as showing a loading
+    /// indicator or disabling controls. The handler is not invoked if the navigation completes synchronously. This can be particularly useful for allowing you
+    /// to run asynchronous navigations as busy tasks with a TaskRunner (from the Singulink.UI.Tasks library).
     /// </remarks>
-    public void RegisterAsyncNavigationTaskReceiver(Action<Task> asyncNavigationTaskReceiver);
+    public void RegisterAsyncNavigationHandler(Action<Task> handler);
 
     /// <summary>
-    /// Unregisters a task receiver that was previously registered with <see cref="RegisterAsyncNavigationTaskReceiver"/>.
+    /// Adds a handler that is called when a view is initialized.
     /// </summary>
-    public void UnregisterAsyncNavigationTaskReceiver(Action<Task> asyncNavigationTaskReceiver);
+    /// <typeparam name="TView">The type of the view; can be a concrete type, base type or interface.</typeparam>
+    /// <typeparam name="TViewModel">The type of the view model; can be a concrete type, base type or interface.</typeparam>
+    /// <param name="handler">The handler that receives the view and view model so it can perform additional initialization logic.</param>
+    public void RegisterInitializeViewHandler<TView, TViewModel>(VVMAction<TView, TViewModel> handler)
+        where TView : class
+        where TViewModel : class;
 
     /// <summary>
     /// Gets the route parameter from the current route.
     /// </summary>
-    public bool TryGetRouteParameter<TParam, TViewModel>(RouteBase<TParam, TViewModel> route, [MaybeNullWhen(false)] out TParam parameter)
-        where TParam : notnull
-        where TViewModel : class, IRoutedViewModel<TParam>;
+    public bool TryGetRouteParameter<TViewModel, TParam>(RouteBase<TViewModel, TParam> route, [MaybeNullWhen(false)] out TParam parameter)
+        where TViewModel : class, IRoutedViewModel<TParam>
+        where TParam : notnull;
 
     /// <summary>
     /// Returns the last view model that matches the specified view model type from the current route. Can only be used to reliably get parent view models since

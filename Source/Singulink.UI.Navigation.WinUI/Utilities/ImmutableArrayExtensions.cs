@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
-namespace Singulink.UI.Navigation.Utilities;
+namespace Singulink.UI.Navigation.WinUI.Utilities;
 
 internal static class ImmutableArrayExtensions
 {

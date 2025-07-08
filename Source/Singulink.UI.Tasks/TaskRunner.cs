@@ -56,9 +56,7 @@ public partial class TaskRunner : ITaskRunner
         }
         catch (Exception ex)
         {
-            var edi = ExceptionDispatchInfo.Capture(ex);
-            _syncContext.Post(static s => ((ExceptionDispatchInfo)s!).Throw(), edi);
-
+            CaptureAndPostException(ex);
             return;
         }
 
@@ -86,12 +84,6 @@ public partial class TaskRunner : ITaskRunner
             if (!taskWasCompleted)
                 DecrementTaskCount(asBusyTask);
         }
-    }
-
-    private void CaptureAndPostException(Exception ex)
-    {
-        var edi = ExceptionDispatchInfo.Capture(ex);
-        _syncContext.Post(static s => ((ExceptionDispatchInfo)s)!.Throw(), edi);
     }
 
     /// <inheritdoc cref="ITaskRunner.RunAsBusyAsync(Task)"/>
@@ -341,6 +333,12 @@ public partial class TaskRunner : ITaskRunner
             await Task.Yield();
         else
             await SendAsync(() => { });
+    }
+
+    private void CaptureAndPostException(Exception ex)
+    {
+        var edi = ExceptionDispatchInfo.Capture(ex);
+        _syncContext.Post(static s => ((ExceptionDispatchInfo)s)!.Throw(), edi);
     }
 
     private void IncrementTaskCount(bool busyTask)

@@ -1,11 +1,12 @@
 using System.Runtime.CompilerServices;
+using Singulink.UI.Navigation.WinUI;
 
 namespace Singulink.UI.Navigation;
 
 /// <content>
 /// Provides dialog related implementations for the navigator.
 /// </content>
-public partial class Navigator
+partial class Navigator
 {
     private readonly ConditionalWeakTable<object, DialogNavigator> _vmToDialogNavigator = [];
 
@@ -41,6 +42,8 @@ public partial class Navigator
         var dn = _vmToDialogNavigator.GetValue(viewModel, vm => {
             var dialog = CreateDialogFor<TViewModel>();
             dialog.DataContext = vm;
+            _initializeViewHandler?.Invoke(dialog, vm);
+
             return new DialogNavigator(this, dialog);
         });
 
@@ -59,6 +62,7 @@ public partial class Navigator
         var dialog = CreateDialogFor<TViewModel>();
         var dialogNavigator = new DialogNavigator(this, dialog);
         dialog.DataContext = viewModel = createModelFunc(dialogNavigator);
+        _initializeViewHandler?.Invoke(dialog, viewModel);
 
         if (!_vmToDialogNavigator.TryAdd(viewModel, dialogNavigator))
         {
@@ -86,10 +90,6 @@ public partial class Navigator
         using var notifier = new PropertyChangedNotifier(this, OnPropertyChanged);
         _dialogInfoStack.Pop();
 
-#if !WINDOWS
-        // HACK: workaround for https://github.com/unoplatform/uno/issues/18609
-        await Task.Yield();
-#endif
         dialog.Hide();
         notifier.Update();
 
@@ -132,17 +132,38 @@ public partial class Navigator
         var dialog = ctorFunc.Invoke();
         dialog.XamlRoot = _rootViewNavigator.XamlRoot ?? throw new InvalidOperationException("XamlRoot is not available");
 
-        dialog.PrimaryButtonClick += OnDialogButtonClick;
-        dialog.SecondaryButtonClick += OnDialogButtonClick;
-        dialog.CloseButtonClick += OnDialogButtonClick;
+        dialog.PrimaryButtonClick += OnPrimaryDialogButtonClick;
+        dialog.SecondaryButtonClick += OnSecondaryDialogButtonClick;
+        dialog.CloseButtonClick += OnCloseDialogButtonClick;
         dialog.Closing += OnDialogClosing;
 
         return dialog;
 
-        void OnDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+        void OnPrimaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
             if (_dialogInfoStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
                 args.Cancel = true;
+
+            var dialog = topDialogInfo.Dialog;
+            dialog.PrimaryButtonCommand?.Execute(dialog.PrimaryButtonCommandParameter);
+        }
+
+        void OnSecondaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+        {
+            if (_dialogInfoStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
+                args.Cancel = true;
+
+            var dialog = topDialogInfo.Dialog;
+            dialog.SecondaryButtonCommand?.Execute(dialog.SecondaryButtonCommandParameter);
+        }
+
+        void OnCloseDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+        {
+            if (_dialogInfoStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
+                args.Cancel = true;
+
+            var dialog = topDialogInfo.Dialog;
+            dialog.CloseButtonCommand?.Execute(dialog.CloseButtonCommandParameter);
         }
 
         async void OnDialogClosing(ContentDialog sender, ContentDialogClosingEventArgs args)

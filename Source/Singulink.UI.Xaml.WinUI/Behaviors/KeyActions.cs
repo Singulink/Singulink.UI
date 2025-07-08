@@ -1,8 +1,8 @@
 using Microsoft.UI.Xaml.Input;
 using Windows.System;
 
-#if __ANDROID__
-using Android.Views.InputMethods;
+#if HAS_UNO
+using Uno.UI.Xaml.Controls;
 #endif
 
 namespace Singulink.UI.Xaml.Behaviors;
@@ -41,10 +41,8 @@ public static class KeyActions
 
             tb.KeyUp += OnKeyUp;
 
-#if __ANDROID__
-            tb.ImeOptions = action == EnterKeyAction.Done ? ImeAction.Done : ImeAction.Next;
-#elif __IOS__
-            tb.ReturnKeyType = action == EnterKeyAction.Done ? UIKit.UIReturnKeyType.Done : UIKit.UIReturnKeyType.Next;
+#if HAS_UNO
+            TextBoxExtensions.SetInputReturnType(tb, action == EnterKeyAction.Done ? InputReturnType.Done : InputReturnType.Next);
 #endif
         }
         else if (d is PasswordBox pb)
@@ -56,10 +54,8 @@ public static class KeyActions
 
             pb.KeyUp += OnKeyUp;
 
-#if __ANDROID__
-            pb.ImeOptions = action == EnterKeyAction.Done ? ImeAction.Done : ImeAction.Next;
-#elif __IOS__
-            pb.ReturnKeyType = action == EnterKeyAction.Done ? UIKit.UIReturnKeyType.Done : UIKit.UIReturnKeyType.Next;
+#if HAS_UNO
+            TextBoxExtensions.SetInputReturnType(pb, action == EnterKeyAction.Done ? InputReturnType.Done : InputReturnType.Next);
 #endif
         }
         else
@@ -74,7 +70,9 @@ public static class KeyActions
 
         if (e.Key == VirtualKey.Enter)
         {
-            if (GetEnter(control) == EnterKeyAction.Done || !FocusManager.TryMoveFocus(FocusNavigationDirection.Next))
+            var root = control.XamlRoot?.Content;
+
+            if (GetEnter(control) == EnterKeyAction.Done || root is null || !FocusManager.TryMoveFocus(FocusNavigationDirection.Next, new() { SearchRoot = root }))
             {
                 bool isTabStop = control.IsTabStop;
                 control.IsTabStop = false;

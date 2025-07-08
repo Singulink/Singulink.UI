@@ -82,21 +82,29 @@ public static class Visible
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value is equal to zero; otherwise <see cref="Visibility.Collapsed"/>.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when the type of <paramref name="value"/> is not a primitive numeric type or <see
+    /// cref="decimal"/>.</exception>
     public static Visibility IfZero(object value) => If.Zero(value) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value is equal to zero; otherwise <see cref="Visibility.Collapsed"/>.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when the type of <paramref name="value"/> is not a primitive numeric type or <see
+    /// cref="decimal"/>.</exception>
     public static Visibility IfZero<T>(T value) where T : unmanaged => If.Zero(value) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value is not equal to zero; otherwise <see cref="Visibility.Collapsed"/>.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when the type of <paramref name="value"/> is not a primitive numeric type or <see
+    /// cref="decimal"/>.</exception>
     public static Visibility IfNotZero(object value) => If.NotZero(value) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value is not equal to zero; otherwise <see cref="Visibility.Collapsed"/>.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when the type of <paramref name="value"/> is not a primitive numeric type or <see
+    /// cref="decimal"/>.</exception>
     public static Visibility IfNotZero<T>(T value) where T : unmanaged => If.NotZero(value) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
@@ -139,79 +147,79 @@ public static class Visible
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation equals the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringEquals(object? value, string match) => value?.ToString() == match ? Visibility.Visible : Visibility.Collapsed;
+    public static Visibility IfStringEquals(object? value, string match) => value?.ToString() == match ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation equals the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringEquals<T>(T value, string match) => value?.ToString() == match ? Visibility.Visible : Visibility.Collapsed;
+    public static Visibility IfStringEquals<T>(T value, string match) => value?.ToString() == match ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation equals any of the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringEqualsAny(object? value, string match1, string match2)
+    public static Visibility IfStringEqualsAny(object? value, string match1, string match2)
         => value?.ToString() is string s && (s == match1 || s == match2) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation equals any of the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringEqualsAny<T>(T value, string match1, string match2)
+    public static Visibility IfStringEqualsAny<T>(T value, string match1, string match2)
         => value?.ToString() is string s && (s == match1 || s == match2) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation equals any of the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringEqualsAny(object? value, string match1, string match2, string match3)
+    public static Visibility IfStringEqualsAny(object? value, string match1, string match2, string match3)
         => value?.ToString() is string s && (s == match1 || s == match2 || s == match3) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation equals any of the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringEqualsAny<T>(T value, string match1, string match2, string match3)
+    public static Visibility IfStringEqualsAny<T>(T value, string match1, string match2, string match3)
         => value?.ToString() is string s && (s == match1 || s == match2 || s == match3) ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation does not equal the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringNotEquals(object? value, string match) => value?.ToString() != match ? Visibility.Visible : Visibility.Collapsed;
+    public static Visibility IfStringNotEquals(object? value, string match) => value?.ToString() != match ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation does not equal the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringNotEquals<T>(T value, string match) => value?.ToString() != match ? Visibility.Visible : Visibility.Collapsed;
+    public static Visibility IfStringNotEquals<T>(T value, string match) => value?.ToString() != match ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringNotEqualsAny(object? value, string match1, string match2)
+    public static Visibility IfStringNotEqualsAny(object? value, string match1, string match2)
         => value?.ToString() is var s && s != match1 && s != match2 ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringNotEqualsAny<T>(T value, string match1, string match2)
+    public static Visibility IfStringNotEqualsAny<T>(T value, string match1, string match2)
         => value?.ToString() is var s && s != match1 && s != match2 ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringNotEqualsAny(object? value, string match1, string match2, string match3)
+    public static Visibility IfStringNotEqualsAny(object? value, string match1, string match2, string match3)
         => value?.ToString() is var s && s != match1 && s != match2 && s != match3 ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// Returns <see cref="Visibility.Visible"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// cref="Visibility.Collapsed"/>.
     /// </summary>
-    public static Visibility IfToStringNotEqualsAny<T>(T value, string match1, string match2, string match3)
+    public static Visibility IfStringNotEqualsAny<T>(T value, string match1, string match2, string match3)
         => value?.ToString() is var s && s != match1 && s != match2 && s != match3 ? Visibility.Visible : Visibility.Collapsed;
 }

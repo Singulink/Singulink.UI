@@ -5,15 +5,16 @@ namespace Singulink.UI.Navigation;
 /// <content>
 /// Provides INotifyPropertyChanged related implementations for the navigator.
 /// </content>
-public partial class Navigator
+partial class Navigator
 {
-    private static readonly PropertyChangedEventArgs IsNavigatingChangedArgs = new(nameof(IsNavigating));
-    private static readonly PropertyChangedEventArgs IsShowingDialogChangedArgs = new(nameof(IsShowingDialog));
-    private static readonly PropertyChangedEventArgs HasBackHistoryChangedArgs = new(nameof(HasBackHistory));
-    private static readonly PropertyChangedEventArgs HasForwardHistoryChangedArgs = new(nameof(HasForwardHistory));
     private static readonly PropertyChangedEventArgs CanUserGoBackChangedArgs = new(nameof(CanUserGoBack));
     private static readonly PropertyChangedEventArgs CanUserGoForwardChangedArgs = new(nameof(CanUserGoForward));
     private static readonly PropertyChangedEventArgs CanUserRefreshChangedArgs = new(nameof(CanUserRefresh));
+    private static readonly PropertyChangedEventArgs DidNavigateChangedArgs = new(nameof(DidNavigate));
+    private static readonly PropertyChangedEventArgs HasBackHistoryChangedArgs = new(nameof(HasBackHistory));
+    private static readonly PropertyChangedEventArgs HasForwardHistoryChangedArgs = new(nameof(HasForwardHistory));
+    private static readonly PropertyChangedEventArgs IsNavigatingChangedArgs = new(nameof(IsNavigating));
+    private static readonly PropertyChangedEventArgs IsShowingDialogChangedArgs = new(nameof(IsShowingDialog));
 
     /// <inheritdoc cref="INotifyPropertyChanged.PropertyChanged"/>
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -25,26 +26,28 @@ public partial class Navigator
         private INavigator? _navigator;
         private readonly Action<PropertyChangedEventArgs> _onPropertyChanged;
 
-        private bool _isNavigating;
-        private bool _isShowingDialog;
-        private bool _hasBackHistory;
-        private bool _hasForwardHistory;
         private bool _canUserGoBack;
         private bool _canUserGoForward;
         private bool _canUserRefresh;
+        private bool _didNavigate;
+        private bool _hasBackHistory;
+        private bool _hasForwardHistory;
+        private bool _isNavigating;
+        private bool _isShowingDialog;
 
         public PropertyChangedNotifier(INavigator navigator, Action<PropertyChangedEventArgs> onPropertyChanged)
         {
             _navigator = navigator;
             _onPropertyChanged = onPropertyChanged;
 
-            _isNavigating = navigator.IsNavigating;
-            _isShowingDialog = navigator.IsShowingDialog;
-            _hasBackHistory = navigator.HasBackHistory;
-            _hasForwardHistory = navigator.HasForwardHistory;
             _canUserGoBack = navigator.CanUserGoBack;
             _canUserGoForward = navigator.CanUserGoForward;
             _canUserRefresh = navigator.CanUserRefresh;
+            _didNavigate = navigator.DidNavigate;
+            _hasBackHistory = navigator.HasBackHistory;
+            _hasForwardHistory = navigator.HasForwardHistory;
+            _isNavigating = navigator.IsNavigating;
+            _isShowingDialog = navigator.IsShowingDialog;
         }
 
         public void Update()
@@ -52,13 +55,14 @@ public partial class Navigator
             if (_navigator is null)
                 throw new ObjectDisposedException(typeof(PropertyChangedNotifier).Name);
 
-            CheckUpdateNotify(ref _isNavigating, _navigator.IsNavigating, IsNavigatingChangedArgs);
-            CheckUpdateNotify(ref _isShowingDialog, _navigator.IsShowingDialog, IsShowingDialogChangedArgs);
-            CheckUpdateNotify(ref _hasBackHistory, _navigator.HasBackHistory, HasBackHistoryChangedArgs);
-            CheckUpdateNotify(ref _hasForwardHistory, _navigator.HasForwardHistory, HasForwardHistoryChangedArgs);
             CheckUpdateNotify(ref _canUserGoBack, _navigator.CanUserGoBack, CanUserGoBackChangedArgs);
             CheckUpdateNotify(ref _canUserGoForward, _navigator.CanUserGoForward, CanUserGoForwardChangedArgs);
             CheckUpdateNotify(ref _canUserRefresh, _navigator.CanUserRefresh, CanUserRefreshChangedArgs);
+            CheckUpdateNotify(ref _didNavigate, _navigator.DidNavigate, DidNavigateChangedArgs);
+            CheckUpdateNotify(ref _hasBackHistory, _navigator.HasBackHistory, HasBackHistoryChangedArgs);
+            CheckUpdateNotify(ref _hasForwardHistory, _navigator.HasForwardHistory, HasForwardHistoryChangedArgs);
+            CheckUpdateNotify(ref _isNavigating, _navigator.IsNavigating, IsNavigatingChangedArgs);
+            CheckUpdateNotify(ref _isShowingDialog, _navigator.IsShowingDialog, IsShowingDialogChangedArgs);
         }
 
         public void Dispose()

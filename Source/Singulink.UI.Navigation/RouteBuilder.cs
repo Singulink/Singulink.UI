@@ -59,22 +59,22 @@ public abstract class RouteBuilder<TParam> : RouteBuilderBase
     /// <summary>
     /// Creates a root route for the specified view model type.
     /// </summary>
-    public RootRoute<TParam, TViewModel> For<TViewModel>()
+    public RootRoute<TViewModel, TParam> For<TViewModel>()
         where TViewModel : class, IRoutedViewModel<TParam>
     {
-        return new RootRoute<TParam, TViewModel>(this);
+        return new RootRoute<TViewModel, TParam>(this);
     }
 
     /// <summary>
     /// Creates a nested route for the specified parent and nested view model types.
     /// </summary>
-    public NestedRoute<TParentViewModel, TParam, TNestedViewModel> ForNested<TParentViewModel, TNestedViewModel>()
+    public NestedRoute<TParentViewModel, TNestedViewModel, TParam> ForNested<TParentViewModel, TNestedViewModel>()
         where TNestedViewModel : class, IRoutedViewModel<TParam>
     {
-        return new NestedRoute<TParentViewModel, TParam, TNestedViewModel>(this);
+        return new NestedRoute<TParentViewModel, TNestedViewModel, TParam>(this);
     }
 
-    internal abstract string GetRouteString(TParam p);
+    internal abstract string GetRouteString(TParam parameter);
 
     internal abstract bool TryMatch(ReadOnlySpan<char> route, [MaybeNullWhen(false)] out TParam parameter, out ReadOnlySpan<char> rest);
 }
@@ -84,14 +84,14 @@ internal class SingleParamRouteBuilder<T> : RouteBuilder<T>
 {
     internal SingleParamRouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
 
-    internal override string GetRouteString(T p)
+    internal override string GetRouteString(T parameter)
     {
         var sb = new StringBuilder();
         int index = 0;
 
         using (new InvariantCultureContext())
         {
-            AddIfLiteralThenAddHole(ref index, p, sb);
+            AddIfLiteralThenAddHole(ref index, parameter, sb);
             AddIfLiteral(ref index, sb);
         }
 
@@ -99,14 +99,14 @@ internal class SingleParamRouteBuilder<T> : RouteBuilder<T>
         return sb.ToString();
     }
 
-    internal override bool TryMatch(ReadOnlySpan<char> route, [MaybeNullWhen(false)] out T p, out ReadOnlySpan<char> rest)
+    internal override bool TryMatch(ReadOnlySpan<char> route, [MaybeNullWhen(false)] out T parameter, out ReadOnlySpan<char> rest)
     {
         rest = PreProcessRouteString(route);
         int index = 0;
 
         using (new InvariantCultureContext())
         {
-            if (!MatchIfLiteralThenMatchHole(ref index, ref rest, out p))
+            if (!MatchIfLiteralThenMatchHole(ref index, ref rest, out parameter))
                 return false;
 
             if (!MatchIfLiteral(ref index, ref rest))
@@ -152,7 +152,7 @@ internal class TupleRouteBuilder<T1, T2> : RouteBuilder<(T1 Param1, T2 Param2)>
             if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param1!))
                 return false;
 
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param1!))
+            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param2!))
                 return false;
 
             if (!MatchIfLiteral(ref partIndex, ref rest))

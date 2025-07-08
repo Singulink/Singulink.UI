@@ -5,11 +5,11 @@ namespace Singulink.UI.Navigation;
 /// <summary>
 /// Represents a root route with no parameters.
 /// </summary>
-public class RootRoute<TViewModel> : RouteBase<TViewModel>, ISpecifiedRootRoute<TViewModel>
+public class RootRoute<TViewModel> : RouteBase<TViewModel>, IConcreteRootRoute<TViewModel>
     where TViewModel : class
 {
     /// <inheritdoc/>
-    RouteBase ISpecifiedRoute.Route => this;
+    RouteBase IConcreteRoute.Route => this;
 
     internal RootRoute(RouteBuilder routeBuilder) : base(routeBuilder, null)
     {
@@ -21,74 +21,74 @@ public class RootRoute<TViewModel> : RouteBase<TViewModel>, ISpecifiedRootRoute<
     public override string ToString() => RouteBuilder.GetRouteString();
 
     /// <inheritdoc/>
-    public override bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out ISpecifiedRoute specifiedRoute, out ReadOnlySpan<char> rest)
+    public override bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out IConcreteRoute concreteRoute, out ReadOnlySpan<char> rest)
     {
         if (RouteBuilder.TryMatch(routeString, out rest))
         {
-            specifiedRoute = this;
+            concreteRoute = this;
             return true;
         }
 
-        specifiedRoute = default;
+        concreteRoute = default;
         return false;
     }
 
     /// <inheritdoc/>
-    bool IEquatable<ISpecifiedRoute>.Equals(ISpecifiedRoute? other) => other == this;
+    bool IEquatable<IConcreteRoute>.Equals(IConcreteRoute? other) => other == this;
 }
 
 /// <summary>
 /// Represents a root route with parameters.
 /// </summary>
-public class RootRoute<TParam, TViewModel> : RouteBase<TParam, TViewModel>
-    where TParam : notnull
+public class RootRoute<TViewModel, TParam> : RouteBase<TViewModel, TParam>
     where TViewModel : class, IRoutedViewModel<TParam>
+    where TParam : notnull
 {
     internal RootRoute(RouteBuilder<TParam> routeStringHandler) : base(routeStringHandler, null)
     {
     }
 
     /// <summary>
-    /// Gets a specified route with the specified parameter (or tuple with multiple parameters).
+    /// Gets a concrete route using the specified parameter (or a tuple of parameters, if there are multiple parameters).
     /// </summary>
-    public ISpecifiedRootRoute<TViewModel> GetSpecified(TParam parameter)
+    public IConcreteRootRoute<TViewModel> GetConcrete(TParam parameter)
     {
-        return new Specified(this, parameter);
+        return new Concrete(this, parameter);
     }
 
     /// <inheritdoc/>
-    public override bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out ISpecifiedRoute specifiedRoute, out ReadOnlySpan<char> rest)
+    public override bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out IConcreteRoute concreteRoute, out ReadOnlySpan<char> rest)
     {
         if (RouteBuilder.TryMatch(routeString, out TParam parameter, out rest))
         {
-            specifiedRoute = new Specified(this, parameter);
+            concreteRoute = new Concrete(this, parameter);
             return true;
         }
 
-        specifiedRoute = default;
+        concreteRoute = default;
         return false;
     }
 
-    private class Specified : IParameterizedSpecifiedRoute<TParam, TViewModel>, ISpecifiedRootRoute<TViewModel>
+    private class Concrete : IParameterizedConcreteRoute<TViewModel, TParam>, IConcreteRootRoute<TViewModel>
     {
         private readonly TParam _parameter;
-        private readonly RootRoute<TParam, TViewModel> _route;
+        private readonly RootRoute<TViewModel, TParam> _route;
 
-        RouteBase ISpecifiedRoute.Route => _route;
+        RouteBase IConcreteRoute.Route => _route;
 
-        TParam IParameterizedSpecifiedRoute<TParam, TViewModel>.Parameter => _parameter;
+        TParam IParameterizedConcreteRoute<TViewModel, TParam>.Parameter => _parameter;
 
-        public Specified(RootRoute<TParam, TViewModel> route, TParam paramValue)
+        public Concrete(RootRoute<TViewModel, TParam> route, TParam paramValue)
         {
             _route = route;
             _parameter = paramValue;
         }
 
-        public override string ToString() => _route.GetSpecifiedRouteString(_parameter);
+        public override string ToString() => _route.GetConcreteRouteString(_parameter);
 
-        bool IEquatable<ISpecifiedRoute>.Equals(ISpecifiedRoute? other)
+        bool IEquatable<IConcreteRoute>.Equals(IConcreteRoute? other)
         {
-            return other is Specified specified && specified._route == _route && specified._parameter.Equals(_parameter);
+            return other is Concrete specified && specified._route == _route && specified._parameter.Equals(_parameter);
         }
     }
 }

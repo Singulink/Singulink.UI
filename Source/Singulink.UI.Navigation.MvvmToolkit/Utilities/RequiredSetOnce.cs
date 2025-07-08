@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.MvvmToolkit.Utilities;
 
 /// <summary>
 /// Represents a value that must be set before it can be retrieved and can only be set once.

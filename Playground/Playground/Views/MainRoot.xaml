@@ -1,0 +1,38 @@
+﻿<Page
+  x:Class="Playground.Views.MainRoot"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:Playground.Views"
+  xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+  xmlns:sc="using:Singulink.UI.Xaml.Converters"
+  Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+  <Grid>
+    <muxc:NavigationView Name="NavView" PaneTitle="Menu" OpenPaneLength="180"
+                         IsBackEnabled="{x:Bind Model.Navigator.CanUserGoBack, Mode=OneWay}"
+                         BackRequested="OnBackRequested"
+                         SelectionChanged="OnNavViewSelectionChanged">
+
+      <muxc:NavigationView.MenuItems>
+        <muxc:NavigationViewItem Content="Home" Icon="Home" IsSelected="True" Tag="/Home"/>
+        <muxc:NavigationViewItemSeparator />
+        <muxc:NavigationViewItem Content="Dialog Test" Icon="Pictures" Tag="/DialogTest"/>
+        <muxc:NavigationViewItem Content="Params Test" Icon="OpenPane" Tag="/ParamsTest"/>
+      </muxc:NavigationView.MenuItems>
+
+      <muxc:NavigationView.FooterMenuItems>
+        <muxc:NavigationViewItem Content="Logout" Icon="Clear" Tag="/Login"/>
+      </muxc:NavigationView.FooterMenuItems>
+
+      <Grid RowDefinitions="Auto,*">
+        <TextBlock Text="{Binding SelectedItem.Content, ElementName=NavView}" Margin="13,10,15,10" Style="{StaticResource TitleLargeTextBlockStyle}"/>
+        <ContentControl x:Name="NavRoot" Grid.Row="1" Margin="30"/>
+      </Grid>
+    </muxc:NavigationView>
+
+    <Grid x:Name="LoadingSpinner" Visibility="{x:Bind sc:Visible.IfFalse(IsEnabled), Mode=OneWay}">
+      <Rectangle Fill="{ThemeResource ApplicationPageBackgroundThemeBrush}" Opacity="0.7"/>
+      <muxc:ProgressRing />
+    </Grid>
+  </Grid>
+</Page>

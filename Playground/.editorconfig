@@ -1,0 +1,12 @@
+# Editor config overrides specifically for test projects
+
+
+########### C# files ###########
+[*.cs]
+
+#### Analyzer diagnostics ####
+
+stylecop.documentation.documentExposedElements = false
+
+# IDE0028: Simplify collection initialization
+dotnet_diagnostic.IDE0028.severity = suggestion

@@ -1,4 +1,4 @@
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 internal class DialogNavigator(Navigator navigator, ContentDialog dialog) : IDialogNavigator
 {

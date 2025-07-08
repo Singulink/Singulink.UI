@@ -1,11 +1,11 @@
-using Singulink.UI.Navigation.Utilities;
+using Singulink.UI.Navigation.WinUI.Utilities;
 
 namespace Singulink.UI.Navigation;
 
 /// <content>
 /// Provides partial navigation related implementations for the navigator.
 /// </content>
-public partial class Navigator
+partial class Navigator
 {
     /// <inheritdoc cref="INavigator.NavigatePartialAsync(RouteOptions)"/>
     public async Task<NavigationResult> NavigatePartialAsync(RouteOptions routeOptions)
@@ -16,9 +16,9 @@ public partial class Navigator
         return await NavigateAsync(NavigationType.New, null, routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TNestedViewModel}(ISpecifiedNestedRoute{TParentViewModel, TNestedViewModel}, RouteOptions)"/>
+    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TNestedViewModel}(IConcreteNestedRoute{TParentViewModel, TNestedViewModel}, RouteOptions)"/>
     public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TNestedViewModel>(
-        ISpecifiedNestedRoute<TParentViewModel, TNestedViewModel> nestedRoute,
+        IConcreteNestedRoute<TParentViewModel, TNestedViewModel> nestedRoute,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
         where TNestedViewModel : class
@@ -29,10 +29,10 @@ public partial class Navigator
         return await NavigatePartialAsync(typeof(TParentViewModel), [nestedRoute], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2}(ISpecifiedNestedRoute{TParentViewModel, TNestedViewModel1}, ISpecifiedNestedRoute{TNestedViewModel1, TNestedViewModel2}, RouteOptions)"/>
+    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2}(IConcreteNestedRoute{TParentViewModel, TNestedViewModel1}, IConcreteNestedRoute{TNestedViewModel1, TNestedViewModel2}, RouteOptions)"/>
     public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2>(
-        ISpecifiedNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        ISpecifiedNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
+        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
         where TNestedViewModel1 : class
@@ -44,11 +44,11 @@ public partial class Navigator
         return await NavigatePartialAsync(typeof(TParentViewModel), [nestedRoute1, nestedRoute2], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3}(ISpecifiedNestedRoute{TParentViewModel, TNestedViewModel1}, ISpecifiedNestedRoute{TNestedViewModel1, TNestedViewModel2}, ISpecifiedNestedRoute{TNestedViewModel2, TNestedViewModel3}, RouteOptions)"/>
+    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3}(IConcreteNestedRoute{TParentViewModel, TNestedViewModel1}, IConcreteNestedRoute{TNestedViewModel1, TNestedViewModel2}, IConcreteNestedRoute{TNestedViewModel2, TNestedViewModel3}, RouteOptions)"/>
     public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3>(
-        ISpecifiedNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        ISpecifiedNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
-        ISpecifiedNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
+        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
+        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+        IConcreteNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
         where TNestedViewModel1 : class
@@ -61,7 +61,7 @@ public partial class Navigator
         return await NavigatePartialAsync(typeof(TParentViewModel), [nestedRoute1, nestedRoute2, nestedRoute3], routeOptions);
     }
 
-    private async Task<NavigationResult> NavigatePartialAsync(Type parentViewModelType, List<ISpecifiedRoute> requestedNestedRoutes, RouteOptions? routeOptions)
+    private async Task<NavigationResult> NavigatePartialAsync(Type parentViewModelType, List<IConcreteRoute> requestedNestedRoutes, RouteOptions? routeOptions)
     {
         var currentRouteInfo = CurrentRouteInfo ?? throw new InvalidOperationException("Cannot navigate partial route when no route is currently active.");
 

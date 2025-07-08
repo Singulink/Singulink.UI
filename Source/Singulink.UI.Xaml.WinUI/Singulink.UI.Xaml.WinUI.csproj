@@ -1,7 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Singulink.UI.Xaml</RootNamespace>
-    <!-- ;net8.0-browserwasm;net8.0-desktop-->
     <TargetFrameworks>net8.0;net8.0-windows10.0.19041;net8.0-ios;net8.0-maccatalyst;net8.0-android</TargetFrameworks>
     <OutputType>Library</OutputType>
     <!-- Ensures the .xr.xml files are generated in a proper layout folder -->
@@ -9,24 +8,20 @@
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
 
-    <Version>2.3</Version>
-    <PackageTags>WinUI; Uno Platform; Behaviors; Convert; Converters; Mvvm; Toolkit;</PackageTags>
-    <Description>Singulink WinUI 3 / Uno Platform extensions (behaviors, converters, static convert methods).</Description>
+    <Version>3.0</Version>
+    <PackageTags>WinUI; Uno Platform; XAML; Behaviors; Convert; Converters; MVVM; Toolkit;</PackageTags>
+    <Description>Singulink WinUI 3 / Uno Platform XAML extensions (behaviors, converters, static convert methods).</Description>
   </PropertyGroup>
 
   <Choose>
     <When Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
       <ItemGroup>
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.240923002" />
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
       </ItemGroup>
     </When>
     <Otherwise>
-      <PropertyGroup>
-        <SignAssembly>false</SignAssembly>
-      </PropertyGroup>
-
       <ItemGroup>
-        <PackageReference Include="Uno.WinUI" Version="5.0.19" />
+        <PackageReference Include="Uno.WinUI" Version="6.0.797" />
       </ItemGroup>
 
       <ItemGroup>

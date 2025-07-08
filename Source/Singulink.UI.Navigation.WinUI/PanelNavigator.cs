@@ -1,4 +1,4 @@
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 /// <summary>
 /// Represents a navigator that sets the active view for a <see cref="Panel"/>.
@@ -7,11 +7,21 @@ namespace Singulink.UI.Navigation;
 /// If the panel already contains the view then it will be made visible, otherwise the view will be added to the panel. All other children of the panel will be
 /// hidden.
 /// </remarks>
-public class PanelNavigator(Panel navControl, int maxCachedViews = 5) : ViewNavigatorBase<Panel>(navControl)
+public class PanelNavigator : ViewNavigatorBase<Panel>
 {
-    private readonly int _maxCachedViews = maxCachedViews >= 0 ? maxCachedViews : throw new ArgumentOutOfRangeException(nameof(maxCachedViews));
+    private readonly int _maxCachedViews;
 
     private readonly List<UIElement> _cachedViews = [];
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PanelNavigator"/> class with the specified <see cref="Panel"/> and maximum cached views.
+    /// </summary>
+    /// <param name="panel">The panel to be used for navigation.</param>
+    /// <param name="maxCachedViews">Number of views that should be cached in the panel before they are removed from the visual tree.</param>
+    public PanelNavigator(Panel panel, int maxCachedViews = 5) : base(panel)
+    {
+        _maxCachedViews = maxCachedViews >= 0 ? maxCachedViews : throw new ArgumentOutOfRangeException(nameof(maxCachedViews));
+    }
 
     /// <inheritdoc/>
     protected override void SetActiveView(UIElement? view)

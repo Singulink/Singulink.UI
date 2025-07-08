@@ -43,6 +43,8 @@ public abstract class RouteBuilderBase
 
     private protected void AddIfLiteralThenAddHole<T>(ref int partIndex, T value, StringBuilder sb) where T : notnull
     {
+        AddIfLiteral(ref partIndex, sb);
+
         if (_routeParts[partIndex++] is not RouteHole hole || hole.HoleType != typeof(T))
             throw new UnreachableException("Unexpected hole type.");
 
@@ -86,18 +88,6 @@ public abstract class RouteBuilderBase
     {
         if (partIndex != _routeParts.Length)
             throw new UnreachableException("Unexpected ending route parts index.");
-    }
-
-    private void AddHole<T>(ref int index, T value, StringBuilder sb) where T : notnull
-    {
-        if (_routeParts[index++] is not RouteHole hole || hole.HoleType != typeof(T))
-            throw new UnreachableException("Unexpected hole type.");
-
-        int preLength = sb.Length;
-        sb.Append(Uri.EscapeDataString(value.ToString() ?? string.Empty));
-
-        if (preLength == sb.Length)
-            throw new FormatException("Route parameter values cannot be empty.");
     }
 
     private bool MatchHole<T>(ref int partIndex, ref ReadOnlySpan<char> remainingRoute, [MaybeNullWhen(false)] out T value)

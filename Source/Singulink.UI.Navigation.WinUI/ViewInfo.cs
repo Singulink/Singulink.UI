@@ -1,4 +1,4 @@
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 internal class ViewInfo(Type viewType, Func<UIElement> createViewFunc)
 {

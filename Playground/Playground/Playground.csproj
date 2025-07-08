@@ -1,0 +1,86 @@
+﻿<Project Sdk="Uno.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0-android;net9.0-ios;net9.0-windows10.0.26100;net9.0-browserwasm;net9.0-desktop</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <UnoSingleProject>true</UnoSingleProject>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <IsPackable>false</IsPackable>
+
+    <!-- Display name -->
+    <ApplicationTitle>Playground</ApplicationTitle>
+    <!-- App Identifier -->
+    <ApplicationId>singulink.ui.playground</ApplicationId>
+    <!-- Versions -->
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <!-- Package Publisher -->
+    <ApplicationPublisher>Singulink</ApplicationPublisher>
+    <!-- Package Description -->
+    <Description>Playground powered by Uno Platform.</Description>
+    <!--
+      If you encounter this error message:
+
+        error NETSDK1148: A referenced assembly was compiled using a newer version of Microsoft.Windows.SDK.NET.dll.
+        Please update to a newer .NET SDK in order to reference this assembly.
+
+      This means that the two packages below must be aligned with the "build" version number of
+      the "Microsoft.Windows.SDK.BuildTools" package above, and the "revision" version number
+      must be the highest found in https://www.nuget.org/packages/Microsoft.Windows.SDK.NET.Ref.
+    -->
+    <!-- <WindowsSdkPackageVersion>10.0.22621.28</WindowsSdkPackageVersion> -->
+
+    <!--
+      UnoFeatures let's you quickly add and manage implicit package references based on the features you want to use.
+      https://aka.platform.uno/singleproject-features
+    -->
+    <UnoFeatures>
+      Lottie;
+      Toolkit;
+      Mvvm;
+      SkiaRenderer;
+    </UnoFeatures>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.MvvmToolkit\Singulink.UI.Navigation.MvvmToolkit.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.WinUI\Singulink.UI.Navigation.WinUI.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Navigation\Singulink.UI.Navigation.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Tasks\Singulink.UI.Tasks.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Xaml.WinUI\Singulink.UI.Xaml.WinUI.csproj" />
+    <ProjectReference Include="..\Playground.ViewModels\Playground.ViewModels.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\MainRoot.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\LoginRoot.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\DialogTest\DialogTestPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\DialogTest\DismissableDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\ParamsTest\ParamsTestPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\ParamsTest\ShowParamsTestPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Home\HomePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+</Project>

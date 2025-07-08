@@ -73,30 +73,60 @@ public static class If
     /// <summary>
     /// Returns <see langword="true"/> if the specified value is equal to zero; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool Zero(object value)
-    {
-        var type = value.GetType();
-
-        if (!type.IsPrimitive && !type.IsEnum && type != typeof(decimal))
-            throw new NotSupportedException($"Type {type} is not supported by this method. Only primitives, enums and decimals are supported. ");
-
-        object defaultValue = Activator.CreateInstance(type);
-        return value.Equals(defaultValue);
-    }
+    /// <exception cref="ArgumentException">Thrown when the type of <paramref name="value"/> is not a primitive numeric type or <see
+    /// cref="decimal"/>.</exception>
+    public static bool Zero(object value) => Type.GetTypeCode(value.GetType()) switch {
+        TypeCode.Byte => (byte)value == 0,
+        TypeCode.SByte => (sbyte)value == 0,
+        TypeCode.Int16 => (short)value == 0,
+        TypeCode.Int32 => (int)value == 0,
+        TypeCode.Int64 => (long)value == 0,
+        TypeCode.UInt16 => (ushort)value == 0,
+        TypeCode.UInt32 => (uint)value == 0,
+        TypeCode.UInt64 => (ulong)value == 0,
+        TypeCode.Single => (float)value == 0f,
+        TypeCode.Double => (double)value == 0d,
+        TypeCode.Decimal => (decimal)value == 0m,
+        _ => throw new ArgumentException($"Type {value.GetType()} is not supported. Only primitive numeric types and decimals are supported.", nameof(value)),
+    };
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value is equal to zero; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool Zero<T>(T value) where T : unmanaged => EqualityComparer<T>.Default.Equals(value, default);
+    /// <exception cref="ArgumentException">Thrown when the type of <paramref name="value"/> is not a primitive numeric type or <see
+    /// cref="decimal"/>.</exception>
+    public static bool Zero<T>(T value) where T : struct
+    {
+        if (typeof(T) != typeof(byte) &&
+            typeof(T) != typeof(sbyte) &&
+            typeof(T) != typeof(short) &&
+            typeof(T) != typeof(int) &&
+            typeof(T) != typeof(long) &&
+            typeof(T) != typeof(ushort) &&
+            typeof(T) != typeof(uint) &&
+            typeof(T) != typeof(ulong) &&
+            typeof(T) != typeof(float) &&
+            typeof(T) != typeof(double) &&
+            typeof(T) != typeof(decimal))
+        {
+            throw new ArgumentException($"Type {typeof(T)} is not supported. Only primitive numeric types and decimals are supported.");
+        }
+
+        return EqualityComparer<T>.Default.Equals(value, default);
+    }
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value is not equal to zero; otherwise <see langword="false"/>.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when the type of <paramref name="value"/> is not a primitive numeric type or <see
+    /// cref="decimal"/>.</exception>
     public static bool NotZero(object value) => !Zero(value);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value is not equal to zero; otherwise <see langword="false"/>.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when the type of <paramref name="value"/> is not a primitive numeric type or <see
+    /// cref="decimal"/>.</exception>
     public static bool NotZero<T>(T value) where T : unmanaged => !Zero(value);
 
     /// <summary>
@@ -135,72 +165,72 @@ public static class If
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool ToStringEquals(object? value, string match) => value?.ToString() == match;
+    public static bool StringEquals(object? value, string match) => value?.ToString() == match;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool ToStringEquals<T>(T value, string match) => value?.ToString() == match;
+    public static bool StringEquals<T>(T value, string match) => value?.ToString() == match;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals any of the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool ToStringEqualsAny(object? value, string match1, string match2)
+    public static bool StringEqualsAny(object? value, string match1, string match2)
         => value?.ToString() is string s && (s == match1 || s == match2);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals any of the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool ToStringEqualsAny<T>(T value, string match1, string match2)
+    public static bool StringEqualsAny<T>(T value, string match1, string match2)
         => value?.ToString() is string s && (s == match1 || s == match2);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals any of the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool ToStringEqualsAny(object? value, string match1, string match2, string match3)
+    public static bool StringEqualsAny(object? value, string match1, string match2, string match3)
         => value?.ToString() is string s && (s == match1 || s == match2 || s == match3);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation equals any of the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool ToStringEqualsAny<T>(T value, string match1, string match2, string match3)
+    public static bool StringEqualsAny<T>(T value, string match1, string match2, string match3)
         => value?.ToString() is string s && (s == match1 || s == match2 || s == match3);
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool ToStringNotEquals(object? value, string match) => value?.ToString() != match;
+    public static bool StringNotEquals(object? value, string match) => value?.ToString() != match;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal the string provided; otherwise <see langword="false"/>.
     /// </summary>
-    public static bool ToStringNotEquals<T>(T value, string match) => value?.ToString() != match;
+    public static bool StringNotEquals<T>(T value, string match) => value?.ToString() != match;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// langword="false"/>.
     /// </summary>
-    public static bool ToStringNotEqualsAny(object? value, string match1, string match2)
+    public static bool StringNotEqualsAny(object? value, string match1, string match2)
         => value?.ToString() is var s && s != match1 && s != match2;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// langword="false"/>.
     /// </summary>
-    public static bool ToStringNotEqualsAny<T>(T value, string match1, string match2)
+    public static bool StringNotEqualsAny<T>(T value, string match1, string match2)
         => value?.ToString() is var s && s != match1 && s != match2;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// langword="false"/>.
     /// </summary>
-    public static bool ToStringNotEqualsAny(object? value, string match1, string match2, string match3)
+    public static bool StringNotEqualsAny(object? value, string match1, string match2, string match3)
         => value?.ToString() is var s && s != match1 && s != match2 && s != match3;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified value's string representation does not equal any of the string provided; otherwise <see
     /// langword="false"/>.
     /// </summary>
-    public static bool ToStringNotEqualsAny<T>(T value, string match1, string match2, string match3)
+    public static bool StringNotEqualsAny<T>(T value, string match1, string match2, string match3)
         => value?.ToString() is var s && s != match1 && s != match2 && s != match3;
 }

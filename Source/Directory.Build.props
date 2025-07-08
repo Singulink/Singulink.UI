@@ -7,8 +7,6 @@
     <Copyright>© Singulink. All rights reserved.</Copyright>
     <PackageIcon>Singulink Icon 128x128.png</PackageIcon>
 
-    <AssemblyOriginatorKeyFile>..\key.snk</AssemblyOriginatorKeyFile>
-    <SignAssembly>true</SignAssembly>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IsPackable>true</IsPackable>
 
@@ -33,6 +31,5 @@
 
   <ItemGroup>
     <None Include="..\..\Resources\Singulink Icon 128x128.png" Pack="true" PackagePath="\"/>
-    <None Include="..\key.snk" Link="key.snk" />
   </ItemGroup>
 </Project>
