@@ -142,28 +142,28 @@ partial class Navigator
         void OnPrimaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
             if (_dialogInfoStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
+            {
                 args.Cancel = true;
-
-            var dialog = topDialogInfo.Dialog;
-            dialog.PrimaryButtonCommand?.Execute(dialog.PrimaryButtonCommandParameter);
+                topDialogInfo.Dialog.PrimaryButtonCommand?.Execute(topDialogInfo.Dialog.PrimaryButtonCommandParameter);
+            }
         }
 
         void OnSecondaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
             if (_dialogInfoStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
+            {
                 args.Cancel = true;
-
-            var dialog = topDialogInfo.Dialog;
-            dialog.SecondaryButtonCommand?.Execute(dialog.SecondaryButtonCommandParameter);
+                topDialogInfo.Dialog.SecondaryButtonCommand?.Execute(topDialogInfo.Dialog.SecondaryButtonCommandParameter);
+            }
         }
 
         void OnCloseDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
             if (_dialogInfoStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
+            {
                 args.Cancel = true;
-
-            var dialog = topDialogInfo.Dialog;
-            dialog.CloseButtonCommand?.Execute(dialog.CloseButtonCommandParameter);
+                topDialogInfo.Dialog.CloseButtonCommand?.Execute(topDialogInfo.Dialog.CloseButtonCommandParameter);
+            }
         }
 
         async void OnDialogClosing(ContentDialog sender, ContentDialogClosingEventArgs args)

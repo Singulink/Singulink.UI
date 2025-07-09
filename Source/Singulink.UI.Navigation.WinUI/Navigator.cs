@@ -135,9 +135,6 @@ public partial class Navigator : INavigator
     {
         EnsureThreadAccess();
 
-        if (IsNavigating)
-            throw new InvalidOperationException("Cannot clear history while navigating.");
-
         var currentRouteInfo = CurrentRouteInfo;
 
         if (currentRouteInfo is null)
