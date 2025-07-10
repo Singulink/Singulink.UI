@@ -4,7 +4,7 @@ namespace Singulink.UI.Navigation;
 /// View model for message dialogs shown by navigators. The default message dialog can be overridden by mapping a custom dialog to this view model type
 /// when building an <see cref="INavigator"/>.
 /// </summary>
-public sealed class MessageDialogViewModel : IDialogViewModel, IDismissableDialogViewModel
+public sealed class MessageDialogViewModel : IDismissableDialogViewModel
 {
     private int? _resultButtonIndex;
 
@@ -48,6 +48,8 @@ public sealed class MessageDialogViewModel : IDialogViewModel, IDismissableDialo
         Title = options.Title;
         Message = options.Message;
         ButtonLabels = options.ButtonLabels;
+        DefaultButtonIndex = options.DefaultButtonIndex;
+        CancelButtonIndex = options.CancelButtonIndex;
     }
 
     /// <summary>

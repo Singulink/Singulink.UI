@@ -4,7 +4,7 @@ using System.Text;
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Represents a builder used for constructing routes without parameters.
+/// Represents a builder used for constructing parameterless routes.
 /// </summary>
 public class RouteBuilder
 {
@@ -49,7 +49,7 @@ public class RouteBuilder
 }
 
 /// <summary>
-/// Represents a builder used for constructing routes with parameters.
+/// Represents a builder used for constructing parameterized routes.
 /// </summary>
 public abstract class RouteBuilder<TParam> : RouteBuilderBase
     where TParam : notnull

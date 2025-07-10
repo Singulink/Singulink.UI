@@ -5,14 +5,32 @@ namespace Singulink.UI.Navigation;
 /// <summary>
 /// Provides information to a view model when its route is being navigated to.
 /// </summary>
-public sealed class NavigationArgs(NavigationType type, NavigationFlags flags, RouteOptions routeOptions)
+public sealed class NavigationArgs
 {
-    private readonly NavigationFlags _flags = flags.IsValid() ? flags : throw new ArgumentException("Invalid navigation flags.", nameof(flags));
+    private readonly NavigationFlags _flags;
+    private readonly RouteOptions _routeOptions;
+    private readonly NavigationType _navigationType;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NavigationArgs"/> class with the specified navigation type, flags, and route options.
+    /// </summary>
+    /// <param name="navigationType">The navigation type that is occurring.</param>
+    /// <param name="flags">Flags that provide additional information about the navigation.</param>
+    /// <param name="routeOptions">Options for the new route.</param>
+    public NavigationArgs(NavigationType navigationType, NavigationFlags flags, RouteOptions routeOptions)
+    {
+        _navigationType.ThrowIfNotValid(nameof(navigationType));
+        _flags.ThrowIfNotValid(nameof(flags));
+
+        _navigationType = navigationType;
+        _flags = flags;
+        _routeOptions = routeOptions;
+    }
 
     /// <summary>
     /// Gets the type of navigation that is occurring.
     /// </summary>
-    public NavigationType NavigationType { get; } = type.IsValid() ? type : throw new ArgumentException("Invalid navigation type.", nameof(type));
+    public NavigationType NavigationType => _navigationType;
 
     /// <summary>
     /// Gets a value indicating whether this is the first time the view is being navigated to.
@@ -54,5 +72,5 @@ public sealed class NavigationArgs(NavigationType type, NavigationFlags flags, R
     /// <summary>
     /// Gets the options for the current route that is being navigated to.
     /// </summary>
-    public RouteOptions RouteOptions => routeOptions;
+    public RouteOptions RouteOptions => _routeOptions;
 }

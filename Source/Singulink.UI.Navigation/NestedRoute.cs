@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Represents a nested route without a parameter.
+/// Represents a parameterless nested route.
 /// </summary>
 public class NestedRoute<TParentViewModel, TNestedViewModel> : RouteBase<TNestedViewModel>, IConcreteNestedRoute<TParentViewModel, TNestedViewModel>
     where TNestedViewModel : class
@@ -38,7 +38,7 @@ public class NestedRoute<TParentViewModel, TNestedViewModel> : RouteBase<TNested
 }
 
 /// <summary>
-/// Represents a nested route with a parameter.
+/// Represents a parameterized nested route.
 /// </summary>
 public class NestedRoute<TParentViewModel, TNestedViewModel, TParam> : RouteBase<TNestedViewModel, TParam>
     where TNestedViewModel : class, IRoutedViewModel<TParam>
@@ -49,7 +49,7 @@ public class NestedRoute<TParentViewModel, TNestedViewModel, TParam> : RouteBase
     }
 
     /// <summary>
-    /// Gets a concrete route with the specified parameter (or a tuple of parameters, if there are multiple parameters).
+    /// Gets a concrete route with the specified parameter (or parameters tuple, if there are multiple parameters).
     /// </summary>
     public IConcreteNestedRoute<TParentViewModel, TNestedViewModel> GetConcrete(TParam parameter)
     {

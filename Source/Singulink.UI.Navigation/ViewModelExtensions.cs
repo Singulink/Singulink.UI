@@ -26,7 +26,7 @@ public static class ViewModelExtensions
     }
 
     /// <summary>
-    /// Returns the parameter (or parameter tuple, if there are multiple parameters) for the view model.
+    /// Returns the parameter (or parameters tuple, if there are multiple parameters) for the view model.
     /// </summary>
     public static TParam GetParameter<TParam>(this IRoutedViewModel<TParam> viewModel) where TParam : notnull
     {

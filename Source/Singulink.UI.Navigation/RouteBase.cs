@@ -58,7 +58,7 @@ public abstract class RouteBase<TViewModel> : RouteBase
 }
 
 /// <summary>
-/// Represents a route with parameters that can be navigated to.
+/// Represents a parameterized route that can be navigated to.
 /// </summary>
 public abstract class RouteBase<TViewModel, TParam> : RouteBase
     where TViewModel : class, IRoutedViewModel<TParam>

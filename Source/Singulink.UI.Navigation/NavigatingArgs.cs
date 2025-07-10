@@ -3,16 +3,34 @@ using Singulink.Enums;
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Provides information to a view model when its route is navigating away from and allows it to be cancelled.
+/// Provides information to a view model when its route is navigating away and allows it to be cancelled.
 /// </summary>
-public class NavigatingArgs(NavigationType type, NavigatingFlags flags, RouteOptions newRouteOptions)
+public class NavigatingArgs
 {
-    private readonly NavigatingFlags _flags = flags.IsValid() ? flags : throw new ArgumentException("Invalid navigating flags.", nameof(flags));
+    private readonly NavigatingFlags _flags;
+    private readonly RouteOptions _newRouteOptions;
+    private readonly NavigationType _navigationType;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NavigatingArgs"/> class with the specified navigation type, flags, and new route options.
+    /// </summary>
+    /// <param name="navigationType">The navigation type that is occurring.</param>
+    /// <param name="flags">Flags that provide additional information about the navigation.</param>
+    /// <param name="newRouteOptions">Options for the new route.</param>
+    public NavigatingArgs(NavigationType navigationType, NavigatingFlags flags, RouteOptions newRouteOptions)
+    {
+        navigationType.ThrowIfNotValid(nameof(navigationType));
+        flags.ThrowIfNotValid(nameof(flags));
+
+        _navigationType = navigationType;
+        _flags = flags;
+        _newRouteOptions = newRouteOptions;
+    }
 
     /// <summary>
     /// Gets the type of navigation that is occurring.
     /// </summary>
-    public NavigationType NavigationType { get; } = type.IsValid() ? type : throw new ArgumentException("Invalid navigation type.", nameof(type));
+    public NavigationType NavigationType => _navigationType;
 
     /// <summary>
     /// Gets a value indicating whether this view model will be navigated away from if the navigation is not cancelled. If this is <see langword="false"/> then
@@ -22,9 +40,9 @@ public class NavigatingArgs(NavigationType type, NavigatingFlags flags, RouteOpt
     public bool WillBeNavigatedFrom => _flags.HasFlag(NavigatingFlags.WillBeNavigatedFrom);
 
     /// <summary>
-    /// Gets the route options for the new route that will be navigated to.
+    /// Gets the options for the new route that will be navigated to.
     /// </summary>
-    public RouteOptions RouteOptions => newRouteOptions;
+    public RouteOptions RouteOptions => _newRouteOptions;
 
     /// <summary>
     /// Gets or sets a value indicating whether the navigation should be canceled and the current route should remain active.

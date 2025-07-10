@@ -2,12 +2,12 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net8.0-windows10.0.19041</TargetFrameworks>
 
-    <Version>3.0</Version>
+    <Version>3.0.1</Version>
     <PackageTags>WinUI; Uno Platform; Navigation; MVVM; Toolkit;</PackageTags>
     <Description>Strongly-typed AOT-friendly navigation framework with comprehensive deep-linking support.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Singulink.Enums" Version="2.0.0" />
+    <PackageReference Include="Singulink.Enums" Version="2.2.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Singulink.UI.Tasks\Singulink.UI.Tasks.csproj" />

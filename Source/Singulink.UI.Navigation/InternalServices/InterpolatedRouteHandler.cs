@@ -1,11 +1,13 @@
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.InternalServices;
 
 /// <summary>
 /// Provides a custom interpolated string handler for route strings.
 /// </summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [InterpolatedStringHandler]
 public class InterpolatedRouteHandler(int literalLength, int formattedCount)
 {
@@ -65,22 +67,18 @@ public class InterpolatedRouteHandler(int literalLength, int formattedCount)
         // Remove leading path separator
 
         if (_routeParts.FirstOrDefault() is string firstLiteral && firstLiteral[0] is '/')
-        {
             if (firstLiteral.Length is 1)
                 _routeParts.RemoveAt(0);
             else
                 _routeParts[0] = firstLiteral[1..];
-        }
 
         // Remove trailing path separator
 
         if (_routeParts.LastOrDefault() is string lastLiteral && lastLiteral[^1] is '/')
-        {
             if (lastLiteral.Length is 1)
                 _routeParts.RemoveAt(_routeParts.Count - 1);
             else
                 _routeParts[^1] = lastLiteral[..^1];
-        }
 
         var remainingLambdaParamNames = lambdaParamNames.ToList();
 

@@ -3,7 +3,7 @@ using Singulink.UI.Navigation;
 
 namespace Playground.ViewModels.DialogTest;
 
-public partial class DismissableDialogViewModel() : IDialogViewModel, IDismissableDialogViewModel
+public partial class DismissableDialogViewModel : IDismissableDialogViewModel
 {
     public IDialogNavigator Navigator => this.GetNavigator();
 

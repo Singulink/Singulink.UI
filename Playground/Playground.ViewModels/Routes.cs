@@ -25,6 +25,7 @@ public static class Routes
 
         public static NestedRoute<MainViewModel, ParamsTestViewModel> ParamsTestRoute { get; } =
             Route.Build("ParamsTest").ForNested<MainViewModel, ParamsTestViewModel>();
+
         public static NestedRoute<MainViewModel, ShowParamsTestViewModel, (int IntValue, string StringValue)> ShowParamsTestRoute { get; } =
             Route.Build((int i, string s) => $"ParamsTest/{i}/{s}").ForNested<MainViewModel, ShowParamsTestViewModel>();
     }

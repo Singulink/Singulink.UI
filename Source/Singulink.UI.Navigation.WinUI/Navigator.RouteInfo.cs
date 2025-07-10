@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Singulink.UI.Navigation.WinUI;
 
 namespace Singulink.UI.Navigation.WinUI;
 

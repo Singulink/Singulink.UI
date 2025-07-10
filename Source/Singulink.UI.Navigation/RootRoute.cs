@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Represents a root route with no parameters.
+/// Represents a parameterless root route.
 /// </summary>
 public class RootRoute<TViewModel> : RouteBase<TViewModel>, IConcreteRootRoute<TViewModel>
     where TViewModel : class
@@ -38,7 +38,7 @@ public class RootRoute<TViewModel> : RouteBase<TViewModel>, IConcreteRootRoute<T
 }
 
 /// <summary>
-/// Represents a root route with parameters.
+/// Represents a parameterized root route.
 /// </summary>
 public class RootRoute<TViewModel, TParam> : RouteBase<TViewModel, TParam>
     where TViewModel : class, IRoutedViewModel<TParam>
@@ -49,7 +49,7 @@ public class RootRoute<TViewModel, TParam> : RouteBase<TViewModel, TParam>
     }
 
     /// <summary>
-    /// Gets a concrete route using the specified parameter (or a tuple of parameters, if there are multiple parameters).
+    /// Gets a concrete route using the specified parameter (or parameters tuple, if there are multiple parameters).
     /// </summary>
     public IConcreteRootRoute<TViewModel> GetConcrete(TParam parameter)
     {

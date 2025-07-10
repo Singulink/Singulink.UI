@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Singulink.UI.Navigation.InternalServices;
 
 namespace Singulink.UI.Navigation;
 

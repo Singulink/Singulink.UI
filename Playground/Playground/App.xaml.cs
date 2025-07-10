@@ -1,3 +1,6 @@
+#if DEBUG
+using Microsoft.Extensions.Logging;
+#endif
 #if __WASM__
 using System.Diagnostics;
 #endif
