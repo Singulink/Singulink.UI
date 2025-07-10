@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Singulink.UI.Tasks;
 
 namespace Singulink.UI.Navigation;
 
@@ -56,9 +57,29 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     public bool IsShowingDialog { get; }
 
     /// <summary>
+    /// Gets the current route that the navigator is displaying.
+    /// </summary>
+    public string? CurrentRoute { get; }
+
+    /// <summary>
+    /// Gets the task runner for this navigator.
+    /// </summary>
+    public ITaskRunner TaskRunner { get; }
+
+    /// <summary>
     /// Clears back and forward navigation history.
     /// </summary>
     public void ClearHistory();
+
+    /// <summary>
+    /// Returns the routes that are in the back navigation stack, ordered from the most recent to the oldest. Does not include the current route.
+    /// </summary>
+    public IList<string> GetBackStackRoutes();
+
+    /// <summary>
+    /// Returns a list of routes currently in the forward navigation stack. Does not include the current route.
+    /// </summary>
+    public IList<string> GetForwardStackRoutes();
 
     /// <summary>
     /// Gets the route options for the current route.
@@ -68,22 +89,20 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// <summary>
     /// Navigates back to the previous view.
     /// </summary>
-    /// <param name="userInitiated">Indicates whether the navigation was initiated by the user.</param>
-    public Task<NavigationResult> GoBackAsync(bool userInitiated);
-
-    /// <summary>
-    /// Navigates back to the previous view and returns a value indicating whether the back navigation was handled. This overload is useful for determining the
-    /// handled state of a system back navigation request, such as when the user presses the back button on a mobile device or uses a hardware back button on a
-    /// desktop application.
-    /// </summary>
-    /// <param name="handled">When this method returns, contains a value indicating whether the back navigation was handled.</param>
-    public Task<NavigationResult> GoBackAsync(out bool handled);
+    public Task<NavigationResult> GoBackAsync();
 
     /// <summary>
     /// Navigates forward to the next view.
     /// </summary>
     /// <param name="userInitiated">Indicates whether the navigation is initiated by the user.</param>
     public Task<NavigationResult> GoForwardAsync(bool userInitiated);
+
+    /// <summary>
+    /// Handles a system back request, such as when the user presses the back button on a mobile device, a hardware back button on a desktop or the back button
+    /// in a web browser. Returns <see langword="true"/> if the request was handled and navigation was initiated, otherwise <see langword="false"/> (i.e. if
+    /// there is no back history or if back navigation is not possible because a non-dismissable dialog is showing).
+    /// </summary>
+    public bool HandleSystemBackRequest();
 
     /// <summary>
     /// Navigates to the specified route.
@@ -178,27 +197,6 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// </summary>
     /// <param name="userInitiated">Indicates whether the refresh was initiated by the user.</param>
     public Task<NavigationResult> RefreshAsync(bool userInitiated);
-
-    /// <summary>
-    /// Registers a handler that gets invoked whenever an asynchronous navigation occurs. The task passed into the handler completes at the end of the
-    /// navigation.
-    /// </summary>
-    /// <remarks>
-    /// This method can be used to register a handler that can control UI state while an asynchronous navigation is in progress, such as showing a loading
-    /// indicator or disabling controls. The handler is not invoked if the navigation completes synchronously. This can be particularly useful for allowing you
-    /// to run asynchronous navigations as busy tasks with a TaskRunner (from the Singulink.UI.Tasks library).
-    /// </remarks>
-    public void RegisterAsyncNavigationHandler(Action<Task> handler);
-
-    /// <summary>
-    /// Adds a handler that is called when a view is initialized.
-    /// </summary>
-    /// <typeparam name="TView">The type of the view; can be a concrete type, base type or interface.</typeparam>
-    /// <typeparam name="TViewModel">The type of the view model; can be a concrete type, base type or interface.</typeparam>
-    /// <param name="handler">The handler that receives the view and view model so it can perform additional initialization logic.</param>
-    public void RegisterInitializeViewHandler<TView, TViewModel>(VVMAction<TView, TViewModel> handler)
-        where TView : class
-        where TViewModel : class;
 
     /// <summary>
     /// Gets the route parameter from the current route.

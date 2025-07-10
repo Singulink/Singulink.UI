@@ -1,4 +1,4 @@
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 internal sealed partial class MessageDialog : ContentDialog
 {

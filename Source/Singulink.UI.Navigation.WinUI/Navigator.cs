@@ -1,19 +1,22 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.UI.Xaml.Media;
-using Singulink.UI.Navigation.WinUI;
+using Singulink.UI.Tasks;
 
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 /// <inheritdoc cref="INavigator"/>
 public partial class Navigator : INavigator
 {
-    private readonly IViewNavigator _rootViewNavigator;
+    private readonly ViewNavigator _viewNavigator;
 
     private readonly FrozenDictionary<Type, ViewInfo> _vmTypeToViewInfo;
-    private readonly FrozenDictionary<Type, Func<ContentDialog>> _vmTypeToDialogCtorFunc;
+    private readonly FrozenDictionary<Type, Func<ContentDialog>> _vmTypeToDialogActivator;
     private readonly ImmutableArray<RouteBase> _routes;
-    private readonly int _maxBackStackDepth;
+    private readonly int _maxStackSize;
+    private readonly int _maxBackStackCachedViewDepth;
+    private readonly int _maxForwardStackCachedViewDepth;
 
     private readonly Stack<(ContentDialog Dialog, TaskCompletionSource Tcs)> _dialogInfoStack = [];
     private readonly List<RouteInfo> _routeInfoList = [];
@@ -23,9 +26,6 @@ public partial class Navigator : INavigator
     private bool _blockNavigation;
     private bool _blockDialogs;
     private CancellationTokenSource? _navigationCts;
-
-    private VVMAction<object, object>? _initializeViewHandler;
-    private Action<Task>? _asyncNavigationHandler;
 
     private RouteInfo? CurrentRouteInfo => _currentRouteIndex >= 0 && _currentRouteIndex < _routeInfoList.Count ? _routeInfoList[_currentRouteIndex] : null;
 
@@ -106,13 +106,38 @@ public partial class Navigator : INavigator
         }
     }
 
+    /// <inheritdoc cref="INavigator.CurrentRoute"/>
+    public string? CurrentRoute
+    {
+        get {
+            var currentRouteInfo = CurrentRouteInfo;
+
+            if (currentRouteInfo is null)
+                return null;
+
+            var routes = currentRouteInfo.Items.Select(ri => ri.SpecifiedRoute);
+            return GetRouteString(routes);
+        }
+    }
+
+    /// <inheritdoc cref="INavigator.TaskRunner"/>/>
+    public ITaskRunner TaskRunner { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Navigator"/> class using the specified content control for displaying the active view and mappings provided
+    /// in the build action.
+    /// </summary>
+    public Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)
+        : this(new ContentControlNavigator(contentControl), buildAction) { }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Navigator"/> class with the specified root view navigator and mappings provided in the build action.
     /// </summary>
-    public Navigator(IViewNavigator rootViewNavigator, Action<NavigatorBuilder> buildAction)
+    public Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)
     {
-        _rootViewNavigator = rootViewNavigator;
+        _viewNavigator = viewNavigator;
         EnsureThreadAccess();
+        TaskRunner = new TaskRunner(busy => _viewNavigator.NavControl.IsEnabled = !busy);
 
         var builder = new NavigatorBuilder();
         buildAction(builder);
@@ -121,13 +146,15 @@ public partial class Navigator : INavigator
         _routes = [.. builder.RouteList];
         _vmTypeToViewInfo = builder.VmTypeToViewInfo.ToFrozenDictionary();
 
-        IEnumerable<KeyValuePair<Type, Func<ContentDialog>>> vmTypeToDialogCtor = builder.VmTypeToDialogCtor;
+        IEnumerable<KeyValuePair<Type, Func<ContentDialog>>> vmTypeToDialogActivator = builder.VmTypeToDialogActivator;
 
-        if (!builder.VmTypeToDialogCtor.ContainsKey(typeof(MessageDialogViewModel)))
-            vmTypeToDialogCtor = vmTypeToDialogCtor.Append(new(typeof(MessageDialogViewModel), () => new MessageDialog()));
+        if (!builder.VmTypeToDialogActivator.ContainsKey(typeof(MessageDialogViewModel)))
+            vmTypeToDialogActivator = vmTypeToDialogActivator.Append(new(typeof(MessageDialogViewModel), () => new MessageDialog()));
 
-        _vmTypeToDialogCtorFunc = vmTypeToDialogCtor.ToFrozenDictionary();
-        _maxBackStackDepth = builder.MaxBackStackDepth;
+        _vmTypeToDialogActivator = vmTypeToDialogActivator.ToFrozenDictionary();
+        _maxStackSize = builder.MaxNavigationStacksSize;
+        _maxBackStackCachedViewDepth = builder.MaxBackStackCachedViewDepth;
+        _maxForwardStackCachedViewDepth = builder.MaxForwardStackCachedViewDepth;
     }
 
     /// <inheritdoc cref="INavigator.ClearHistory"/>
@@ -140,23 +167,26 @@ public partial class Navigator : INavigator
         if (currentRouteInfo is null)
             return; // Nothing to clear
 
-        _routeInfoList.Clear();
-        _routeInfoList.Add(currentRouteInfo);
-        _currentRouteIndex = 0;
+        using (new PropertyChangedNotifier(this, OnPropertyChanged))
+        {
+            _routeInfoList.Clear();
+            _routeInfoList.Add(currentRouteInfo);
+            _currentRouteIndex = 0;
+        }
     }
 
     private void EnsureThreadAccess()
     {
-        if (!_rootViewNavigator.DispatcherQueue.HasThreadAccess)
+        if (_viewNavigator.NavControl.DispatcherQueue?.HasThreadAccess is not true)
         {
-            const string message = "Navigator members can only be accessed from the UI thread of the root view that this navigator is assigned to.";
+            const string message = "Navigator can only be accessed from the UI thread.";
             throw new InvalidOperationException(message);
         }
     }
 
     private bool CloseLightDismissPopups()
     {
-        var xamlRoot = _rootViewNavigator.XamlRoot;
+        var xamlRoot = _viewNavigator.NavControl.XamlRoot;
         bool closedPopup = false;
 
         if (xamlRoot is not null)
@@ -171,5 +201,82 @@ public partial class Navigator : INavigator
         }
 
         return closedPopup;
+    }
+
+    /// <inheritdoc cref="INavigator.GetBackStackRoutes"/>
+    public IList<string> GetBackStackRoutes()
+    {
+        EnsureThreadAccess();
+
+        if (_currentRouteIndex <= 0)
+            return [];
+
+        var routeInfoList = new List<string>(_currentRouteIndex);
+
+        for (int i = _currentRouteIndex - 1; i >= 0; i--)
+        {
+            var routes = _routeInfoList[i].Items.Select(ri => ri.SpecifiedRoute);
+            routeInfoList.Add(GetRouteString(routes));
+        }
+
+        return routeInfoList;
+    }
+
+    /// <inheritdoc cref="INavigator.GetForwardStackRoutes"/>
+    public IList<string> GetForwardStackRoutes()
+    {
+        EnsureThreadAccess();
+
+        if (_currentRouteIndex < 0 || _currentRouteIndex >= _routeInfoList.Count - 1)
+            return [];
+
+        var routeInfoList = new List<string>(_routeInfoList.Count - _currentRouteIndex - 1);
+
+        for (int i = _currentRouteIndex + 1; i < _routeInfoList.Count; i++)
+        {
+            var routes = _routeInfoList[i].Items.Select(ri => ri.SpecifiedRoute);
+            routeInfoList.Add(GetRouteString(routes));
+        }
+
+        return routeInfoList;
+    }
+
+    /// <inheritdoc cref="INavigator.GetRouteOptions"/>
+    public RouteOptions GetRouteOptions()
+    {
+        EnsureThreadAccess();
+        return CurrentRouteInfo?.Options ?? RouteOptions.Empty;
+    }
+
+    /// <inheritdoc cref="INavigator.TryGetRouteParameter{TViewModel, TParam}(RouteBase{TViewModel, TParam}, out TParam)"/>
+    public bool TryGetRouteParameter<TViewModel, TParam>(RouteBase<TViewModel, TParam> route, [MaybeNullWhen(false)] out TParam parameter)
+        where TViewModel : class, IRoutedViewModel<TParam>
+        where TParam : notnull
+    {
+        EnsureThreadAccess();
+        var routeItems = CurrentRouteInfo?.Items ?? [];
+
+        for (int i = routeItems.Length - 1; i >= 0; i--)
+        {
+            var specifiedRoute = routeItems[i].SpecifiedRoute;
+
+            if (specifiedRoute.Route == route && specifiedRoute is IParameterizedConcreteRoute<TViewModel, TParam> paramSpecifiedRoute)
+            {
+                parameter = paramSpecifiedRoute.Parameter;
+                return true;
+            }
+        }
+
+        parameter = default;
+        return false;
+    }
+
+    /// <inheritdoc cref="INavigator.TryGetRouteViewModel{TViewModel}(out TViewModel)"/>
+    public bool TryGetRouteViewModel<TViewModel>([MaybeNullWhen(false)] out TViewModel viewModel)
+        where TViewModel : class
+    {
+        EnsureThreadAccess();
+        viewModel = CurrentRouteInfo?.Items.Select(ri => ri.ViewModel).OfType<TViewModel>().LastOrDefault();
+        return viewModel is not null;
     }
 }

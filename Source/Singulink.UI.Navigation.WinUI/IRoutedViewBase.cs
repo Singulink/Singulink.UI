@@ -1,4 +1,4 @@
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 /// <summary>
 /// Represents a view that is associated with a view model and can be navigated to using a route.

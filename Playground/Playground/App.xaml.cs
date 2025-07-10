@@ -1,5 +1,3 @@
-using Playground.ViewModels;
-
 #if __WASM__
 using System.Diagnostics;
 #endif

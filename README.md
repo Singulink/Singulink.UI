@@ -2,13 +2,12 @@
 
 [![Chat on Discord](https://img.shields.io/discord/906246067773923490)](https://discord.gg/EkQhJFsBu6)
 
-**UI Toolkit** provides components that are generally useful for UI applications with a strong emphasis on testability of view models. It is currently focused on WinUI and Uno-based applications but some components are UI framework-agnostic. Details of each component are provided below.
+**UI Toolkit** is a complete solution for building modern and optimally maintainable user interfaces in XAML-based UI applications with a strong emphasis on testability of view models. We are confident that you will not want to use anything else once you try it out! It is currently focused on WinUI and Uno-based applications but some components are UI framework-agnostic. Details of each component are provided below.
 
 | Library | Status | Package |
 | --- | --- | --- |
-| **Singulink.UI.Navigation** | Preview | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation/) |
-| **Singulink.UI.Navigation.MvvmToolkit** | Preview | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.MvvmToolkit.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation.MvvmToolkit/) |
-| **Singulink.UI.Navigation.WinUI** | Preview | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.WinUI.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation.WinUI/) |
+| **Singulink.UI.Navigation** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation/) |
+| **Singulink.UI.Navigation.WinUI** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.WinUI.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation.WinUI/) |
 | **Singulink.UI.Tasks** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Tasks.svg)](https://www.nuget.org/packages/Singulink.UI.Tasks/) |
 | **Singulink.UI.Xaml.WinUI** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Xaml.WinUI.svg)](https://www.nuget.org/packages/Singulink.UI.Xaml.WinUI/) |
 
@@ -29,11 +28,55 @@ This package is part of our **Singulink Libraries** collection. Visit https://gi
 
 ### Singulink.UI.Navigation
 
-Strongly-typed navigation framework with comprehensive deep-linking support. The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. We plan to add more UI framework implementations (probably WPF and Avalonia initially) shortly after the base library is released in a public state.
+**Key Features**:
 
-There is an additional `Singulink.UI.Navigation.MvvmToolkit` package that provides base implementations of routed view models that inherit from the various MVVM Community Toolkit `ObservableObject` types that simplifies usage when working with that library.
+✔️ First-class asynchronous navigation with automatic busy-state management  
+✔️ Strongly-typed and compile-time checked routes and route parameters to make mistakes almost impossible and refactoring a breeze - no more magic strings!  
+✔️ Comprehensive deep-linking support with automatic route parameter parsing and validation  
+✔️ Compatible with all major MVVM frameworks  
+✔️ Single window or multi-window app support with an arbitrary level of view nesting  
+✔️ Intuitive, straightforward and foolproof support for content dialogs / message dialogs / nested dialogs  
+✔️ Single window or multiple window app support  
+✔️ Just as easy to use with or without a DI container (we prefer not to use one at all with this library!)  
+✔️ Full integration with `Singulink.UI.Tasks` ([see below](#singulinkuitasks)) for simple and easy management of busy-state while long running operations are executing on pages or dialogs  
+
+The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. We plan to add more UI framework implementations (probably WPF and Avalonia initially) soon.
+
+Stay tuned, additional documentation and examples are also coming soon! You are welcome to have a look at the [`Playground`](https://github.com/Singulink/Singulink.UI/tree/main/Playground) project to get an idea of how it works for now.
 
 **Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
+
+### Singulink.UI.Xaml.WinUI
+
+Contains useful XAML extensions (behaviors, converters, static convert methods for use with `x:Bind`) for WinUI and Uno-based applications.
+
+Here is a small sampling of the huge collection of static convert methods available:
+
+```cs
+xmlns:c="using:Singulink.UI.Xaml.Converters"
+
+IsEnabled="{x:Bind c:If.Zero(Model.Items.Count)}"
+IsEnabled="{x:Bind c:If.NotZero(Model.Items.Count)}"
+IsEnabled="{x:Bind c:If.Null(Model.Item)}"
+IsEnabled="{x:Bind c:If.NotNullOrWhiteSpace(Model.Name)}"
+IsEnabled="{x:Bind c:If.NotDefault(Model.SomeEnumValue)}"
+
+Visibility="{x:Bind c:Visible.IfStringEqualsAny(Model.EnumValue, 'EnumName1', 'EnumName2')}"
+Visibility="{x:Bind c:Visible.IfFocused(SomeOtherControl.FocusState)}"
+Visibility="{x:Bind c:Visible.IfFalse(Model.Hide)}"
+
+Opacity="{x:Bind c:Opaque.IfTrue(Model.ShowValue)}"}
+
+Uri="{x:Bind c:Uri.Email(Model.EmailString)}"
+Uri="{x:Bind c:Uri.Phone(Model.PhoneString)}"
+Uri="{x:Bind c:Uri.Website(Model.WebsiteString)}"
+```
+
+**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
+
+## Further Reading
+
+You can view API documentation on the [project documentation site](https://www.singulink.com/Docs/Singulink.UI/index.html).
 
 ### Singulink.UI.Tasks
 
@@ -73,6 +116,13 @@ public class YourViewModel(ITaskRunner taskRunner)
       }
     });
   }
+
+  [RelayCommand]
+  public async Task SaveAsync()
+  {
+    // YourRootControl.IsEnabled will be false while this runs
+    await taskRunner.RunAsBusyAsync(async () => await ApiClient.SaveAsync());
+  }
 }
 ```
 
@@ -102,35 +152,3 @@ public class YourViewModelTests
 ```
 
 **Supported Platforms**: .NET 8.0+, any UI framework (i.e. UWP/WinUI, Uno Platform, Avalonia, WPF, etc)
-
-### Singulink.UI.Xaml.WinUI
-
-Contains useful XAML extensions (behaviors, converters, static convert methods for use with `x:Bind`) for WinUI and Uno-based applications.
-
-Here is a small sampling of the huge collection of static convert methods available:
-
-```cs
-xmlns:c="using:Singulink.UI.Xaml.Converters"
-
-IsEnabled="{x:Bind c:If.Zero(Model.Items.Count)}"
-IsEnabled="{x:Bind c:If.NotZero(Model.Items.Count)}"
-IsEnabled="{x:Bind c:If.Null(Model.Item)}"
-IsEnabled="{x:Bind c:If.NotNullOrWhiteSpace(Model.Name)}"
-IsEnabled="{x:Bind c:If.NotDefault(Model.SomeEnumValue)}"
-
-Visibility="{x:Bind c:Visible.IfStringEqualsAny(Model.EnumValue, 'EnumName1', 'EnumName2')}"
-Visibility="{x:Bind c:Visible.IfFocused(SomeOtherControl.FocusState)}"
-Visibility="{x:Bind c:Visible.IfFalse(Model.Hide)}"
-
-Opacity="{x:Bind c:Opaque.IfTrue(Model.ShowValue)}"}
-
-Uri="{x:Bind c:Uri.Email(Model.EmailString)}"
-Uri="{x:Bind c:Uri.Phone(Model.PhoneString)}"
-Uri="{x:Bind c:Uri.Website(Model.WebsiteString)}"
-```
-
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
-
-## Further Reading
-
-You can view API documentation on the [project documentation site](https://www.singulink.com/Docs/Singulink.UI/index.html).

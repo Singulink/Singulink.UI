@@ -1,5 +1,7 @@
 namespace Singulink.UI.Navigation.WinUI;
 
+#pragma warning disable SA1513 // Closing brace should be followed by blank line
+
 /// <summary>
 /// Represents a builder for mapping routed views to view models.
 /// </summary>
@@ -7,12 +9,18 @@ public class NavigatorBuilder : INavigatorBuilder
 {
     internal Dictionary<Type, ViewInfo> VmTypeToViewInfo { get; } = [];
 
-    internal Dictionary<Type, Func<ContentDialog>> VmTypeToDialogCtor { get; } = [];
+    internal Dictionary<Type, Func<ContentDialog>> VmTypeToDialogActivator { get; } = [];
 
     internal List<RouteBase> RouteList { get; } = [];
 
-    /// <inheritdoc cref="INavigatorBuilder.MaxBackStackDepth"/>
-    public int MaxBackStackDepth { get; set; } = 15;
+    /// <inheritdoc cref="INavigatorBuilder.MaxNavigationStacksSize"/>
+    public int MaxNavigationStacksSize { get; private set; } = INavigatorBuilder.DefaultNavigationStacksSize;
+
+    /// <inheritdoc cref="INavigatorBuilder.MaxBackStackCachedViewDepth"/>
+    public int MaxBackStackCachedViewDepth { get; private set; } = INavigatorBuilder.DefaultMaxBackStackCachedViewDepth;
+
+    /// <inheritdoc cref="INavigatorBuilder.MaxForwardStackCachedViewDepth"/>
+    public int MaxForwardStackCachedViewDepth { get; private set; } = INavigatorBuilder.DefaultMaxForwardStackCachedViewDepth;
 
     internal NavigatorBuilder() { }
 
@@ -53,15 +61,33 @@ public class NavigatorBuilder : INavigatorBuilder
     /// Maps a view model to a dialog.
     /// </summary>
     public void MapDialog<TViewModel, TDialog>()
+        where TViewModel : class, IDialogViewModel
         where TDialog : ContentDialog, new()
     {
-        VmTypeToDialogCtor.Add(typeof(TViewModel), () => new TDialog());
+        VmTypeToDialogActivator.Add(typeof(TViewModel), () => new TDialog());
+    }
+
+    /// <inheritdoc cref="INavigatorBuilder.ConfigureNavigationStacks"/>"
+    public void ConfigureNavigationStacks(
+        int maxSize = INavigatorBuilder.DefaultNavigationStacksSize,
+        int maxBackCachedViewDepth = INavigatorBuilder.DefaultMaxBackStackCachedViewDepth,
+        int maxForwardCachedViewDepth = INavigatorBuilder.DefaultMaxForwardStackCachedViewDepth)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxSize, 0, nameof(maxSize));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxBackCachedViewDepth, 0, nameof(maxBackCachedViewDepth));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxForwardCachedViewDepth, 0, nameof(maxForwardCachedViewDepth));
+
+        MaxNavigationStacksSize = maxSize;
+        MaxBackStackCachedViewDepth = Math.Min(maxBackCachedViewDepth, maxSize);
+        MaxForwardStackCachedViewDepth = Math.Min(maxForwardCachedViewDepth, maxSize);
     }
 
     internal void Validate()
     {
         foreach (var (viewModelType, viewInfo) in VmTypeToViewInfo)
+        {
             if (!RouteList.Any(r => r.ViewModelType == viewModelType))
                 throw new InvalidOperationException($"View model '{viewModelType}' (mapped to view '{viewInfo.ViewType}') has no routes to it.");
+        }
     }
 }

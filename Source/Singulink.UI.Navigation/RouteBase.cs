@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Singulink.UI.Navigation.InternalServices;
 
 namespace Singulink.UI.Navigation;
 
@@ -36,7 +37,10 @@ public abstract class RouteBase
     /// Internal use.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public virtual void InitializeViewModel(IRoutedViewModelBase viewModel, IConcreteRoute route) { }
+    public virtual void InitializeViewModel(IRoutedViewModelBase viewModel, INavigator navigator, IConcreteRoute route)
+    {
+        MixinManager.SetNavigator(viewModel, navigator);
+    }
 }
 
 /// <summary>
@@ -69,11 +73,13 @@ public abstract class RouteBase<TViewModel, TParam> : RouteBase
 
     /// <inheritdoc />
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override void InitializeViewModel(IRoutedViewModelBase viewModel, IConcreteRoute route)
+    public override void InitializeViewModel(IRoutedViewModelBase viewModel, INavigator navigator, IConcreteRoute route)
     {
+        base.InitializeViewModel(viewModel, navigator, route);
+
         var vm = (TViewModel)viewModel;
         var parameterizedRoute = (IParameterizedConcreteRoute<TViewModel, TParam>)route;
-        vm.Parameter = parameterizedRoute.Parameter;
+        MixinManager.SetParameter(vm, parameterizedRoute.Parameter);
     }
 
     internal string GetConcreteRouteString(TParam parameter) => RouteBuilder.GetRouteString(parameter);

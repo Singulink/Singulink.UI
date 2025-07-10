@@ -1,11 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Singulink.UI.Navigation;
-using Singulink.UI.Navigation.MvvmToolkit;
 
 namespace Playground.ViewModels.ParamsTest;
 
-public partial class ParamsTestViewModel : RoutedObservableViewModel
+public partial class ParamsTestViewModel : ObservableObject, IRoutedViewModel
 {
     [ObservableProperty]
     public partial int IntValue { get; set; }
@@ -13,13 +12,7 @@ public partial class ParamsTestViewModel : RoutedObservableViewModel
     [ObservableProperty]
     public partial string StringValue { get; set; } = string.Empty;
 
-    public INavigator Navigator { get => field ?? throw new InvalidOperationException("Navigator not set."); set; }
-
-    public override ValueTask OnNavigatedToAsync(INavigator navigator, NavigationArgs args)
-    {
-        Navigator = navigator;
-        return ValueTask.CompletedTask;
-    }
+    public INavigator Navigator => this.GetNavigator();
 
     [RelayCommand]
     public async Task NavigateWithParameters()

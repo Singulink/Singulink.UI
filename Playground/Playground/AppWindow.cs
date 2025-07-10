@@ -8,14 +8,12 @@ using Playground.Views.Home;
 using Playground.Views.ParamsTest;
 using Singulink.UI.Navigation;
 using Singulink.UI.Navigation.WinUI;
-using Singulink.UI.Tasks;
 using Uno.Resizetizer;
 
 namespace Playground;
 
 public class AppWindow : Window
 {
-    private readonly ITaskRunner _taskRunner;
     private readonly INavigator _navigator;
 
     public AppWindow()
@@ -32,28 +30,12 @@ public class AppWindow : Window
         };
 
         Content = rootNav;
-
-        _taskRunner = new TaskRunner(busy => rootNav.IsEnabled = !busy);
-
         _navigator = CreateNavigator(rootNav);
-        _navigator.RegisterAsyncNavigationHandler(t => _taskRunner.RunAndForget(true, t));
-        _navigator.RegisterInitializeViewHandler<UIElement, IProvideTaskRunner>((view, vm) =>
-        {
-            if (view is ContentDialog dialog)
-                vm.TaskRunner = new TaskRunner(busy => dialog.IsEnabled = !busy);
-            else
-                vm.TaskRunner = _taskRunner;
-        });
 
 #if !WINDOWS
         var navManager = Windows.UI.Core.SystemNavigationManager.GetForCurrentView();
         navManager.AppViewBackButtonVisibility = Windows.UI.Core.AppViewBackButtonVisibility.Visible;
-
-        navManager.BackRequested += (s, e) =>
-        {
-            _navigator.GoBackAsync(out bool handled);
-            e.Handled = handled;
-        };
+        navManager.BackRequested += (s, e) => e.Handled = _navigator.HandleSystemBackRequest();
 #endif
     }
 
@@ -74,6 +56,7 @@ public class AppWindow : Window
             builder.MapRoutedView<ShowParamsTestViewModel, ShowParamsTestPage>();
             builder.MapDialog<DismissableDialogViewModel, DismissableDialog>();
 
+            builder.ConfigureNavigationStacks(maxSize: 10, maxBackCachedViewDepth: 3, maxForwardCachedViewDepth: 3);
             builder.AddAllRoutes();
         });
     }

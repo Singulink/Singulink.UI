@@ -8,7 +8,6 @@
         {
           "files": [
             "Singulink.UI.Navigation/Singulink.UI.Navigation.csproj",
-            "Singulink.UI.Navigation.MvvmToolkit/Singulink.UI.Navigation.MvvmToolkit.csproj",
             "Singulink.UI.Navigation.WinUI/Singulink.UI.Navigation.WinUI.csproj",
             "Singulink.UI.Tasks/Singulink.UI.Tasks.csproj",
             "Singulink.UI.Xaml.WinUI/Singulink.UI.Xaml.WinUI.csproj"

@@ -1,8 +1,8 @@
 namespace Singulink.UI.Navigation.WinUI;
 
-internal class ViewInfo(Type viewType, Func<UIElement> createViewFunc)
+internal class ViewInfo(Type viewType, Func<UIElement> viewFactory)
 {
     public Type ViewType { get; } = viewType;
 
-    public UIElement CreateView() => createViewFunc.Invoke();
+    public UIElement CreateView() => viewFactory.Invoke();
 }

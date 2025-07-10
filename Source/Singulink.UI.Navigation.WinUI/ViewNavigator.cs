@@ -1,26 +1,22 @@
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <summary>
-/// Provides methods to create navigators for different types of controls.
+/// Represents a view navigator that sets the active view displayed in a control.
 /// </summary>
-public static class ViewNavigator
+public abstract class ViewNavigator
 {
     /// <summary>
-    /// Creates a <see cref="ContentControlNavigator"/> for the specified <see cref="ContentControl"/>.
+    /// Creates a new instance of the <see cref="ViewNavigator"/> class using the specified content control.
     /// </summary>
-    /// <param name="contentControl">The content control to be used for navigation.</param>
     public static ContentControlNavigator Create(ContentControl contentControl) => new(contentControl);
 
     /// <summary>
-    /// Creates a <see cref="FrameNavigator"/> for the specified <see cref="Frame"/>.
+    /// Gets the navigation control that the navigator is managing the active view for.
     /// </summary>
-    /// <param name="frame">The frame to be used for navigation.</param>
-    public static FrameNavigator Create(Frame frame) => new(frame);
+    public abstract Control NavControl { get; }
 
     /// <summary>
-    /// Creates a <see cref="PanelNavigator"/> for the specified <see cref="Panel"/>.
+    /// Sets the active view for the control.
     /// </summary>
-    /// <param name="panel">The panel to be used for navigation.</param>
-    /// <param name="maxCachedViews">Number of views that should be cached in the panel before they are removed from the visual tree.</param>
-    public static PanelNavigator Create(Panel panel, int maxCachedViews = 5) => new(panel, maxCachedViews);
+    protected internal abstract void SetActiveView(UIElement? view);
 }

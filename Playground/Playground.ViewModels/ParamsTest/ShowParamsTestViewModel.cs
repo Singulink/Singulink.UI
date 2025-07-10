@@ -1,22 +1,17 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Singulink.UI.Navigation;
 
 namespace Playground.ViewModels.ParamsTest;
 
-public partial class ShowParamsTestViewModel : RoutedViewModel<(int IntValue, string StringValue)>
+public partial class ShowParamsTestViewModel : ObservableObject, IRoutedViewModel<(int IntValue, string StringValue)>
 {
-    public INavigator Navigator { get => field ?? throw new InvalidOperationException("Navigator not set."); set; }
+    public INavigator Navigator => this.GetNavigator();
 
-    public int IntValue => Parameter.IntValue;
+    public int IntValue => this.GetParameter().IntValue;
 
-    public string StringValue => Parameter.StringValue;
-
-    public override ValueTask OnNavigatedToAsync(INavigator navigator, NavigationArgs args)
-    {
-        Navigator = navigator;
-        return ValueTask.CompletedTask;
-    }
+    public string StringValue => this.GetParameter().StringValue;
 
     [RelayCommand]
-    public async Task GoBackAsync() => await Navigator.GoBackAsync(false);
+    public async Task GoBackAsync() => await Navigator.GoBackAsync();
 }

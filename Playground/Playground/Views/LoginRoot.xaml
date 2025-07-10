@@ -1,4 +1,4 @@
-﻿<Page
+﻿<UserControl
   x:Class="Playground.Views.LoginRoot"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -16,4 +16,4 @@
       <Button Content="Login" Command="{x:Bind Model.LoginCommand}" Margin="0,10,0,0" HorizontalAlignment="Right"/>
     </StackPanel>
   </Grid>
-</Page>
+</UserControl>

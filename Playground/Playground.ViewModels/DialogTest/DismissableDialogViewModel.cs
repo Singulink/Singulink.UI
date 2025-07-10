@@ -1,33 +1,32 @@
 using CommunityToolkit.Mvvm.Input;
 using Singulink.UI.Navigation;
-using Singulink.UI.Tasks;
 
 namespace Playground.ViewModels.DialogTest;
 
-public partial class DismissableDialogViewModel(IDialogNavigator navigator) : IDismissableDialogViewModel, IProvideTaskRunner
+public partial class DismissableDialogViewModel() : IDialogViewModel, IDismissableDialogViewModel
 {
-    public ITaskRunner TaskRunner { get => field ?? throw new InvalidOperationException("Task runner not set."); set; }
+    public IDialogNavigator Navigator => this.GetNavigator();
 
     [RelayCommand]
     public async Task DoSomethingAsync()
     {
-        await TaskRunner.RunAsBusyAsync(async () => {
+        await Navigator.TaskRunner.RunAsBusyAsync(async () => {
             // Simulate a long-running task
-            await Task.Delay(1000);
+            await Task.Delay(1500);
         });
 
         // Show a message dialog after the task is done
-        await navigator.ShowMessageDialogAsync("Task completed successfully!", "Success");
+        await Navigator.ShowMessageDialogAsync("Task completed successfully!", "Success");
     }
 
     [RelayCommand]
-    public void Close() => navigator.Close();
+    public void Close() => Navigator.Close();
 
     public async void OnDismissRequested()
     {
-        int result = await navigator.ShowMessageDialogAsync("Are you sure you want to close this dialog?", "Confirm", DialogButtonLabels.YesNo);
+        int result = await Navigator.ShowMessageDialogAsync("Are you sure you want to close this dialog?", "Confirm", DialogButtonLabels.YesNo);
 
         if (result is 0)
-            navigator.Close();
+            Navigator.Close();
     }
 }

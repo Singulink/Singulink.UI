@@ -1,79 +1,44 @@
-using System.Runtime.CompilerServices;
+using Singulink.UI.Navigation.InternalServices;
 using Singulink.UI.Navigation.WinUI;
 
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 /// <content>
 /// Provides dialog related implementations for the navigator.
 /// </content>
 partial class Navigator
 {
-    private readonly ConditionalWeakTable<object, DialogNavigator> _vmToDialogNavigator = [];
-
-    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(TViewModel, out IDialogNavigator)"/>
-    public Task ShowDialogAsync<TViewModel>(TViewModel viewModel, out IDialogNavigator dialogNavigator)
-        where TViewModel : class
+    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(TViewModel)"/>
+    public Task ShowDialogAsync<TViewModel>(TViewModel viewModel)
+        where TViewModel : class, IDialogViewModel
     {
-        return ShowDialogAsync(null, viewModel, out dialogNavigator);
+        return ShowDialogAsync(null, viewModel);
     }
 
-    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(Func{IDialogNavigator, TViewModel})"/>
-    public async Task<TViewModel> ShowDialogAsync<TViewModel>(Func<IDialogNavigator, TViewModel> createModelFunc) where TViewModel : class
-    {
-        await ShowDialogAsync(null, out var viewModel, createModelFunc);
-        return viewModel;
-    }
-
-    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(out TViewModel, Func{IDialogNavigator, TViewModel})"/>"
-    public Task ShowDialogAsync<TViewModel>(out TViewModel viewModel, Func<IDialogNavigator, TViewModel> createModelFunc)
-        where TViewModel : class
-    {
-        return ShowDialogAsync(null, out viewModel, createModelFunc);
-    }
-
-    internal Task ShowDialogAsync<TViewModel>(ContentDialog? requestingParentDialog, TViewModel viewModel, out IDialogNavigator dialogNavigator)
-        where TViewModel : class
+    internal async Task ShowDialogAsync<TViewModel>(ContentDialog? requestingParentDialog, TViewModel viewModel)
+        where TViewModel : class, IDialogViewModel
     {
         EnsureThreadAccess();
         EnsureCanShowDialog();
         EnsureDialogIsTopDialog(requestingParentDialog);
         CloseLightDismissPopups();
 
-        var dn = _vmToDialogNavigator.GetValue(viewModel, vm => {
-            var dialog = CreateDialogFor<TViewModel>();
-            dialog.DataContext = vm;
-            _initializeViewHandler?.Invoke(dialog, vm);
+        if (MixinManager.GetDialogNavigator(viewModel) is not DialogNavigator dn)
+            MixinManager.SetDialogNavigator(viewModel, dn = new DialogNavigator(this, CreateDialogFor(viewModel)));
+        else if (dn.Navigator != this)
+            throw new InvalidOperationException("The dialog view model is associated with a different root navigator instance.");
 
-            return new DialogNavigator(this, dialog);
-        });
+        var tcs = new TaskCompletionSource();
 
-        dialogNavigator = dn;
-        return ShowDialogAsync(dn.Dialog, requestingParentDialog);
-    }
-
-    internal Task ShowDialogAsync<TViewModel>(ContentDialog? requestingParentDialog, out TViewModel viewModel, Func<IDialogNavigator, TViewModel> createModelFunc)
-        where TViewModel : class
-    {
-        EnsureThreadAccess();
-        EnsureCanShowDialog();
-        EnsureDialogIsTopDialog(requestingParentDialog);
-        CloseLightDismissPopups();
-
-        var dialog = CreateDialogFor<TViewModel>();
-        var dialogNavigator = new DialogNavigator(this, dialog);
-        dialog.DataContext = viewModel = createModelFunc(dialogNavigator);
-        _initializeViewHandler?.Invoke(dialog, viewModel);
-
-        if (!_vmToDialogNavigator.TryAdd(viewModel, dialogNavigator))
+        using (var notifier = new PropertyChangedNotifier(this, OnPropertyChanged))
         {
-            const string message = "Function returned an existing view model instance instead of creating a new instance. " +
-                "Either provide a function that creates a new instance or use a 'ShowDialogAsync()' overload that supports " +
-                "passing in an existing view model instance instead.";
+            _dialogInfoStack.Push((dn.Dialog, tcs));
 
-            throw new ArgumentException(message, nameof(createModelFunc));
+            requestingParentDialog?.Hide();
+            _ = dn.Dialog.ShowAsync();
         }
 
-        return ShowDialogAsync(dialog, requestingParentDialog);
+        await tcs.Task;
     }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -124,13 +89,14 @@ partial class Navigator
         }
     }
 
-    private ContentDialog CreateDialogFor<TViewModel>()
+    private ContentDialog CreateDialogFor<TViewModel>(TViewModel viewModel)
     {
-        if (!_vmTypeToDialogCtorFunc.TryGetValue(typeof(TViewModel), out var ctorFunc))
+        if (!_vmTypeToDialogActivator.TryGetValue(typeof(TViewModel), out var ctorFunc))
             throw new KeyNotFoundException($"No dialog registered for view model of type '{typeof(TViewModel)}'.");
 
         var dialog = ctorFunc.Invoke();
-        dialog.XamlRoot = _rootViewNavigator.XamlRoot ?? throw new InvalidOperationException("XamlRoot is not available");
+        dialog.DataContext = viewModel;
+        dialog.XamlRoot = _viewNavigator.NavControl.XamlRoot ?? throw new InvalidOperationException("XamlRoot is not available");
 
         dialog.PrimaryButtonClick += OnPrimaryDialogButtonClick;
         dialog.SecondaryButtonClick += OnSecondaryDialogButtonClick;
@@ -186,20 +152,5 @@ partial class Navigator
                 }
             }
         }
-    }
-
-    private async Task ShowDialogAsync(ContentDialog dialog, ContentDialog? parentDialog)
-    {
-        var tcs = new TaskCompletionSource();
-
-        using (var notifier = new PropertyChangedNotifier(this, OnPropertyChanged))
-        {
-            _dialogInfoStack.Push((dialog, tcs));
-
-            parentDialog?.Hide();
-            _ = dialog.ShowAsync();
-        }
-
-        await tcs.Task;
     }
 }

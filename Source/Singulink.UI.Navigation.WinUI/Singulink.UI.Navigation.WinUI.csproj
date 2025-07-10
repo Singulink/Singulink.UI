@@ -9,7 +9,7 @@
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
 
-    <Version>2.0.1</Version>
+    <Version>3.0</Version>
     <PackageTags>WinUI; Uno Platform; Navigation; MVVM; Toolkit;</PackageTags>
     <Description>WinUI 3 / Uno Platform support for the Singulink.Navigation framework.</Description>
   </PropertyGroup>
@@ -21,7 +21,7 @@
       </ItemGroup>
     </When>
     <Otherwise>
-      <ItemGroup>
+      <ItemGroup> 
         <Using Remove="Android.Widget" />
       </ItemGroup>
 

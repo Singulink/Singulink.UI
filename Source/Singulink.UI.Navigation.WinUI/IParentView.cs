@@ -8,5 +8,5 @@ public interface IParentView
     /// <summary>
     /// Gets the view navigator that is responsible for managing the active nested view.
     /// </summary>
-    public IViewNavigator CreateNestedViewNavigator();
+    public ViewNavigator CreateNestedViewNavigator();
 }

@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 /// <content>
 /// Provides INotifyPropertyChanged related implementations for the navigator.
@@ -15,6 +15,7 @@ partial class Navigator
     private static readonly PropertyChangedEventArgs HasForwardHistoryChangedArgs = new(nameof(HasForwardHistory));
     private static readonly PropertyChangedEventArgs IsNavigatingChangedArgs = new(nameof(IsNavigating));
     private static readonly PropertyChangedEventArgs IsShowingDialogChangedArgs = new(nameof(IsShowingDialog));
+    private static readonly PropertyChangedEventArgs CurrentRouteChangedArgs = new(nameof(CurrentRoute));
 
     /// <inheritdoc cref="INotifyPropertyChanged.PropertyChanged"/>
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -23,7 +24,7 @@ partial class Navigator
 
     private struct PropertyChangedNotifier : IDisposable
     {
-        private INavigator? _navigator;
+        private Navigator? _navigator;
         private readonly Action<PropertyChangedEventArgs> _onPropertyChanged;
 
         private bool _canUserGoBack;
@@ -34,8 +35,9 @@ partial class Navigator
         private bool _hasForwardHistory;
         private bool _isNavigating;
         private bool _isShowingDialog;
+        private RouteInfo? _currentRouteInfo;
 
-        public PropertyChangedNotifier(INavigator navigator, Action<PropertyChangedEventArgs> onPropertyChanged)
+        public PropertyChangedNotifier(Navigator navigator, Action<PropertyChangedEventArgs> onPropertyChanged)
         {
             _navigator = navigator;
             _onPropertyChanged = onPropertyChanged;
@@ -48,6 +50,7 @@ partial class Navigator
             _hasForwardHistory = navigator.HasForwardHistory;
             _isNavigating = navigator.IsNavigating;
             _isShowingDialog = navigator.IsShowingDialog;
+            _currentRouteInfo = navigator.CurrentRouteInfo;
         }
 
         public void Update()
@@ -63,6 +66,7 @@ partial class Navigator
             CheckUpdateNotify(ref _hasForwardHistory, _navigator.HasForwardHistory, HasForwardHistoryChangedArgs);
             CheckUpdateNotify(ref _isNavigating, _navigator.IsNavigating, IsNavigatingChangedArgs);
             CheckUpdateNotify(ref _isShowingDialog, _navigator.IsShowingDialog, IsShowingDialogChangedArgs);
+            CheckUpdateNotify(ref _currentRouteInfo, _navigator.CurrentRouteInfo, CurrentRouteChangedArgs);
         }
 
         public void Dispose()
@@ -74,9 +78,9 @@ partial class Navigator
             }
         }
 
-        private void CheckUpdateNotify(ref bool field, bool value, PropertyChangedEventArgs e)
+        private void CheckUpdateNotify<T>(ref T field, T value, PropertyChangedEventArgs e)
         {
-            if (field != value)
+            if (!EqualityComparer<T>.Default.Equals(field, value))
             {
                 field = value;
                 _onPropertyChanged(e);

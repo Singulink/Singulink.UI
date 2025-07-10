@@ -1,6 +1,6 @@
 using Singulink.UI.Navigation.WinUI.Utilities;
 
-namespace Singulink.UI.Navigation;
+namespace Singulink.UI.Navigation.WinUI;
 
 /// <content>
 /// Provides partial navigation related implementations for the navigator.

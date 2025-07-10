@@ -1,4 +1,4 @@
-﻿<Page
+﻿<UserControl
     x:Class="Playground.Views.ParamsTest.ParamsTestPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -13,4 +13,4 @@
       <Button Content="Navigate with Parameters" Command="{x:Bind Model.NavigateWithParametersCommand}"/>
     </StackPanel>
   </Grid>
-</Page>
+</UserControl>
