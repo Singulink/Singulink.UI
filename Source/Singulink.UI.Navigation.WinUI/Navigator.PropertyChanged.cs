@@ -7,10 +7,9 @@ namespace Singulink.UI.Navigation.WinUI;
 /// </content>
 partial class Navigator
 {
-    private static readonly PropertyChangedEventArgs CanUserGoBackChangedArgs = new(nameof(CanUserGoBack));
-    private static readonly PropertyChangedEventArgs CanUserGoForwardChangedArgs = new(nameof(CanUserGoForward));
-    private static readonly PropertyChangedEventArgs CanUserRefreshChangedArgs = new(nameof(CanUserRefresh));
-    private static readonly PropertyChangedEventArgs DidNavigateChangedArgs = new(nameof(DidNavigate));
+    private static readonly PropertyChangedEventArgs CanUserGoBackChangedArgs = new(nameof(CanGoBack));
+    private static readonly PropertyChangedEventArgs CanUserGoForwardChangedArgs = new(nameof(CanGoForward));
+    private static readonly PropertyChangedEventArgs CanUserRefreshChangedArgs = new(nameof(CanRefresh));
     private static readonly PropertyChangedEventArgs HasBackHistoryChangedArgs = new(nameof(HasBackHistory));
     private static readonly PropertyChangedEventArgs HasForwardHistoryChangedArgs = new(nameof(HasForwardHistory));
     private static readonly PropertyChangedEventArgs IsNavigatingChangedArgs = new(nameof(IsNavigating));
@@ -30,27 +29,25 @@ partial class Navigator
         private bool _canUserGoBack;
         private bool _canUserGoForward;
         private bool _canUserRefresh;
-        private bool _didNavigate;
         private bool _hasBackHistory;
         private bool _hasForwardHistory;
         private bool _isNavigating;
         private bool _isShowingDialog;
-        private RouteInfo? _currentRouteInfo;
+        private ConcreteRoute? _currentRoute;
 
         public PropertyChangedNotifier(Navigator navigator, Action<PropertyChangedEventArgs> onPropertyChanged)
         {
             _navigator = navigator;
             _onPropertyChanged = onPropertyChanged;
 
-            _canUserGoBack = navigator.CanUserGoBack;
-            _canUserGoForward = navigator.CanUserGoForward;
-            _canUserRefresh = navigator.CanUserRefresh;
-            _didNavigate = navigator.DidNavigate;
+            _canUserGoBack = navigator.CanGoBack;
+            _canUserGoForward = navigator.CanGoForward;
+            _canUserRefresh = navigator.CanRefresh;
             _hasBackHistory = navigator.HasBackHistory;
             _hasForwardHistory = navigator.HasForwardHistory;
             _isNavigating = navigator.IsNavigating;
             _isShowingDialog = navigator.IsShowingDialog;
-            _currentRouteInfo = navigator.CurrentRouteInfo;
+            _currentRoute = navigator.CurrentRouteInternal;
         }
 
         public void Update()
@@ -58,15 +55,14 @@ partial class Navigator
             if (_navigator is null)
                 throw new ObjectDisposedException(typeof(PropertyChangedNotifier).Name);
 
-            CheckUpdateNotify(ref _canUserGoBack, _navigator.CanUserGoBack, CanUserGoBackChangedArgs);
-            CheckUpdateNotify(ref _canUserGoForward, _navigator.CanUserGoForward, CanUserGoForwardChangedArgs);
-            CheckUpdateNotify(ref _canUserRefresh, _navigator.CanUserRefresh, CanUserRefreshChangedArgs);
-            CheckUpdateNotify(ref _didNavigate, _navigator.DidNavigate, DidNavigateChangedArgs);
+            CheckUpdateNotify(ref _canUserGoBack, _navigator.CanGoBack, CanUserGoBackChangedArgs);
+            CheckUpdateNotify(ref _canUserGoForward, _navigator.CanGoForward, CanUserGoForwardChangedArgs);
+            CheckUpdateNotify(ref _canUserRefresh, _navigator.CanRefresh, CanUserRefreshChangedArgs);
             CheckUpdateNotify(ref _hasBackHistory, _navigator.HasBackHistory, HasBackHistoryChangedArgs);
             CheckUpdateNotify(ref _hasForwardHistory, _navigator.HasForwardHistory, HasForwardHistoryChangedArgs);
             CheckUpdateNotify(ref _isNavigating, _navigator.IsNavigating, IsNavigatingChangedArgs);
             CheckUpdateNotify(ref _isShowingDialog, _navigator.IsShowingDialog, IsShowingDialogChangedArgs);
-            CheckUpdateNotify(ref _currentRouteInfo, _navigator.CurrentRouteInfo, CurrentRouteChangedArgs);
+            CheckUpdateNotify(ref _currentRoute, _navigator.CurrentRouteInternal, CurrentRouteChangedArgs);
         }
 
         public void Dispose()

@@ -13,7 +13,7 @@ public abstract class ViewNavigator
     /// <summary>
     /// Gets the navigation control that the navigator is managing the active view for.
     /// </summary>
-    public abstract Control NavControl { get; }
+    public abstract Control NavigationControl { get; }
 
     /// <summary>
     /// Sets the active view for the control.

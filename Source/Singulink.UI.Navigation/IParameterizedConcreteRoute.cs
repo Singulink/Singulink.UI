@@ -1,9 +1,9 @@
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Represents a parameterized concrete root or nested route.
+/// Represents a parameterized route with all its parameters resolved.
 /// </summary>
-public interface IParameterizedConcreteRoute<TViewModel, TParam> : IConcreteRoute
+public interface IParameterizedConcreteRoute<TViewModel, TParam> : IConcreteRoutePart
     where TViewModel : IRoutedViewModel<TParam>
     where TParam : notnull
 {

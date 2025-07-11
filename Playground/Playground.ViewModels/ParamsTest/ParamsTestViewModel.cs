@@ -21,7 +21,7 @@ public partial class ParamsTestViewModel : ObservableObject, IRoutedViewModel
 
         try
         {
-            await Navigator.NavigatePartialAsync(Routes.Main.ShowParamsTestRoute.GetConcrete((IntValue, StringValue)));
+            await Navigator.NavigatePartialAsync(Routes.Main.ShowParamsTestChild.ToConcrete((IntValue, StringValue)));
         }
         catch (Exception ex)
         {

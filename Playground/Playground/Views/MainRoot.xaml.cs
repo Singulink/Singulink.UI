@@ -12,18 +12,5 @@ public sealed partial class MainRoot : UserControl, IRoutedView<MainViewModel>, 
         InitializeComponent();
     }
 
-    private async void OnBackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)
-    {
-        await Model.Navigator.GoBackAsync();
-    }
-
-    private async void OnNavViewSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-    {
-        string route = args.SelectedItemContainer.Tag.ToString();
-        System.Diagnostics.Debug.Assert(route is not null, "Selected item tag should not be null.");
-
-        await Model.Navigator.NavigateAsync(route);
-    }
-
-    public ViewNavigator CreateNestedViewNavigator() => ViewNavigator.Create(NavRoot);
+    public ViewNavigator CreateChildViewNavigator() => ViewNavigator.Create(NavRoot);
 }

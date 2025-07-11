@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Uno.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net9.0-android;net9.0-ios;net9.0-windows10.0.26100;net9.0-browserwasm;net9.0-desktop</TargetFrameworks>
+    <!-- net9.0-android;net9.0-ios; -->
+    <TargetFrameworks>net9.0-windows10.0.26100;net9.0-browserwasm;net9.0-desktop</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
@@ -46,40 +47,5 @@
     <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.WinUI\Singulink.UI.Navigation.WinUI.csproj" />
     <ProjectReference Include="..\..\Source\Singulink.UI.Tasks\Singulink.UI.Tasks.csproj" />
     <ProjectReference Include="..\..\Source\Singulink.UI.Xaml.WinUI\Singulink.UI.Xaml.WinUI.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\MainRoot.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\LoginRoot.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\DialogTest\DialogTestPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\DialogTest\DismissableDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\ParamsTest\ParamsTestPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\ParamsTest\ShowParamsTestPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\Home\HomePage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
 </Project>

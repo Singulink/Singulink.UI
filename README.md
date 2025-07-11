@@ -2,7 +2,7 @@
 
 [![Chat on Discord](https://img.shields.io/discord/906246067773923490)](https://discord.gg/EkQhJFsBu6)
 
-**UI Toolkit** is a complete solution for building modern and maintainable user interfaces with complex deep-linked navigation in XAML-based applications. It places a strong emphasis on separation of concerns and full testability of view models. We are confident that you will not want to use anything else once you try it out! It is currently focused on WinUI and Uno-based applications but some components are UI framework-agnostic. Details of each component are provided below.
+**UI Toolkit** provides a variety of complimentary MVVM and XAML-based components that help streamline complex UI development scenarios. It is currently focused on WinUI and Uno-based applications but some components are UI framework-agnostic. Details of each component are provided below:
 
 | Library | Status | Package |
 | --- | --- | --- |
@@ -18,30 +18,40 @@ Libraries may be in any of the following states:
 
 You are free to use any libraries or code in this repository that you find useful and feedback/contributions are welcome regardless of library state.
 
+API documentation is available on the [project documentation site](https://www.singulink.com/Docs/Singulink.UI/index.html).
+
 ### About Singulink
 
 We are a small team of engineers and designers dedicated to building beautiful, functional, and well-engineered software solutions. We offer very competitive rates as well as fixed-price contracts and welcome inquiries to discuss any custom development / project support needs you may have.
 
-This package is part of our **Singulink Libraries** collection. Visit https://github.com/Singulink to see our full list of publicly available libraries and other open-source projects.
+These packages are part of our **Singulink Libraries** collection. Visit https://github.com/Singulink to see our full list of publicly available libraries and other open-source projects.
 
 ## Components
 
 ### Singulink.UI.Navigation
 
+Designed for handling MVVM-based applications with complex deep-linked navigation, with a strong emphasis on maintainability, separation of concerns and full testability of view models. We are confident that you will not want to use anything else once you try it out! 
+
 **Key Features**:
 
 ✔️ First-class asynchronous navigation with automatic busy-state management  
-✔️ Strongly-typed and compile-time checked routes and route parameters to make mistakes almost impossible - no more magic strings!  
-✔️ Comprehensive deep-linking support with automatic route parameter parsing and validation  
-✔️ Compatible with all major MVVM frameworks  
-✔️ Single window or multi-window app support with an arbitrary level of view nesting  
-✔️ Intuitive, straightforward and foolproof support for content dialogs / message dialogs / nested dialogs  
-✔️ Just as easy to use with or without a DI container (we prefer not to use one at all with this library!)  
+✔️ "Strongly-typed everything" so the compiler can catch mistakes early and validate routes and navigations - no magic strings!  
+✔️ "Zero code-behind" so you never need to handle events or override methods in pages or dialogs  
+✔️ Comprehensive deep-linking support with automatic route parameter parsing  
+✔️ Compatible with all MVVM frameworks  
+✔️ Single window or multi-window apps, child navigation views  
+✔️ Intuitive, straightforward and foolproof content dialogs / message dialogs / nested dialogs  
+✔️ Just as easy to use with or without a DI container (we prefer not to use one at all with this library)  
 ✔️ Full integration with **Singulink.UI.Tasks** ([see below](#singulinkuitasks)) for simple and easy management of busy-state while long running operations are executing on pages or dialogs  
 
-The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. We plan to add more UI framework implementations (probably WPF and Avalonia initially) soon.
+The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. We plan to add more UI framework implementations soon (probably WPF and Avalonia initially).
 
 Stay tuned, additional documentation and examples are also coming soon! You are welcome to have a look at the [Playground](https://github.com/Singulink/Singulink.UI/tree/main/Playground) project to get an idea of how it works for now.
+
+Some key parts of the Playground to check out are:
+
+- [`Routes.cs`](https://github.com/Singulink/Singulink.UI/blob/main/Playground/Playground.ViewModels/Routes.cs): Contains the strongly-typed route and parameter definitions. This should be together with your view models so they can make compiler-checked navigation calls.
+- [`AppWindow.cs`](https://github.com/Singulink/Singulink.UI/blob/main/Playground/Playground/AppWindow.cs): The main app window where "view model to view" mappings are defined and the navigator is configured. Back button handling is also setup here.
 
 **Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
 
@@ -75,7 +85,7 @@ Uri="{x:Bind c:Uri.Website(Model.WebsiteString)}"
 
 ### Singulink.UI.Tasks
 
-Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with integrated support for managing UI busy-state while tasks are running. Supports running "fire-and-forget" tasks that can be tracked and fully tested. Inspired by [AmbientTasks](https://github.com/Techsola/AmbientTasks) (thanks [@jnm2](https://github.com/jnm2)!).
+Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with integrated support for managing UI busy-state while tasks are running. Supports running "fire-and-forget" tasks that can be tracked and fully tested with exceptions being propagated back to the UI thread, avoiding frowned upon `async void` methods for things like event handlers.
 
 **TaskRunner** is fully integrated with **Singulink.UI.Navigation**. [See above](#singulinkuinavigation) for documentation on how it should be used in that scenario.
 
@@ -105,7 +115,7 @@ public class YourViewModel(ITaskRunner taskRunner)
   {
     // YourRootControl.IsEnabled will be false while this runs
 
-    taskRunner.RunAndForget(setBusy: true, async () =>
+    taskRunner.RunAsBusyAndForget(async () =>
     {
       var items = await LoadItemsAsync();
 
@@ -116,13 +126,17 @@ public class YourViewModel(ITaskRunner taskRunner)
     });
   }
 
-  // Command that runs a task which should indicate busy state example:
+  // Command that runs a task which should indicate busy state:
 
   [RelayCommand]
   public async Task SaveAsync()
   {
     // YourRootControl.IsEnabled will be false while this runs
-    await taskRunner.RunAsBusyAsync(async () => await ApiClient.SaveAsync());
+
+    await taskRunner.RunAsBusyAsync(async () =>
+    {
+      await ApiClient.SaveAsync(Data));
+    });
   }
 }
 ```
@@ -157,3 +171,7 @@ public class YourViewModelTests
 ## Further Reading
 
 You can view API documentation on the [project documentation site](https://www.singulink.com/Docs/Singulink.UI/index.html).
+
+## Shoutouts 🎉
+
+**Singulink.UI.Tasks** was inspired by [AmbientTasks](https://github.com/Techsola/AmbientTasks) (thanks [@jnm2](https://github.com/jnm2)!).

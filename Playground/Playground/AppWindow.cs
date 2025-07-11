@@ -39,10 +39,10 @@ public class AppWindow : Window
 #endif
     }
 
-    public async void NavigateInitial()
+    public async void BeginNavigation()
     {
-        if (!_navigator.DidNavigate)
-            await _navigator.NavigateAsync(Routes.LoginRoute);
+        if (_navigator.CurrentRoute is null)
+            await _navigator.NavigateAsync(Routes.LoginRoot);
     }
 
     private static Navigator CreateNavigator(ContentControl rootNav)

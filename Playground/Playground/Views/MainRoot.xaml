@@ -3,27 +3,25 @@
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:local="using:Playground.Views"
+  xmlns:vm="using:Playground.ViewModels"
   xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
   xmlns:sc="using:Singulink.UI.Xaml.Converters"
   Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
   <Grid>
     <muxc:NavigationView Name="NavView" PaneTitle="Menu" OpenPaneLength="180"
-                         IsBackEnabled="{x:Bind Model.Navigator.CanUserGoBack, Mode=OneWay}"
-                         BackRequested="OnBackRequested"
-                         SelectionChanged="OnNavViewSelectionChanged"
+                         IsBackEnabled="{x:Bind Model.Navigator.CanGoBack, Mode=OneWay}"
+                         BackRequested="{x:Bind Model.BeginBackRequest}"
+                         MenuItemsSource="{x:Bind Model.MainMenuItems}"
+                         FooterMenuItemsSource="{x:Bind Model.FooterMenuItems}"
+                         SelectedItem="{x:Bind Model.SelectedMenuItem, Mode=TwoWay}"
                          IsSettingsVisible="False">
 
-      <muxc:NavigationView.MenuItems>
-        <muxc:NavigationViewItem Content="Home" Icon="Home" IsSelected="True" Tag="/Home"/>
-        <muxc:NavigationViewItemSeparator />
-        <muxc:NavigationViewItem Content="Dialog Test" Icon="Pictures" Tag="/DialogTest"/>
-        <muxc:NavigationViewItem Content="Params Test" Icon="OpenPane" Tag="/ParamsTest"/>
-      </muxc:NavigationView.MenuItems>
-
-      <muxc:NavigationView.FooterMenuItems>
-        <muxc:NavigationViewItem Content="Logout" Icon="Clear" Tag="/Login"/>
-      </muxc:NavigationView.FooterMenuItems>
+      <muxc:NavigationView.MenuItemTemplate>
+        <DataTemplate x:DataType="vm:MenuItem">
+          <muxc:NavigationViewItem Content="{x:Bind Title}"/>
+        </DataTemplate>
+      </muxc:NavigationView.MenuItemTemplate>
 
       <Grid RowDefinitions="Auto,*">
         <TextBlock Text="{x:Bind Model.Navigator.CurrentRoute, Mode=OneWay}" Margin="13,10,15,10" Style="{StaticResource TitleTextBlockStyle}"/>

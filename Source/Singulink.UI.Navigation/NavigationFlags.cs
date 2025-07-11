@@ -25,7 +25,7 @@ public enum NavigationFlags
     AlreadyNavigatedTo = 2,
 
     /// <summary>
-    /// Indicates that a nested navigation will occur to a child view after this navigation completes.
+    /// Indicates that a child navigation will occur to a child view after this navigation completes.
     /// </summary>
-    HasNestedNavigation = 4,
+    HasChildNavigation = 4,
 }

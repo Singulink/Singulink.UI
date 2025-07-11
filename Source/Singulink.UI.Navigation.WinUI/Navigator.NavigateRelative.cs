@@ -14,6 +14,15 @@ partial class Navigator
         return await NavigateAsync(NavigationType.Back, null, null);
     }
 
+    /// <inheritdoc cref="INavigator.GoForwardAsync"/>
+    public async Task<NavigationResult> GoForwardAsync()
+    {
+        EnsureThreadAccess();
+        CloseLightDismissPopups();
+
+        return await NavigateAsync(NavigationType.Forward, null, null);
+    }
+
     /// <inheritdoc cref="INavigator.HandleSystemBackRequest()"/>
     public bool HandleSystemBackRequest()
     {
@@ -22,42 +31,42 @@ partial class Navigator
         if (CloseLightDismissPopups() || IsNavigating)
             return true;
 
-        if (!CanUserGoBack)
-            return false;
-
         if (IsShowingDialog)
         {
-            var dialog = _dialogInfoStack.Peek().Dialog;
-            ((IDismissableDialogViewModel)dialog.DataContext).OnDismissRequested();
-        }
-        else
-        {
-            TaskRunner.RunAndForget(false, NavigateAsync(NavigationType.Back, null, null));
+            if (_dialogTcsStack.Peek().Dialog.DataContext is IDismissableDialogViewModel dismissableVm)
+                dismissableVm.OnDismissRequested();
+
+            return true;
         }
 
+        if (!HasBackHistory)
+            return false;
+
+        TaskRunner.RunAndForget(NavigateAsync(NavigationType.Back, null, null));
         return true;
     }
 
-    /// <inheritdoc cref="INavigator.GoForwardAsync"/>
-    public async Task<NavigationResult> GoForwardAsync(bool userInitiated)
+    /// <inheritdoc cref="INavigator.HandleSystemForwardRequest()"/>
+    public bool HandleSystemForwardRequest()
     {
         EnsureThreadAccess();
+
+        if (IsShowingDialog || IsNavigating)
+            return true;
+
+        if (!HasForwardHistory)
+            return false;
+
         CloseLightDismissPopups();
-
-        if (userInitiated && !CanUserGoForward)
-            return NavigationResult.Cancelled;
-
-        return await NavigateAsync(NavigationType.Forward, null, null);
+        TaskRunner.RunAndForget(NavigateAsync(NavigationType.Forward, null, null));
+        return true;
     }
 
     /// <inheritdoc cref="INavigator.RefreshAsync"/>
-    public async Task<NavigationResult> RefreshAsync(bool userInitiated)
+    public async Task<NavigationResult> RefreshAsync()
     {
         EnsureThreadAccess();
         CloseLightDismissPopups();
-
-        if (userInitiated && IsNavigating)
-            return NavigationResult.Cancelled;
 
         return await NavigateAsync(NavigationType.Refresh, null, null);
     }

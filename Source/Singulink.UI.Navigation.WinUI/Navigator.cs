@@ -11,26 +11,60 @@ public partial class Navigator : INavigator
 {
     private readonly ViewNavigator _viewNavigator;
 
-    private readonly FrozenDictionary<Type, ViewInfo> _vmTypeToViewInfo;
-    private readonly FrozenDictionary<Type, Func<ContentDialog>> _vmTypeToDialogActivator;
-    private readonly ImmutableArray<RouteBase> _routes;
+    private readonly FrozenDictionary<Type, ViewInfo> _viewModelTypeToViewInfo;
+    private readonly FrozenDictionary<Type, Func<ContentDialog>> _viewModelTypeToDialogActivator;
+    private readonly ImmutableArray<RoutePart> _routeParts;
+
     private readonly int _maxStackSize;
     private readonly int _maxBackStackCachedViewDepth;
     private readonly int _maxForwardStackCachedViewDepth;
 
-    private readonly Stack<(ContentDialog Dialog, TaskCompletionSource Tcs)> _dialogInfoStack = [];
-    private readonly List<RouteInfo> _routeInfoList = [];
+    private readonly Stack<(ContentDialog Dialog, TaskCompletionSource Tcs)> _dialogTcsStack = [];
 
+    private readonly List<ConcreteRoute> _routeStack = [];
     private int _currentRouteIndex = -1;
+
+    private CancellationTokenSource? _navigationCts;
 
     private bool _blockNavigation;
     private bool _blockDialogs;
-    private CancellationTokenSource? _navigationCts;
 
-    private RouteInfo? CurrentRouteInfo => _currentRouteIndex >= 0 && _currentRouteIndex < _routeInfoList.Count ? _routeInfoList[_currentRouteIndex] : null;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Navigator"/> class using the specified content control for displaying the active view and mappings provided
+    /// in the build action.
+    /// </summary>
+    public Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)
+        : this(new ContentControlNavigator(contentControl), buildAction) { }
 
-    /// <inheritdoc cref="INavigator.CanUserGoBack"/>
-    public bool CanUserGoBack
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Navigator"/> class with the specified root view navigator and mappings provided in the build action.
+    /// </summary>
+    public Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)
+    {
+        _viewNavigator = viewNavigator;
+        EnsureThreadAccess();
+        TaskRunner = new TaskRunner(busy => _viewNavigator.NavigationControl.IsEnabled = !busy);
+
+        var builder = new NavigatorBuilder();
+        buildAction(builder);
+        builder.Validate();
+
+        _routeParts = [.. builder.RouteParts];
+        _viewModelTypeToViewInfo = builder.ViewModelTypeToViewInfo.ToFrozenDictionary();
+
+        IEnumerable<KeyValuePair<Type, Func<ContentDialog>>> vmTypeToDialogActivator = builder.ViewModelTypeToDialogActivator;
+
+        if (!builder.ViewModelTypeToDialogActivator.ContainsKey(typeof(MessageDialogViewModel)))
+            vmTypeToDialogActivator = vmTypeToDialogActivator.Append(new(typeof(MessageDialogViewModel), () => new MessageDialog()));
+
+        _viewModelTypeToDialogActivator = vmTypeToDialogActivator.ToFrozenDictionary();
+        _maxStackSize = builder.MaxNavigationStacksSize;
+        _maxBackStackCachedViewDepth = builder.MaxBackStackCachedViewDepth;
+        _maxForwardStackCachedViewDepth = builder.MaxForwardStackCachedViewDepth;
+    }
+
+    /// <inheritdoc cref="INavigator.CanGoBack"/>
+    public bool CanGoBack
     {
         get {
             EnsureThreadAccess();
@@ -39,14 +73,14 @@ public partial class Navigator : INavigator
                 return false;
 
             if (IsShowingDialog)
-                return _dialogInfoStack.Peek().Dialog.DataContext is IDismissableDialogViewModel;
+                return _dialogTcsStack.Peek().Dialog.DataContext is IDismissableDialogViewModel;
 
             return HasBackHistory;
         }
     }
 
-    /// <inheritdoc cref="INavigator.CanUserGoForward"/>
-    public bool CanUserGoForward
+    /// <inheritdoc cref="INavigator.CanGoForward"/>
+    public bool CanGoForward
     {
         get {
             EnsureThreadAccess();
@@ -58,12 +92,12 @@ public partial class Navigator : INavigator
         }
     }
 
-    /// <inheritdoc cref="INavigator.CanUserRefresh"/>
-    public bool CanUserRefresh
+    /// <inheritdoc cref="INavigator.CanRefresh"/>
+    public bool CanRefresh
     {
         get {
             EnsureThreadAccess();
-            return !IsNavigating && !IsShowingDialog && CurrentRouteInfo is not null;
+            return !IsNavigating && !IsShowingDialog && CurrentRouteInternal is not null;
         }
     }
 
@@ -81,12 +115,9 @@ public partial class Navigator : INavigator
     {
         get {
             EnsureThreadAccess();
-            return _currentRouteIndex < _routeInfoList.Count - 1;
+            return _currentRouteIndex < _routeStack.Count - 1;
         }
     }
-
-    /// <inheritdoc cref="INavigator.DidNavigate"/>/>
-    public bool DidNavigate => _currentRouteIndex >= 0;
 
     /// <inheritdoc cref="INavigator.IsNavigating"/>
     public bool IsNavigating
@@ -102,91 +133,120 @@ public partial class Navigator : INavigator
     {
         get {
             EnsureThreadAccess();
-            return _dialogInfoStack.Count > 0;
+            return _dialogTcsStack.Count > 0;
         }
     }
 
-    /// <inheritdoc cref="INavigator.CurrentRoute"/>
-    public string? CurrentRoute
-    {
-        get {
-            var currentRouteInfo = CurrentRouteInfo;
-
-            if (currentRouteInfo is null)
-                return null;
-
-            var routes = currentRouteInfo.Items.Select(ri => ri.SpecifiedRoute);
-            return GetRouteString(routes);
-        }
-    }
-
-    /// <inheritdoc cref="INavigator.TaskRunner"/>/>
+    /// <inheritdoc cref="INavigator.TaskRunner"/>
     public ITaskRunner TaskRunner { get; }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Navigator"/> class using the specified content control for displaying the active view and mappings provided
-    /// in the build action.
-    /// </summary>
-    public Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)
-        : this(new ContentControlNavigator(contentControl), buildAction) { }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Navigator"/> class with the specified root view navigator and mappings provided in the build action.
-    /// </summary>
-    public Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)
+    /// <inheritdoc/>
+    public IConcreteRoute? CurrentRoute
     {
-        _viewNavigator = viewNavigator;
-        EnsureThreadAccess();
-        TaskRunner = new TaskRunner(busy => _viewNavigator.NavControl.IsEnabled = !busy);
-
-        var builder = new NavigatorBuilder();
-        buildAction(builder);
-        builder.Validate();
-
-        _routes = [.. builder.RouteList];
-        _vmTypeToViewInfo = builder.VmTypeToViewInfo.ToFrozenDictionary();
-
-        IEnumerable<KeyValuePair<Type, Func<ContentDialog>>> vmTypeToDialogActivator = builder.VmTypeToDialogActivator;
-
-        if (!builder.VmTypeToDialogActivator.ContainsKey(typeof(MessageDialogViewModel)))
-            vmTypeToDialogActivator = vmTypeToDialogActivator.Append(new(typeof(MessageDialogViewModel), () => new MessageDialog()));
-
-        _vmTypeToDialogActivator = vmTypeToDialogActivator.ToFrozenDictionary();
-        _maxStackSize = builder.MaxNavigationStacksSize;
-        _maxBackStackCachedViewDepth = builder.MaxBackStackCachedViewDepth;
-        _maxForwardStackCachedViewDepth = builder.MaxForwardStackCachedViewDepth;
+        get {
+            EnsureThreadAccess();
+            return CurrentRouteInternal;
+        }
     }
+
+    private ConcreteRoute? CurrentRouteInternal => _currentRouteIndex >= 0 ? _routeStack[_currentRouteIndex] : null;
 
     /// <inheritdoc cref="INavigator.ClearHistory"/>
     public void ClearHistory()
     {
         EnsureThreadAccess();
 
-        var currentRouteInfo = CurrentRouteInfo;
+        if (_routeStack.Count <= 0)
+            return;
 
-        if (currentRouteInfo is null)
-            return; // Nothing to clear
+        var current = _routeStack[_currentRouteIndex];
 
         using (new PropertyChangedNotifier(this, OnPropertyChanged))
         {
-            _routeInfoList.Clear();
-            _routeInfoList.Add(currentRouteInfo);
+            _routeStack.Clear();
+            _routeStack.Add(current);
             _currentRouteIndex = 0;
         }
     }
 
+    /// <inheritdoc cref="INavigator.GetBackStack"/>
+    public IReadOnlyList<IConcreteRoute> GetBackStack()
+    {
+        EnsureThreadAccess();
+
+        if (_currentRouteIndex <= 0)
+            return [];
+
+        var stack = _routeStack[.._currentRouteIndex];
+        stack.Reverse();
+        return stack;
+    }
+
+    /// <inheritdoc cref="INavigator.GetForwardStack"/>
+    public IReadOnlyList<IConcreteRoute> GetForwardStack()
+    {
+        EnsureThreadAccess();
+
+        if (_currentRouteIndex >= _routeStack.Count - 1)
+            return [];
+
+        return _routeStack[(_currentRouteIndex + 1)..];
+    }
+
+    /// <inheritdoc cref="INavigator.TryGetCurrentRouteParameter{TViewModel, TParam}(RoutePart{TViewModel, TParam}, out TParam)"/>
+    public bool TryGetCurrentRouteParameter<TViewModel, TParam>(RoutePart<TViewModel, TParam> routePart, [MaybeNullWhen(false)] out TParam parameter)
+        where TViewModel : class, IRoutedViewModel<TParam>
+        where TParam : notnull
+    {
+        EnsureThreadAccess();
+        var routeItems = CurrentRouteInternal?.Items ?? [];
+
+        for (int i = routeItems.Length - 1; i >= 0; i--)
+        {
+            var concreteRoute = routeItems[i].ConcreteRoutePart;
+
+            if (concreteRoute.RoutePart == routePart && concreteRoute is IParameterizedConcreteRoute<TViewModel, TParam> paramConcreteRoute)
+            {
+                parameter = paramConcreteRoute.Parameter;
+                return true;
+            }
+        }
+
+        parameter = default;
+        return false;
+    }
+
+    /// <inheritdoc cref="INavigator.TryGetCurrentRouteViewModel{TViewModel}(out TViewModel)"/>
+    public bool TryGetCurrentRouteViewModel<TViewModel>([MaybeNullWhen(false)] out TViewModel viewModel)
+        where TViewModel : class
+    {
+        EnsureThreadAccess();
+
+        var routeItem = CurrentRouteInternal?.Items
+            .LastOrDefault(i => i.ConcreteRoutePart.RoutePart.ViewModelType.IsAssignableTo(typeof(TViewModel)));
+
+        if (routeItem is not null)
+        {
+            routeItem.EnsureViewCreatedAndModelInitialized(this);
+            viewModel = (TViewModel)routeItem.ViewModel;
+            return true;
+        }
+
+        viewModel = null;
+        return false;
+    }
+
+    internal static string GetPath(IEnumerable<IConcreteRoutePart> routeParts) => string.Join("/", routeParts.Select(r => r.ToString()).Where(r => r.Length > 0));
+
     private void EnsureThreadAccess()
     {
-        if (_viewNavigator.NavControl.DispatcherQueue?.HasThreadAccess is not true)
-        {
-            const string message = "Navigator can only be accessed from the UI thread.";
-            throw new InvalidOperationException(message);
-        }
+        if (_viewNavigator.NavigationControl.DispatcherQueue?.HasThreadAccess is not true)
+            throw new InvalidOperationException("Navigator can only be accessed from the UI thread.");
     }
 
     private bool CloseLightDismissPopups()
     {
-        var xamlRoot = _viewNavigator.NavControl.XamlRoot;
+        var xamlRoot = _viewNavigator.NavigationControl.XamlRoot;
         bool closedPopup = false;
 
         if (xamlRoot is not null)
@@ -201,82 +261,5 @@ public partial class Navigator : INavigator
         }
 
         return closedPopup;
-    }
-
-    /// <inheritdoc cref="INavigator.GetBackStackRoutes"/>
-    public IList<string> GetBackStackRoutes()
-    {
-        EnsureThreadAccess();
-
-        if (_currentRouteIndex <= 0)
-            return [];
-
-        var routeInfoList = new List<string>(_currentRouteIndex);
-
-        for (int i = _currentRouteIndex - 1; i >= 0; i--)
-        {
-            var routes = _routeInfoList[i].Items.Select(ri => ri.SpecifiedRoute);
-            routeInfoList.Add(GetRouteString(routes));
-        }
-
-        return routeInfoList;
-    }
-
-    /// <inheritdoc cref="INavigator.GetForwardStackRoutes"/>
-    public IList<string> GetForwardStackRoutes()
-    {
-        EnsureThreadAccess();
-
-        if (_currentRouteIndex < 0 || _currentRouteIndex >= _routeInfoList.Count - 1)
-            return [];
-
-        var routeInfoList = new List<string>(_routeInfoList.Count - _currentRouteIndex - 1);
-
-        for (int i = _currentRouteIndex + 1; i < _routeInfoList.Count; i++)
-        {
-            var routes = _routeInfoList[i].Items.Select(ri => ri.SpecifiedRoute);
-            routeInfoList.Add(GetRouteString(routes));
-        }
-
-        return routeInfoList;
-    }
-
-    /// <inheritdoc cref="INavigator.GetRouteOptions"/>
-    public RouteOptions GetRouteOptions()
-    {
-        EnsureThreadAccess();
-        return CurrentRouteInfo?.Options ?? RouteOptions.Empty;
-    }
-
-    /// <inheritdoc cref="INavigator.TryGetRouteParameter{TViewModel, TParam}(RouteBase{TViewModel, TParam}, out TParam)"/>
-    public bool TryGetRouteParameter<TViewModel, TParam>(RouteBase<TViewModel, TParam> route, [MaybeNullWhen(false)] out TParam parameter)
-        where TViewModel : class, IRoutedViewModel<TParam>
-        where TParam : notnull
-    {
-        EnsureThreadAccess();
-        var routeItems = CurrentRouteInfo?.Items ?? [];
-
-        for (int i = routeItems.Length - 1; i >= 0; i--)
-        {
-            var specifiedRoute = routeItems[i].SpecifiedRoute;
-
-            if (specifiedRoute.Route == route && specifiedRoute is IParameterizedConcreteRoute<TViewModel, TParam> paramSpecifiedRoute)
-            {
-                parameter = paramSpecifiedRoute.Parameter;
-                return true;
-            }
-        }
-
-        parameter = default;
-        return false;
-    }
-
-    /// <inheritdoc cref="INavigator.TryGetRouteViewModel{TViewModel}(out TViewModel)"/>
-    public bool TryGetRouteViewModel<TViewModel>([MaybeNullWhen(false)] out TViewModel viewModel)
-        where TViewModel : class
-    {
-        EnsureThreadAccess();
-        viewModel = CurrentRouteInfo?.Items.Select(ri => ri.ViewModel).OfType<TViewModel>().LastOrDefault();
-        return viewModel is not null;
     }
 }

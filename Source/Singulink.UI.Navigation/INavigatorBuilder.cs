@@ -38,9 +38,9 @@ public interface INavigatorBuilder
     public int MaxForwardStackCachedViewDepth { get; }
 
     /// <summary>
-    /// Adds a route to the navigator.
+    /// Adds a route to the specified route part. All parent parts must be added before child parts.
     /// </summary>
-    public void AddRoute(RouteBase route);
+    public void AddRouteTo(RoutePart routePart);
 
     /// <summary>
     /// Configures navigation stack options.

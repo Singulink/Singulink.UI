@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 
 namespace Singulink.UI.Navigation.WinUI;
@@ -31,120 +32,112 @@ partial class Navigator
         if (queryIndex >= 0)
             route = route[..queryIndex];
 
-        if (!TryMatchRoute(route, out var requestedSpecifiedRouteItems))
+        if (!TryMatchRoute(route, out var routeItems))
             throw new ArgumentException($"No route found for '{route}'.", nameof(route));
 
         var routeOptions = anchor is not null ? new RouteOptions(anchor) : null;
 
-        return await NavigateAsync(NavigationType.New, requestedSpecifiedRouteItems, routeOptions);
+        return await NavigateAsync(NavigationType.New, routeItems, routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigateAsync{TViewModel}(IConcreteRootRoute{TViewModel}, RouteOptions)"/>
-    public async Task<NavigationResult> NavigateAsync<TViewModel>(IConcreteRootRoute<TViewModel> route, RouteOptions? routeOptions = null)
-        where TViewModel : class
+    /// <inheritdoc cref="INavigator.NavigateAsync(IConcreteRootRoutePart, RouteOptions?)"/>
+    public async Task<NavigationResult> NavigateAsync(IConcreteRootRoutePart rootRoutePart, RouteOptions? routeOptions = null)
     {
         EnsureThreadAccess();
         CloseLightDismissPopups();
 
-        return await NavigateNewWithEnsureMatched([route], routeOptions);
+        return await NavigateNewWithEnsureMatched([rootRoutePart], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigateAsync{TParentViewModel, TNestedViewModel}(IConcreteRootRoute{TParentViewModel}, IConcreteNestedRoute{TParentViewModel, TNestedViewModel}, RouteOptions)"/>
-    public async Task<NavigationResult> NavigateAsync<TParentViewModel, TNestedViewModel>(
-        IConcreteRootRoute<TParentViewModel> parentRoute,
-        IConcreteNestedRoute<TParentViewModel, TNestedViewModel> nestedRoute,
+    /// <inheritdoc cref="INavigator.NavigateAsync{TRootViewModel}(IConcreteRootRoutePart{TRootViewModel}, IConcreteChildRoutePart{TRootViewModel}, RouteOptions?)"/>
+    public async Task<NavigationResult> NavigateAsync<TRootViewModel>(
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
+        IConcreteChildRoutePart<TRootViewModel> childRoutePart,
         RouteOptions? routeOptions = null)
-        where TParentViewModel : class
-        where TNestedViewModel : class
+        where TRootViewModel : class
     {
         EnsureThreadAccess();
         CloseLightDismissPopups();
 
-        return await NavigateNewWithEnsureMatched([parentRoute, nestedRoute], routeOptions);
+        return await NavigateNewWithEnsureMatched([rootRoutePart, childRoutePart], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigateAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2}(IConcreteRootRoute{TParentViewModel}, IConcreteNestedRoute{TParentViewModel, TNestedViewModel1}, IConcreteNestedRoute{TNestedViewModel1, TNestedViewModel2}, RouteOptions)"/>
-    public async Task<NavigationResult> NavigateAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2>(
-        IConcreteRootRoute<TParentViewModel> parentRoute,
-        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+    /// <inheritdoc cref="INavigator.NavigateAsync{TRootViewModel, TChildViewModel1}(IConcreteRootRoutePart{TRootViewModel}, IConcreteChildRoutePart{TRootViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1}, RouteOptions?)"/>
+    public async Task<NavigationResult> NavigateAsync<TRootViewModel, TChildViewModel1>(
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
+        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
+        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
         RouteOptions? routeOptions = null)
-        where TParentViewModel : class
-        where TNestedViewModel1 : class
-        where TNestedViewModel2 : class
+        where TRootViewModel : class
+        where TChildViewModel1 : class
     {
         EnsureThreadAccess();
         CloseLightDismissPopups();
 
-        return await NavigateNewWithEnsureMatched([parentRoute, nestedRoute1, nestedRoute2], routeOptions);
+        return await NavigateNewWithEnsureMatched([rootRoutePart, childRoutePart1, childRoutePart2], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigateAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3}(IConcreteRootRoute{TParentViewModel}, IConcreteNestedRoute{TParentViewModel, TNestedViewModel1}, IConcreteNestedRoute{TNestedViewModel1, TNestedViewModel2}, IConcreteNestedRoute{TNestedViewModel2, TNestedViewModel3}, RouteOptions)"/>
-    public async Task<NavigationResult> NavigateAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3>(
-        IConcreteRootRoute<TParentViewModel> parentRoute,
-        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
-        IConcreteNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
+    /// <inheritdoc cref="INavigator.NavigateAsync{TRootViewModel, TChildViewModel1, TChildViewModel2}(IConcreteRootRoutePart{TRootViewModel}, IConcreteChildRoutePart{TRootViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1, TChildViewModel2}, IConcreteChildRoutePart{TChildViewModel2}, RouteOptions?)"/>
+    public async Task<NavigationResult> NavigateAsync<TRootViewModel, TChildViewModel1, TChildViewModel2>(
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
+        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
+        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
+        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
         RouteOptions? routeOptions = null)
-        where TParentViewModel : class
-        where TNestedViewModel1 : class
-        where TNestedViewModel2 : class
-        where TNestedViewModel3 : class
+        where TRootViewModel : class
+        where TChildViewModel1 : class
+        where TChildViewModel2 : class
     {
         EnsureThreadAccess();
         CloseLightDismissPopups();
 
-        return await NavigateNewWithEnsureMatched([parentRoute, nestedRoute1, nestedRoute2, nestedRoute3], routeOptions);
+        return await NavigateNewWithEnsureMatched([rootRoutePart, childRoutePart1, childRoutePart2, childRoutePart3], routeOptions);
     }
 
-    private string GetRouteString(IEnumerable<IConcreteRoute> routes) => string.Join("/", routes.Select(r => r.ToString()).Where(r => !string.IsNullOrEmpty(r)));
-
-    private async Task<NavigationResult> NavigateNewWithEnsureMatched(List<IConcreteRoute> specifiedRouteItems, RouteOptions? routeOptions)
+    private Task<NavigationResult> NavigateNewWithEnsureMatched(List<IConcreteRoutePart> routeParts, RouteOptions? routeOptions)
     {
-        string routeString = GetRouteString(specifiedRouteItems);
+        string routeString = GetPath(routeParts);
 
-        if (!TryMatchRoute(routeString, out var requestedRoutes))
-            throw new ArgumentException($"No route found for '{routeString}'.", nameof(specifiedRouteItems));
+        if (!TryMatchRoute(routeString, out var foundRouteItems))
+            throw new ArgumentException($"No route found for '{routeString}'.", nameof(routeParts));
 
-        if (!requestedRoutes.SequenceEqual(specifiedRouteItems))
+        if (!foundRouteItems.SequenceEqual(routeParts))
         {
             string message = $"Route '{routeString}' matched a different route than what was specified. " +
                 "Routes may be misconfigured, missing or specified in an incorrect order.";
-            throw new ArgumentException(message, nameof(specifiedRouteItems));
+            throw new ArgumentException(message, nameof(routeParts));
         }
 
-        return await NavigateAsync(NavigationType.New, requestedRoutes, routeOptions);
+        return NavigateAsync(NavigationType.New, routeParts, routeOptions);
     }
 
-    private async Task<NavigationResult> NavigateAsync(
+    private Task<NavigationResult> NavigateAsync(
         NavigationType navigationType,
-        List<IConcreteRoute>? requestedSpecifiedRouteItems,
+        List<IConcreteRoutePart>? routeParts,
         RouteOptions? routeOptions)
     {
-        if (_dialogInfoStack.Count > 0)
+        if (_dialogTcsStack.Count > 0)
             throw new InvalidOperationException("Cannot navigate while a dialog is shown.");
 
         if (_blockNavigation)
             throw new InvalidOperationException("Navigation requested at an invalid time while navigation is blocked.");
 
-        var lastRouteInfo = CurrentRouteInfo;
-
-        RouteInfo routeInfo;
+        ConcreteRoute route;
 
         if (navigationType is NavigationType.New)
         {
             routeOptions ??= RouteOptions.Empty;
 
-            if (requestedSpecifiedRouteItems is not null)
-                routeInfo = BuildRouteInfo(requestedSpecifiedRouteItems, routeOptions);
-            else if (CurrentRouteInfo is not null)
-                routeInfo = new RouteInfo(CurrentRouteInfo.Items, routeOptions);
+            if (routeParts is not null)
+                route = BuildRoute(routeParts, routeOptions);
+            else if (CurrentRouteInternal is not null)
+                route = new ConcreteRoute(CurrentRouteInternal.Items, routeOptions);
             else
                 throw new InvalidOperationException("Cannot navigate partial route when no route is currently active.");
         }
         else
         {
-            Debug.Assert(requestedSpecifiedRouteItems is null, "Route items should only be provided for new navigations.");
+            Debug.Assert(routeParts is null, "Route parts should only be provided for new navigations.");
             Debug.Assert(routeOptions is null, "Route options should only be provided for new navigations.");
 
             if (navigationType is NavigationType.Back)
@@ -152,18 +145,18 @@ partial class Navigator
                 if (!HasBackHistory)
                     throw new InvalidOperationException("Cannot navigate back because there is no previous view.");
 
-                routeInfo = _routeInfoList[_currentRouteIndex - 1];
+                route = _routeStack[_currentRouteIndex - 1];
             }
             else if (navigationType is NavigationType.Forward)
             {
                 if (!HasForwardHistory)
                     throw new InvalidOperationException("Cannot navigate forward because there is no next view.");
 
-                routeInfo = _routeInfoList[_currentRouteIndex + 1];
+                route = _routeStack[_currentRouteIndex + 1];
             }
             else if (navigationType is NavigationType.Refresh)
             {
-                routeInfo = lastRouteInfo ?? throw new InvalidOperationException("Cannot refresh when no route is currently active.");
+                route = CurrentRouteInternal ?? throw new InvalidOperationException("Cannot refresh when there is no route is currently active.");
             }
             else
             {
@@ -171,167 +164,18 @@ partial class Navigator
             }
         }
 
-        return await TaskRunner.RunAsBusyAsync(async () => {
-            using var notifier = new PropertyChangedNotifier(this, OnPropertyChanged);
-            int numCommonItems = 0; // number of common items
+        return TaskRunner.RunAsBusyAsync(NavigateAsyncImpl(navigationType, route, routeOptions));
 
-            if (lastRouteInfo is not null)
-            {
-                for (int i = 0; i < lastRouteInfo.Items.Length; i++)
-                {
-                    numCommonItems = i;
-
-                    if (i >= routeInfo.Items.Length || lastRouteInfo.Items[i] != routeInfo.Items[i])
-                        break;
-                }
-
-                // Notify view models of navigating away from the last route, starting from the end of the route
-                // If a navigation is already in progress, no need to notify it that it is navigating away since it cancelled itself.
-
-                if (_navigationCts is null)
-                {
-                    _blockNavigation = true;
-                    notifier.Update();
-
-                    for (int i = lastRouteInfo.Items.Length - 1; i >= 0; i--)
-                    {
-                        var routeItem = lastRouteInfo.Items[i];
-
-                        if (routeItem.AlreadyNavigatedTo)
-                        {
-                            var flags = i >= numCommonItems ? NavigatingFlags.WillBeNavigatedFrom : NavigatingFlags.None;
-                            var args = new NavigatingArgs(navigationType, flags, routeInfo.Options);
-                            await routeItem.ViewModel.OnNavigatingFromAsync(args);
-
-                            if (_dialogInfoStack.Count > 0)
-                                throw new InvalidOperationException("All dialogs must be closed before completing navigating away from a view model.");
-
-                            if (args.Cancel)
-                            {
-                                _blockNavigation = false;
-                                return NavigationResult.Cancelled;
-                            }
-                        }
-                    }
-
-                    _blockNavigation = false;
-                }
-            }
-
-            bool cancelledLastNavigation = false;
-
-            if (_navigationCts is not null)
-            {
-                _navigationCts.Cancel();
-                cancelledLastNavigation = true;
-            }
-
-            var cancelNavigateToken = (_navigationCts = new()).Token;
-
-            if (navigationType is NavigationType.New)
-            {
-                if (cancelledLastNavigation)
-                {
-                    _routeInfoList[_currentRouteIndex] = routeInfo;
-                }
-                else
-                {
-                    if (HasForwardHistory)
-                        _routeInfoList.RemoveRange(_currentRouteIndex + 1, _routeInfoList.Count - _currentRouteIndex - 1);
-
-                    _routeInfoList.Add(routeInfo);
-                    _currentRouteIndex = _routeInfoList.Count - 1;
-                }
-            }
-            else if (navigationType is NavigationType.Back)
-            {
-                _currentRouteIndex--;
-            }
-            else if (navigationType is NavigationType.Forward)
-            {
-                _currentRouteIndex++;
-            }
-
-            notifier.Update();
-
-            if (lastRouteInfo is not null)
-            {
-                _blockNavigation = true;
-                _blockDialogs = true;
-
-                for (int i = lastRouteInfo.Items.Length - 1; i >= numCommonItems; i--)
-                {
-                    var routeItem = lastRouteInfo.Items[i];
-
-                    if (routeItem.AlreadyNavigatedTo)
-                    {
-                        routeItem.ViewModel.OnNavigatedFrom();
-                        routeItem.AlreadyNavigatedTo = false;
-                    }
-                }
-
-                _blockNavigation = false;
-                _blockDialogs = false;
-            }
-
-            var viewNavigator = _viewNavigator;
-
-            for (int i = 0; i < routeInfo.Items.Length; i++)
-            {
-                if (viewNavigator is null)
-                    throw new UnreachableException("Unexpected null nested view navigator.");
-
-                var routeItemInfo = routeInfo.Items[i];
-                bool hasNestedNavigation = i < routeInfo.Items.Length - 1;
-
-                _blockNavigation = true;
-                _blockDialogs = true;
-
-                routeItemInfo.EnsureViewCreatedAndModelInitialized(this);
-                viewNavigator.SetActiveView(routeItemInfo.View);
-
-                _blockNavigation = false;
-                _blockDialogs = false;
-
-                var navFlags = routeItemInfo.IsFirstNavigation ? NavigationFlags.FirstNavigation : NavigationFlags.None;
-
-                if (routeItemInfo.AlreadyNavigatedTo)
-                    navFlags |= NavigationFlags.AlreadyNavigatedTo;
-
-                if (hasNestedNavigation)
-                    navFlags |= NavigationFlags.HasNestedNavigation;
-
-                var args = new NavigationArgs(navigationType, navFlags, routeInfo.Options);
-                await routeItemInfo.ViewModel.OnNavigatedToAsync(args);
-
-                routeItemInfo.IsFirstNavigation = false;
-
-                if (cancelNavigateToken.IsCancellationRequested)
-                    return NavigationResult.Rerouted;
-
-                routeItemInfo.AlreadyNavigatedTo = true;
-
-                if (hasNestedNavigation && _dialogInfoStack.Count > 0)
-                    throw new InvalidOperationException("All dialogs must be closed before completing navigation to a view with nested navigations.");
-
-                viewNavigator = routeItemInfo.NestedViewNavigator;
-            }
-
-            _navigationCts = null;
-            TrimRouteInfoListAndCachedViews();
-
-            return NavigationResult.Success;
-        });
-
-        RouteInfo BuildRouteInfo(List<IConcreteRoute> requestedSpecifiedRouteItems, RouteOptions routeOptions)
+        ConcreteRoute BuildRoute(List<IConcreteRoutePart> routeItems, RouteOptions routeOptions)
         {
-            var commonItemInfoCandidates = _routeInfoList;
+            var commonItemInfoCandidates = _routeStack;
             int i; // number of common items
 
-            for (i = 0; i < requestedSpecifiedRouteItems.Count; i++)
+            for (i = 0; i < routeItems.Count; i++)
             {
                 var newCandidates = commonItemInfoCandidates
-                    .Where(ri => i < ri.Items.Length && ri.Items[i].SpecifiedRoute.Equals(requestedSpecifiedRouteItems[i])).ToList();
+                    .Where(ri => i < ri.Items.Length && ri.Items[i].ConcreteRoutePart.Equals(routeItems[i]))
+                    .ToList();
 
                 if (newCandidates.Count is 0)
                     break;
@@ -339,49 +183,197 @@ partial class Navigator
                 commonItemInfoCandidates = newCandidates;
             }
 
-            var routeInfoItems = new RouteInfoItem[requestedSpecifiedRouteItems.Count];
+            var routeItem = new ConcreteRoute.Item[routeItems.Count];
 
             // Copy common items
 
             if (i > 0)
-                commonItemInfoCandidates[0].Items.CopyTo(0, routeInfoItems, 0, i);
+                commonItemInfoCandidates[0].Items.CopyTo(0, routeItem, 0, i);
 
             // Create remaining items
 
-            for (; i < routeInfoItems.Length; i++)
+            for (; i < routeItem.Length; i++)
             {
-                var item = requestedSpecifiedRouteItems[i];
-                var createViewFunc = _vmTypeToViewInfo[item.Route.ViewModelType].CreateView;
-                routeInfoItems[i] = new(item, createViewFunc);
+                var item = routeItems[i];
+                var createViewFunc = _viewModelTypeToViewInfo[item.RoutePart.ViewModelType].CreateView;
+                routeItem[i] = new(item, createViewFunc);
             }
 
-            return new RouteInfo(ImmutableCollectionsMarshal.AsImmutableArray(routeInfoItems), routeOptions);
+            return new ConcreteRoute(ImmutableCollectionsMarshal.AsImmutableArray(routeItem), routeOptions);
+        }
+    }
+
+    private async Task<NavigationResult> NavigateAsyncImpl(
+        NavigationType navigationType,
+        ConcreteRoute route,
+        RouteOptions? routeOptions)
+    {
+        using var notifier = new PropertyChangedNotifier(this, OnPropertyChanged);
+        var lastRoute = CurrentRouteInternal;
+        int numCommonItems = 0;
+
+        if (lastRoute is not null)
+        {
+            for (int i = 0; i < lastRoute.Items.Length; i++)
+            {
+                numCommonItems = i;
+
+                if (i >= route.Items.Length || lastRoute.Items[i] != route.Items[i])
+                    break;
+            }
+
+            // Notify view models of navigating away from the last route, starting from the end of the route
+            // If a navigation is already in progress, no need to notify it that it is navigating away since it cancelled itself.
+
+            if (_navigationCts is null)
+            {
+                using (EnterNavigationGuard(alsoBlockDialogs: false))
+                {
+                    notifier.Update();
+
+                    for (int i = lastRoute.Items.Length - 1; i >= 0; i--)
+                    {
+                        var routeItem = lastRoute.Items[i];
+
+                        if (routeItem.AlreadyNavigatedTo)
+                        {
+                            var flags = i >= numCommonItems ? NavigatingFlags.WillBeNavigatedFrom : NavigatingFlags.None;
+                            var args = new NavigatingArgs(navigationType, flags, route.Options);
+                            await routeItem.ViewModel.OnNavigatingFromAsync(args);
+
+                            if (_dialogTcsStack.Count > 0)
+                                throw new InvalidOperationException("All dialogs must be closed before completing navigating away from a view model.");
+
+                            if (args.Cancel)
+                                return NavigationResult.Cancelled;
+                        }
+                    }
+                }
+            }
         }
 
-        void TrimRouteInfoListAndCachedViews()
+        bool cancelledLastNavigation = false;
+
+        if (_navigationCts is not null)
         {
-            if (_routeInfoList.Count > _maxStackSize)
+            _navigationCts.Cancel();
+            cancelledLastNavigation = true;
+        }
+
+        var cancelNavigateToken = (_navigationCts = new()).Token;
+
+        if (navigationType is NavigationType.New)
+        {
+            if (cancelledLastNavigation)
             {
-                int trimCount = _routeInfoList.Count - _maxStackSize;
-                _routeInfoList.RemoveRange(0, trimCount);
+                _routeStack[_currentRouteIndex] = route;
+            }
+            else
+            {
+                if (HasForwardHistory)
+                    _routeStack.RemoveRange(_currentRouteIndex + 1, _routeStack.Count - _currentRouteIndex - 1);
+
+                _routeStack.Add(route);
+                _currentRouteIndex = _routeStack.Count - 1;
+            }
+        }
+        else if (navigationType is NavigationType.Back)
+        {
+            _currentRouteIndex--;
+        }
+        else if (navigationType is NavigationType.Forward)
+        {
+            _currentRouteIndex++;
+        }
+
+        notifier.Update();
+
+        if (lastRoute is not null)
+        {
+            using (EnterNavigationGuard(alsoBlockDialogs: true))
+            {
+                for (int i = lastRoute.Items.Length - 1; i >= numCommonItems; i--)
+                {
+                    var routeItem = lastRoute.Items[i];
+
+                    if (routeItem.AlreadyNavigatedTo)
+                    {
+                        routeItem.ViewModel.OnNavigatedFrom();
+                        routeItem.AlreadyNavigatedTo = false;
+                    }
+                }
+            }
+        }
+
+        var viewNavigator = _viewNavigator;
+
+        for (int i = 0; i < route.Items.Length; i++)
+        {
+            if (viewNavigator is null)
+                throw new UnreachableException("Unexpected null child view navigator.");
+
+            var routeItem = route.Items[i];
+            bool hasChildNavigation = i < route.Items.Length - 1;
+
+            using (EnterNavigationGuard(alsoBlockDialogs: true))
+            {
+                routeItem.EnsureViewCreatedAndModelInitialized(this);
+                viewNavigator.SetActiveView(routeItem.View);
+            }
+
+            var navFlags = routeItem.IsFirstNavigation ? NavigationFlags.FirstNavigation : NavigationFlags.None;
+
+            if (routeItem.AlreadyNavigatedTo)
+                navFlags |= NavigationFlags.AlreadyNavigatedTo;
+
+            if (hasChildNavigation)
+                navFlags |= NavigationFlags.HasChildNavigation;
+
+            var args = new NavigationArgs(navigationType, navFlags, route.Options);
+            await routeItem.ViewModel.OnNavigatedToAsync(args);
+
+            routeItem.IsFirstNavigation = false;
+
+            if (cancelNavigateToken.IsCancellationRequested)
+                return NavigationResult.Rerouted;
+
+            routeItem.AlreadyNavigatedTo = true;
+
+            if (hasChildNavigation && _dialogTcsStack.Count > 0)
+                throw new InvalidOperationException("All dialogs must be closed before completing navigation to a view with child navigations.");
+
+            viewNavigator = routeItem.ChildViewNavigator;
+        }
+
+        _navigationCts = null;
+        TrimRoutesAndCachedViews();
+
+        return NavigationResult.Success;
+
+        void TrimRoutesAndCachedViews()
+        {
+            if (_routeStack.Count > _maxStackSize)
+            {
+                int trimCount = _routeStack.Count - _maxStackSize;
+                _routeStack.RemoveRange(0, trimCount);
                 _currentRouteIndex -= trimCount;
             }
 
-            if (_routeInfoList.Count <= 1)
+            if (_routeStack.Count <= 1)
                 return;
 
-            var keepViews = new HashSet<UIElement>(_routeInfoList.Count * 3);
+            var keepViews = new HashSet<UIElement>(_routeStack.Count * 3);
 
             int cachedStartIndex = Math.Max(0, _currentRouteIndex - _maxBackStackCachedViewDepth);
-            int cachedEndIndex = Math.Min(_routeInfoList.Count - 1, _currentRouteIndex + _maxForwardStackCachedViewDepth);
+            int cachedEndIndex = Math.Min(_routeStack.Count - 1, _currentRouteIndex + _maxForwardStackCachedViewDepth);
 
             // Keep all the views that can be cached within the cached range
 
             for (int j = cachedStartIndex; j <= cachedEndIndex; j++)
             {
-                var routeInfo = _routeInfoList[j];
+                var route = _routeStack[j];
 
-                foreach (var item in routeInfo.Items)
+                foreach (var item in route.Items)
                 {
                     // Always keep views from the current route
 
@@ -392,9 +384,9 @@ partial class Navigator
 
             // Remove all the views that are not in the keepViews set
 
-            foreach (var routeInfo in _routeInfoList)
+            foreach (var route in _routeStack)
             {
-                foreach (var item in routeInfo.Items)
+                foreach (var item in route.Items)
                 {
                     if (item.HasViewAndModel && !keepViews.Contains(item.View))
                         item.ClearViewAndModel();
@@ -403,30 +395,30 @@ partial class Navigator
         }
     }
 
-    private bool TryMatchRoute(string route, [MaybeNullWhen(false)] out List<IConcreteRoute> specifiedRouteItems)
+    private bool TryMatchRoute(string route, [MaybeNullWhen(false)] out List<IConcreteRoutePart> routeItems)
     {
-        specifiedRouteItems = [];
+        routeItems = [];
 
-        if (TryMatchRoute(route, null, specifiedRouteItems, out _))
+        if (TryMatchRoute(route, null, routeItems, out _))
         {
-            specifiedRouteItems.Reverse();
+            routeItems.Reverse();
             return true;
         }
 
         return false;
     }
 
-    private bool TryMatchRoute(ReadOnlySpan<char> routeString, Type? parentViewModelType, List<IConcreteRoute> specifiedRouteItems, out ReadOnlySpan<char> rest)
+    private bool TryMatchRoute(ReadOnlySpan<char> routeString, Type? parentViewModelType, List<IConcreteRoutePart> routeItems, out ReadOnlySpan<char> rest)
     {
-        foreach (var route in _routes.Where(r => r.ParentViewModelType == parentViewModelType))
+        foreach (var route in _routeParts.Where(r => r.ParentViewModelType == parentViewModelType))
         {
-            if (route.TryMatch(routeString, out var specifiedRoute, out rest))
+            if (!route.TryMatch(routeString, out var concreteRoute, out rest))
+                continue;
+
+            if (rest.Length is 0 || TryMatchRoute(rest, route.ViewModelType, routeItems, out rest))
             {
-                if (rest.Length is 0 || TryMatchRoute(rest, route.ViewModelType, specifiedRouteItems, out rest))
-                {
-                    specifiedRouteItems.Add(specifiedRoute);
-                    return true;
-                }
+                routeItems.Add(concreteRoute);
+                return true;
             }
         }
 

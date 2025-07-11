@@ -45,46 +45,17 @@ public partial class TaskRunner : ITaskRunner
     /// <inheritdoc cref="ITaskRunner.HasThreadAccess"/>
     public bool HasThreadAccess => Thread.CurrentThread == _thread;
 
-    /// <inheritdoc cref="ITaskRunner.RunAndForget(bool, Func{Task})"/>
-    public void RunAndForget(bool asBusyTask, Func<Task> taskFunc)
-    {
-        Task task;
+    /// <inheritdoc cref="ITaskRunner.RunAndForget(Func{Task})"/>
+    public void RunAndForget(Func<Task> taskFunc) => RunAndForget(false, taskFunc);
 
-        try
-        {
-            task = taskFunc();
-        }
-        catch (Exception ex)
-        {
-            CaptureAndPostException(ex);
-            return;
-        }
+    /// <inheritdoc cref="ITaskRunner.RunAndForget(Task)"/>
+    public void RunAndForget(Task task) => RunAndForget(false, task);
 
-        RunAndForget(asBusyTask, task);
-    }
+    /// <inheritdoc cref="ITaskRunner.RunAsBusyAndForget(Func{Task})"/>
+    public void RunAsBusyAndForget(Func<Task> taskFunc) => RunAndForget(true, taskFunc);
 
-    /// <inheritdoc cref="ITaskRunner.RunAndForget(bool, Task)"/>
-    public async void RunAndForget(bool asBusyTask, Task task)
-    {
-        bool taskWasCompleted = task.IsCompleted;
-
-        if (!taskWasCompleted)
-            IncrementTaskCount(asBusyTask);
-
-        try
-        {
-            await task;
-        }
-        catch (Exception ex)
-        {
-            CaptureAndPostException(ex);
-        }
-        finally
-        {
-            if (!taskWasCompleted)
-                DecrementTaskCount(asBusyTask);
-        }
-    }
+    /// <inheritdoc cref="ITaskRunner.RunAsBusyAndForget(Task)"/>
+    public void RunAsBusyAndForget(Task task) => RunAndForget(true, task);
 
     /// <inheritdoc cref="ITaskRunner.RunAsBusyAsync(Task)"/>
     public Task RunAsBusyAsync(Func<Task> taskFunc)
@@ -94,11 +65,29 @@ public partial class TaskRunner : ITaskRunner
     }
 
     /// <inheritdoc cref="ITaskRunner.RunAsBusyAsync{T}(Func{Task{T}})"/>
-    public async Task<T> RunAsBusyAsync<T>(Func<Task<T>> taskFunc)
+    public Task<T> RunAsBusyAsync<T>(Func<Task<T>> taskFunc)
     {
         var task = taskFunc();
-        await RunAsBusyAsync(task);
-        return task.Result;
+        return RunAsBusyAsync(task);
+    }
+
+    /// <inheritdoc cref="ITaskRunner.RunAsBusyAsync{T}(Task{T})"/>
+    public async Task<T> RunAsBusyAsync<T>(Task<T> task)
+    {
+        bool taskWasCompleted = task.IsCompleted;
+
+        if (!taskWasCompleted)
+            IncrementTaskCount(true);
+
+        try
+        {
+            return await task;
+        }
+        finally
+        {
+            if (!taskWasCompleted)
+                DecrementTaskCount(true);
+        }
     }
 
     /// <inheritdoc cref="ITaskRunner.RunAsBusyAsync(Task)"/>
@@ -294,9 +283,7 @@ public partial class TaskRunner : ITaskRunner
         }
     }
 
-    /// <summary>
-    /// Waits for all busy tasks to complete, optionally also waiting for non-busy tasks (and posted/sent messages).
-    /// </summary>
+    /// <inheritdoc cref="ITaskRunner.WaitForIdleAsync(bool)"/>
     public async Task WaitForIdleAsync(bool waitForNonBusyTasks = false)
     {
         TaskCompletionSource tcs = null;
@@ -413,6 +400,45 @@ public partial class TaskRunner : ITaskRunner
     }
 
     private void PostInvocable(IInvokable invokable) => _syncContext.Post(static s => ((IInvokable)s!).Invoke(), invokable);
+
+    private void RunAndForget(bool asBusyTask, Func<Task> taskFunc)
+    {
+        Task task;
+
+        try
+        {
+            task = taskFunc();
+        }
+        catch (Exception ex)
+        {
+            CaptureAndPostException(ex);
+            return;
+        }
+
+        RunAndForget(asBusyTask, task);
+    }
+
+    private async void RunAndForget(bool asBusyTask, Task task)
+    {
+        bool taskWasCompleted = task.IsCompleted;
+
+        if (!taskWasCompleted)
+            IncrementTaskCount(asBusyTask);
+
+        try
+        {
+            await task;
+        }
+        catch (Exception ex)
+        {
+            CaptureAndPostException(ex);
+        }
+        finally
+        {
+            if (!taskWasCompleted)
+                DecrementTaskCount(asBusyTask);
+        }
+    }
 
     private void OnIsBusyChanged()
     {

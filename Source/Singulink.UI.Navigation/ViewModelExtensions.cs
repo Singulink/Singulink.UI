@@ -35,4 +35,12 @@ public static class ViewModelExtensions
 
         return parameter;
     }
+
+    /// <summary>
+    /// Returns a value indicating whether the view model has been navigated to and has an accessible navigator.
+    /// </summary>
+    public static bool HasNavigated(this IRoutedViewModelBase viewModel)
+    {
+        return MixinManager.GetNavigator(viewModel) is not null;
+    }
 }

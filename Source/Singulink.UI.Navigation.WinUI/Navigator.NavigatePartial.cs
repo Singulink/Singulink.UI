@@ -16,61 +16,64 @@ partial class Navigator
         return await NavigateAsync(NavigationType.New, null, routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TNestedViewModel}(IConcreteNestedRoute{TParentViewModel, TNestedViewModel}, RouteOptions)"/>
-    public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TNestedViewModel>(
-        IConcreteNestedRoute<TParentViewModel, TNestedViewModel> nestedRoute,
+    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel}(IConcreteChildRoutePart{TParentViewModel}, RouteOptions?)"/>
+    public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel>(
+        IConcreteChildRoutePart<TParentViewModel> childRoute,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
-        where TNestedViewModel : class
     {
         EnsureThreadAccess();
         CloseLightDismissPopups();
 
-        return await NavigatePartialAsync(typeof(TParentViewModel), [nestedRoute], routeOptions);
+        return await NavigatePartialAsync(typeof(TParentViewModel), [childRoute], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2}(IConcreteNestedRoute{TParentViewModel, TNestedViewModel1}, IConcreteNestedRoute{TNestedViewModel1, TNestedViewModel2}, RouteOptions)"/>
-    public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2>(
-        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
+    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TChildViewModel1}(IConcreteChildRoutePart{TParentViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1}, RouteOptions?)"/>
+    public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TChildViewModel1>(
+        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
+        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
-        where TNestedViewModel1 : class
-        where TNestedViewModel2 : class
+        where TChildViewModel1 : class
     {
         EnsureThreadAccess();
         CloseLightDismissPopups();
 
-        return await NavigatePartialAsync(typeof(TParentViewModel), [nestedRoute1, nestedRoute2], routeOptions);
+        return await NavigatePartialAsync(typeof(TParentViewModel), [childRoutePart1, childRoutePart2], routeOptions);
     }
 
-    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3}(IConcreteNestedRoute{TParentViewModel, TNestedViewModel1}, IConcreteNestedRoute{TNestedViewModel1, TNestedViewModel2}, IConcreteNestedRoute{TNestedViewModel2, TNestedViewModel3}, RouteOptions)"/>
-    public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TNestedViewModel1, TNestedViewModel2, TNestedViewModel3>(
-        IConcreteNestedRoute<TParentViewModel, TNestedViewModel1> nestedRoute1,
-        IConcreteNestedRoute<TNestedViewModel1, TNestedViewModel2> nestedRoute2,
-        IConcreteNestedRoute<TNestedViewModel2, TNestedViewModel3> nestedRoute3,
+    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TChildViewModel1, TChildViewModel2}(IConcreteChildRoutePart{TParentViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1, TChildViewModel2}, IConcreteChildRoutePart{TChildViewModel2}, RouteOptions?)"/>
+    public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TChildViewModel1, TChildViewModel2>(
+        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
+        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
+        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
-        where TNestedViewModel1 : class
-        where TNestedViewModel2 : class
-        where TNestedViewModel3 : class
+        where TChildViewModel1 : class
+        where TChildViewModel2 : class
     {
         EnsureThreadAccess();
         CloseLightDismissPopups();
 
-        return await NavigatePartialAsync(typeof(TParentViewModel), [nestedRoute1, nestedRoute2, nestedRoute3], routeOptions);
+        return await NavigatePartialAsync(typeof(TParentViewModel), [childRoutePart1, childRoutePart2, childRoutePart3], routeOptions);
     }
 
-    private async Task<NavigationResult> NavigatePartialAsync(Type parentViewModelType, List<IConcreteRoute> requestedNestedRoutes, RouteOptions? routeOptions)
+    private async Task<NavigationResult> NavigatePartialAsync(Type parentViewModelType, List<IConcreteRoutePart> requestedChildRoutes, RouteOptions? routeOptions)
     {
-        var currentRouteInfo = CurrentRouteInfo ?? throw new InvalidOperationException("Cannot navigate partial route when no route is currently active.");
+        var currentRoute = CurrentRouteInternal ?? throw new InvalidOperationException("Cannot navigate partial route when no route is currently active.");
 
-        int parentRouteItemIndex = currentRouteInfo.Items.FindLastIndex(ri => ri.SpecifiedRoute.Route.ViewModelType == parentViewModelType);
+        int parentRouteItemIndex = currentRoute.Items
+            .FindLastIndex(ri => ri.ConcreteRoutePart.RoutePart.ViewModelType == parentViewModelType);
 
         if (parentRouteItemIndex < 0)
             throw new InvalidOperationException($"Current route does not contain a parent view model of type '{parentViewModelType}'.");
 
-        var routes = currentRouteInfo.Items.Take(parentRouteItemIndex + 1).Select(ri => ri.SpecifiedRoute).Concat(requestedNestedRoutes).ToList();
+        var routes = currentRoute.Items
+            .Take(parentRouteItemIndex + 1)
+            .Select(ri => ri.ConcreteRoutePart)
+            .Concat(requestedChildRoutes)
+            .ToList();
+
         return await NavigateNewWithEnsureMatched(routes, routeOptions);
     }
 }

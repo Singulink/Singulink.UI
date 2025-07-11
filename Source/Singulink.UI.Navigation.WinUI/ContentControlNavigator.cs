@@ -8,14 +8,14 @@ public class ContentControlNavigator : ViewNavigator
     /// <summary>
     /// Initializes a new instance of the <see cref="ContentControlNavigator"/> class with the specified <see cref="ContentControl"/>.
     /// </summary>
-    public ContentControlNavigator(ContentControl contentControl)
+    public ContentControlNavigator(ContentControl navigationContentControl)
     {
-        NavControl = contentControl;
+        NavigationControl = navigationContentControl;
     }
 
     /// <inheritdoc/>
-    public override ContentControl NavControl { get; }
+    public override ContentControl NavigationControl { get; }
 
     /// <inheritdoc/>
-    protected internal override void SetActiveView(UIElement? view) => NavControl.Content = view;
+    protected internal override void SetActiveView(UIElement? view) => NavigationControl.Content = view;
 }

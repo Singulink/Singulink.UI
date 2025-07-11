@@ -13,5 +13,8 @@ public partial class ShowParamsTestViewModel : ObservableObject, IRoutedViewMode
     public string StringValue => this.GetParameter().StringValue;
 
     [RelayCommand]
-    public async Task GoBackAsync() => await Navigator.GoBackAsync();
+    public async Task GoBackAsync()
+    {
+        await Navigator.NavigatePartialAsync(Routes.Main.ParamsTestChild);
+    }
 }

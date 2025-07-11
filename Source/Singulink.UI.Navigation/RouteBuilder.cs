@@ -4,7 +4,7 @@ using System.Text;
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Represents a builder used for constructing parameterless routes.
+/// Represents a builder used for constructing routes without parameters.
 /// </summary>
 public class RouteBuilder
 {
@@ -13,28 +13,29 @@ public class RouteBuilder
     internal RouteBuilder(string? route) => _route = route ?? string.Empty;
 
     /// <summary>
-    /// Creates a root route for the specified view model type.
+    /// Creates a root route part for the specified view model type.
     /// </summary>
-    public RootRoute<TViewModel> For<TViewModel>()
+    public RootRoutePart<TViewModel> Root<TViewModel>()
         where TViewModel : class, IRoutedViewModel
     {
-        return new RootRoute<TViewModel>(this);
+        return new RootRoutePart<TViewModel>(this);
     }
 
     /// <summary>
-    /// Creates a nested route for the specified parent and nested view model types.
+    /// Creates a child route part for the specified parent and child view model type.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Parent and nested view models were the same type.</exception>
-    public NestedRoute<TParentViewModel, TNestedViewModel> ForNested<TParentViewModel, TNestedViewModel>()
-        where TNestedViewModel : class, IRoutedViewModel
+    /// <exception cref="InvalidOperationException">Parent and child view models were the same type.</exception>
+    public ChildRoutePart<TParentViewModel, TChildViewModel> Child<TParentViewModel, TChildViewModel>()
+        where TParentViewModel : class
+        where TChildViewModel : class, IRoutedViewModel
     {
-        if (typeof(TParentViewModel) == typeof(TNestedViewModel))
-            throw new InvalidOperationException("Parent and nested view models cannot be the same type.");
+        if (typeof(TParentViewModel) == typeof(TChildViewModel))
+            throw new InvalidOperationException("Parent and child view models cannot be the same type.");
 
-        return new NestedRoute<TParentViewModel, TNestedViewModel>(this);
+        return new ChildRoutePart<TParentViewModel, TChildViewModel>(this);
     }
 
-    internal string GetRouteString() => _route;
+    internal string GetPartPath() => _route;
 
     internal bool TryMatch(ReadOnlySpan<char> route, out ReadOnlySpan<char> rest)
     {
@@ -57,24 +58,25 @@ public abstract class RouteBuilder<TParam> : RouteBuilderBase
     internal RouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
 
     /// <summary>
-    /// Creates a root route for the specified view model type.
+    /// Creates a root route part for the specified view model type.
     /// </summary>
-    public RootRoute<TViewModel, TParam> For<TViewModel>()
+    public RootRoutePart<TViewModel, TParam> Root<TViewModel>()
         where TViewModel : class, IRoutedViewModel<TParam>
     {
-        return new RootRoute<TViewModel, TParam>(this);
+        return new RootRoutePart<TViewModel, TParam>(this);
     }
 
     /// <summary>
-    /// Creates a nested route for the specified parent and nested view model types.
+    /// Creates a child route part for the specified parent and child view model type.
     /// </summary>
-    public NestedRoute<TParentViewModel, TNestedViewModel, TParam> ForNested<TParentViewModel, TNestedViewModel>()
-        where TNestedViewModel : class, IRoutedViewModel<TParam>
+    public ChildRoutePart<TParentViewModel, TChildViewModel, TParam> Child<TParentViewModel, TChildViewModel>()
+        where TParentViewModel : class
+        where TChildViewModel : class, IRoutedViewModel<TParam>
     {
-        return new NestedRoute<TParentViewModel, TNestedViewModel, TParam>(this);
+        return new ChildRoutePart<TParentViewModel, TChildViewModel, TParam>(this);
     }
 
-    internal abstract string GetRouteString(TParam parameter);
+    internal abstract string GetPartPath(TParam parameter);
 
     internal abstract bool TryMatch(ReadOnlySpan<char> route, [MaybeNullWhen(false)] out TParam parameter, out ReadOnlySpan<char> rest);
 }
@@ -84,7 +86,7 @@ internal class SingleParamRouteBuilder<T> : RouteBuilder<T>
 {
     internal SingleParamRouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
 
-    internal override string GetRouteString(T parameter)
+    internal override string GetPartPath(T parameter)
     {
         var sb = new StringBuilder();
         int index = 0;
@@ -124,7 +126,7 @@ internal class TupleRouteBuilder<T1, T2> : RouteBuilder<(T1 Param1, T2 Param2)>
 {
     internal TupleRouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
 
-    internal override string GetRouteString((T1 Param1, T2 Param2) p)
+    internal override string GetPartPath((T1 Param1, T2 Param2) p)
     {
         var sb = new StringBuilder();
         int partIndex = 0;
@@ -171,7 +173,7 @@ internal class TupleRouteBuilder<T1, T2, T3> : RouteBuilder<(T1 Param1, T2 Param
 {
     internal TupleRouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
 
-    internal override string GetRouteString((T1 Param1, T2 Param2, T3 Param3) p)
+    internal override string GetPartPath((T1 Param1, T2 Param2, T3 Param3) p)
     {
         var sb = new StringBuilder();
         int partIndex = 0;
@@ -223,7 +225,7 @@ internal class TupleRouteBuilder<T1, T2, T3, T4> : RouteBuilder<(T1 Param1, T2 P
 {
     internal TupleRouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
 
-    internal override string GetRouteString((T1 Param1, T2 Param2, T3 Param3, T4 Param4) p)
+    internal override string GetPartPath((T1 Param1, T2 Param2, T3 Param3, T4 Param4) p)
     {
         var sb = new StringBuilder();
         int partIndex = 0;

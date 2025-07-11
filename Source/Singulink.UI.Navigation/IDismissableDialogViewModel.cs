@@ -7,7 +7,7 @@ namespace Singulink.UI.Navigation;
 public interface IDismissableDialogViewModel : IDialogViewModel
 {
     /// <summary>
-    /// Invoked when the escape key is pressed or a user-initiated back navigation is triggered while the dialog is showing.
+    /// Invoked when the escape key is pressed or a system back navigation is requested while the dialog is showing.
     /// </summary>
     public void OnDismissRequested();
 }

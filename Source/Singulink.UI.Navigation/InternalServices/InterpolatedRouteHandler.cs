@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -7,7 +6,6 @@ namespace Singulink.UI.Navigation.InternalServices;
 /// <summary>
 /// Provides a custom interpolated string handler for route strings.
 /// </summary>
-[EditorBrowsable(EditorBrowsableState.Never)]
 [InterpolatedStringHandler]
 public class InterpolatedRouteHandler(int literalLength, int formattedCount)
 {

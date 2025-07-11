@@ -3,7 +3,7 @@ using Singulink.UI.Tasks;
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Represents a navigator for dialogs that can show nested dialogs or close the current dialog.
+/// Represents a navigator for dialogs that can show child dialogs or close the current dialog.
 /// </summary>
 public interface IDialogNavigator : IDialogNavigatorBase
 {

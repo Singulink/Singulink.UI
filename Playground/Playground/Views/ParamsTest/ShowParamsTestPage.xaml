@@ -15,7 +15,7 @@
         Route String Value: <Run Text="{x:Bind Model.StringValue}"/>
       </TextBlock>
 
-      <Button Content="Go Back" Command="{x:Bind Model.GoBackCommand}"/>
+      <Button Content="Enter Parameters Again" Command="{x:Bind Model.GoBackCommand}"/>
     </StackPanel>
   </Grid>
 </UserControl>

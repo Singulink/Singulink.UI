@@ -53,7 +53,7 @@ public sealed class NavigationArgs
     /// <item>Only route options changed but the rest of the route is the same.</item>
     /// <item>A refresh of the current route was requested (in which case <see cref="NavigationType"/> will be set to <see
     /// cref="NavigationType.Refresh"/>).</item>
-    /// <item>The view model is a common parent for this route and the last navigated route but nested child navigations changed.</item>
+    /// <item>The view model is a common parent for this route and the last navigated route but child child navigations changed.</item>
     /// </list>
     /// <para>
     /// Any logic that depends on being paired with navigations away from the view model (i.e. adding/removing event handlers) should be conditional on this
@@ -65,9 +65,9 @@ public sealed class NavigationArgs
     public bool AlreadyNavigatedTo => _flags.HasFlag(NavigationFlags.AlreadyNavigatedTo);
 
     /// <summary>
-    /// Gets a value indicating whether a nested navigation will occur to a child view after this navigation completes.
+    /// Gets a value indicating whether a child navigation will occur to a child view after this navigation completes.
     /// </summary>
-    public bool HasNestedNavigation => _flags.HasFlag(NavigationFlags.HasNestedNavigation);
+    public bool HasChildNavigation => _flags.HasFlag(NavigationFlags.HasChildNavigation);
 
     /// <summary>
     /// Gets the options for the current route that is being navigated to.

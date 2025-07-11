@@ -23,7 +23,7 @@ public interface IRoutedViewModelBase
     /// All view models in the route have this method called on each navigation, even if they are already navigated to (see <see
     /// cref="NavigationArgs.AlreadyNavigatedTo"/> for more information).</para>
     /// <para>
-    /// This method can show dialogs as long as <see cref="NavigationArgs.HasNestedNavigation"/> on <paramref name="args"/> is <see langword="false"/> or the
+    /// This method can show dialogs as long as <see cref="NavigationArgs.HasChildNavigation"/> on <paramref name="args"/> is <see langword="false"/> or the
     /// dialogs are closed before the task completes. This method can cancel the current navigation and reroute to another destination by calling a navigation
     /// method on the view model's <see cref="INavigator"/> before the task completes, in which case it should stop any further processing and complete its
     /// task.</para>

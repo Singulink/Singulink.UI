@@ -28,7 +28,8 @@ public partial class LoginViewModel : ObservableObject, IRoutedViewModel
         await Navigator.TaskRunner.RunAsBusyAsync(async () => await Task.Delay(2000));
 
         // Navigate to the main view after successful login
-        await Navigator.NavigateAsync(Routes.MainRoute);
+
+        await Navigator.NavigateAsync(Routes.MainRoot);
         Navigator.ClearHistory();
     }
 }

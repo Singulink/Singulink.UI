@@ -34,7 +34,7 @@ public class NavigatingArgs
 
     /// <summary>
     /// Gets a value indicating whether this view model will be navigated away from if the navigation is not cancelled. If this is <see langword="false"/> then
-    /// the view model will remain active in the new route but nested child navigations or route options may be changing (or not, i.e. in the case of a
+    /// the view model will remain active in the new route but child child navigations or route options may be changing (or not, i.e. in the case of a
     /// refresh).
     /// </summary>
     public bool WillBeNavigatedFrom => _flags.HasFlag(NavigatingFlags.WillBeNavigatedFrom);

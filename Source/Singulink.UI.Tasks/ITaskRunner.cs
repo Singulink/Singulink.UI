@@ -21,25 +21,40 @@ public interface ITaskRunner : INotifyPropertyChanged
     /// </summary>
     public bool IsBusy { get; }
 
-    /// <inheritdoc cref="RunAndForget(bool, Task)"/>
-    public void RunAndForget(bool asBusyTask, Func<Task> taskFunc);
+    /// <inheritdoc cref="RunAndForget(Task)"/>
+    public void RunAndForget(Func<Task> taskFunc);
 
     /// <summary>
-    /// Runs the specified task and propagates any exceptions to the UI thread, optionally tracking the task as a busy task if <paramref name="asBusyTask"/>
-    /// is <c>true</c>.
+    /// Runs the specified task and propagates any exceptions to the UI thread.
     /// </summary>
     /// <remarks>
-    /// This method does not force the task to run on the UI thread if this method is called from a non-UI thread, but unhandled exceptions from the task will
-    /// be propagated to the UI thread. If this method is expected to be called from a non-UI thread, the <see cref="SendAsync(Action)"/> method can be used to
+    /// This method does not force the task to run on the UI thread if it is called from a non-UI thread, but unhandled exceptions from the task will be
+    /// propagated to the UI thread. If this method is expected to be called from a non-UI thread, the <see cref="SendAsync(Action)"/> method can be used to
     /// synchronize some (or all) of the execution to the UI thread.
     /// </remarks>
-    public void RunAndForget(bool asBusyTask, Task task);
+    public void RunAndForget(Task task);
+
+    /// <inheritdoc cref="RunAsBusyAndForget(Task)"/>
+    public void RunAsBusyAndForget(Func<Task> taskFunc);
+
+    /// <summary>
+    /// Runs the specified task as a busy task and propagates any exceptions to the UI thread.
+    /// </summary>
+    /// <remarks>
+    /// This method does not force the task to run on the UI thread if it is called from a non-UI thread, but unhandled exceptions from the task will be
+    /// propagated to the UI thread. If this method is expected to be called from a non-UI thread, the <see cref="SendAsync(Action)"/> method can be used to
+    /// synchronize some (or all) of the execution to the UI thread.
+    /// </remarks>
+    public void RunAsBusyAndForget(Task task);
 
     /// <inheritdoc cref="RunAsBusyAsync(Task)"/>
     public Task RunAsBusyAsync(Func<Task> taskFunc);
 
     /// <inheritdoc cref="RunAsBusyAsync(Task)"/>
     public Task<T> RunAsBusyAsync<T>(Func<Task<T>> taskFunc);
+
+    /// <inheritdoc cref="RunAsBusyAsync(Task)"/>
+    public Task<T> RunAsBusyAsync<T>(Task<T> task);
 
     /// <summary>
     /// Runs the specified task as a busy task.
@@ -89,4 +104,9 @@ public interface ITaskRunner : INotifyPropertyChanged
     /// and then returns a task that contains the result of the task returned by the function when it completes. Tracked as a non-busy task.
     /// </summary>
     public Task<TResult> SendAsync<TResult>(Func<Task<TResult>> taskFunc);
+
+    /// <summary>
+    /// Waits for all busy tasks to complete, optionally also waiting for non-busy tasks (and posted/sent messages).
+    /// </summary>
+    public Task WaitForIdleAsync(bool waitForNonBusyTasks = false);
 }
