@@ -367,40 +367,37 @@ partial class Navigator
                 _currentRouteIndex -= trimCount;
             }
 
-            if (_routeInfoList.Count > _maxBackStackCachedViewDepth)
+            if (_routeInfoList.Count <= 1)
+                return;
+
+            var keepViews = new HashSet<UIElement>(_routeInfoList.Count * 3);
+
+            int cachedStartIndex = Math.Max(0, _currentRouteIndex - _maxBackStackCachedViewDepth);
+            int cachedEndIndex = Math.Min(_routeInfoList.Count - 1, _currentRouteIndex + _maxForwardStackCachedViewDepth);
+
+            // Keep all the views that can be cached within the cached range
+
+            for (int j = cachedStartIndex; j <= cachedEndIndex; j++)
             {
-                var keepViews = new HashSet<UIElement>();
+                var routeInfo = _routeInfoList[j];
 
-                if (_currentRouteIndex <= 0)
-                    return;
-
-                // Add all the views routes that can be cached up to the max cached view depth
-
-                int startIndex = Math.Max(0, _currentRouteIndex - _maxBackStackCachedViewDepth);
-                int endIndex = Math.Min(_currentRouteIndex, _routeInfoList.Count - 1);
-
-                for (int j = startIndex; j <= endIndex; j++)
+                foreach (var item in routeInfo.Items)
                 {
-                    var routeInfo = _routeInfoList[j];
+                    // Always keep views from the current route
 
-                    foreach (var item in routeInfo.Items)
-                    {
-                        // Always keep views from the current route
-
-                        if (item.HasViewAndModel && (j == _currentRouteIndex || item.ViewModel.CanViewBeCached))
-                            keepViews.Add(item.View);
-                    }
+                    if (item.HasViewAndModel && (j == _currentRouteIndex || item.ViewModel.CanViewBeCached))
+                        keepViews.Add(item.View);
                 }
+            }
 
-                // Remove all the views that are not in the keepViews set from all routes before the current route
+            // Remove all the views that are not in the keepViews set
 
-                foreach (var routeInfo in _routeInfoList.Take(_currentRouteIndex))
+            foreach (var routeInfo in _routeInfoList)
+            {
+                foreach (var item in routeInfo.Items)
                 {
-                    foreach (var item in routeInfo.Items)
-                    {
-                        if (item.HasViewAndModel && !keepViews.Contains(item.View))
-                            item.ClearViewAndModel();
-                    }
+                    if (item.HasViewAndModel && !keepViews.Contains(item.View))
+                        item.ClearViewAndModel();
                 }
             }
         }
@@ -421,8 +418,6 @@ partial class Navigator
 
     private bool TryMatchRoute(ReadOnlySpan<char> routeString, Type? parentViewModelType, List<IConcreteRoute> specifiedRouteItems, out ReadOnlySpan<char> rest)
     {
-        EnsureThreadAccess();
-
         foreach (var route in _routes.Where(r => r.ParentViewModelType == parentViewModelType))
         {
             if (route.TryMatch(routeString, out var specifiedRoute, out rest))
