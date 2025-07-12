@@ -38,20 +38,21 @@ public interface INavigatorBuilder
     public int MaxForwardStackCachedViewDepth { get; }
 
     /// <summary>
-    /// Adds a route to the specified route part. All parent parts must be added before child parts.
+    /// Adds a route to the specified route part. Parent parts must be added before child parts.
     /// </summary>
     public void AddRouteTo(RoutePart routePart);
 
     /// <summary>
     /// Configures navigation stack options.
     /// </summary>
-    /// <param name="maxSize">The maximum depth of the forward and back navigation stack. Must be non-negative.</param>
-    /// <param name="maxBackCachedViewDepth">The maximum depth of cached views in the back navigation stack. Defaults to <see
-    /// cref="DefaultMaxBackStackCachedViewDepth"/>. Must be non-negative and value is clamped to the value of <paramref name="maxSize"/>. Views that are
-    /// deeper than this will be recreated if navigated to again.</param>
-    /// <param name="maxForwardCachedViewDepth"> The maximum depth of cached views in the forward navigation stack. Defaults to <see
-    /// cref="DefaultMaxForwardStackCachedViewDepth"/>. Must be non-negative and value is clamped to the value of <paramref name="maxSize"/>. Views that are
-    /// deeper than this will be recreated if navigated to again.</param>
+    /// <param name="maxSize">The maximum depth of the forward and back navigation stack. Must be non-negative. Defaults to <see
+    /// cref="DefaultNavigationStacksSize"/>.</param>
+    /// <param name="maxBackCachedViewDepth">The maximum depth of cached views in the back navigation stack. Views that are deeper than this become eligible for
+    /// garbage collection and will be recreated if navigated to again. Must be non-negative and value is clamped to the value of <paramref name="maxSize"/>.
+    /// Defaults to <see cref="DefaultMaxBackStackCachedViewDepth"/>.</param>
+    /// <param name="maxForwardCachedViewDepth"> The maximum depth of cached views in the forward navigation stack. Views that are deeper than this become
+    /// eligible for garbage collection and will be recreated if navigated to again. Must be non-negative and value is clamped to the value of <paramref
+    /// name="maxSize"/>. Defaults to <see cref="DefaultMaxForwardStackCachedViewDepth"/>.</param>
     void ConfigureNavigationStacks(
         int maxSize = DefaultNavigationStacksSize,
         int maxBackCachedViewDepth = DefaultMaxBackStackCachedViewDepth,

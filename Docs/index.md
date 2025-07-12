@@ -4,7 +4,7 @@
 
 ## Overview
 
-**Singulink UI Toolkit** provides components that are generally useful for UI applications with a strong emphasis on testability of view models. It is currently focused on WinUI and Uno-based applications but some components are UI framework-agnostic. Details of each component are provided below.
+**UI Toolkit** provides a variety of complimentary MVVM and XAML-based components that help streamline complex UI development scenarios. It is currently focused on WinUI and Uno-based applications but some components are UI framework-agnostic. Details of each component are provided below.
 
 This package is part of our **Singulink Libraries** collection. Visit https://github.com/Singulink to see our full list of publicly available libraries and other open-source projects.
 
@@ -12,7 +12,7 @@ This package is part of our **Singulink Libraries** collection. Visit https://gi
 
 ### Singulink.UI.Navigation
 
-Strongly-typed AOT-friendly navigation framework with comprehensive deep-linking support. The base library is UI framework-agnostic and can be referenced from framework-agnostic view model projects, but currently only a WinUI/Uno-specific `INavigator` implementation is provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. Can be extended to support other UI frameworks, and contributions are welcome.
+Designed for handling MVVM-based applications with complex deep-linked navigation, with a strong emphasis on maintainability, separation of concerns and full testability of view models. The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer.
 
 **Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
 
@@ -24,7 +24,7 @@ Contains useful XAML extensions (behaviors, converters, static convert methods f
 
 ### Singulink.UI.Tasks
 
-Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with integrated support for managing UI busy-state while tasks are running. Supports running "fire-and-forget" tasks that can be tracked and fully tested. Inspired by [AmbientTasks](https://github.com/Techsola/AmbientTasks) (thanks [@jnm2](https://github.com/jnm2)!).
+Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with integrated support for managing UI busy-state while tasks are running. Supports running "fire-and-forget" tasks that can be tracked and fully tested with exceptions being propagated back to the UI thread, avoiding frowned upon `async void` methods for things like event handlers.
 
 **Supported Platforms**: .NET 8.0+, any UI framework (i.e. UWP/WinUI, Uno Platform, Avalonia, WPF, etc)
 

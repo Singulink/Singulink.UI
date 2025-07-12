@@ -2,9 +2,7 @@ namespace Singulink.UI.Navigation.WinUI;
 
 #pragma warning disable SA1513 // Closing brace should be followed by blank line
 
-/// <summary>
-/// Represents a builder for mapping routed views to view models.
-/// </summary>
+/// <inheritdoc cref="INavigatorBuilder" />
 public class NavigatorBuilder : INavigatorBuilder
 {
     internal Dictionary<Type, ViewInfo> ViewModelTypeToViewInfo { get; } = [];

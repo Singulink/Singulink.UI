@@ -9,7 +9,7 @@ namespace Singulink.UI.Navigation;
 public abstract class RoutePart
 {
     /// <summary>
-    /// Gets the view model type associated with the route.
+    /// Gets the view model type associated with the route part.
     /// </summary>
     public Type ViewModelType { get; }
 
