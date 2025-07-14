@@ -8,7 +8,6 @@ namespace Singulink.UI.Navigation;
 public class NavigatingArgs
 {
     private readonly NavigatingFlags _flags;
-    private readonly RouteOptions _newRouteOptions;
     private readonly NavigationType _navigationType;
 
     /// <summary>
@@ -16,15 +15,13 @@ public class NavigatingArgs
     /// </summary>
     /// <param name="navigationType">The navigation type that is occurring.</param>
     /// <param name="flags">Flags that provide additional information about the navigation.</param>
-    /// <param name="newRouteOptions">Options for the new route.</param>
-    public NavigatingArgs(NavigationType navigationType, NavigatingFlags flags, RouteOptions newRouteOptions)
+    public NavigatingArgs(NavigationType navigationType, NavigatingFlags flags)
     {
         navigationType.ThrowIfNotValid(nameof(navigationType));
         flags.ThrowIfNotValid(nameof(flags));
 
         _navigationType = navigationType;
         _flags = flags;
-        _newRouteOptions = newRouteOptions;
     }
 
     /// <summary>
@@ -38,11 +35,6 @@ public class NavigatingArgs
     /// refresh).
     /// </summary>
     public bool WillBeNavigatedFrom => _flags.HasFlag(NavigatingFlags.WillBeNavigatedFrom);
-
-    /// <summary>
-    /// Gets the options for the new route that will be navigated to.
-    /// </summary>
-    public RouteOptions RouteOptions => _newRouteOptions;
 
     /// <summary>
     /// Gets or sets a value indicating whether the navigation should be canceled and the current route should remain active.

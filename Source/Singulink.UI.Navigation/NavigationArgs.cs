@@ -8,7 +8,6 @@ namespace Singulink.UI.Navigation;
 public sealed class NavigationArgs
 {
     private readonly NavigationFlags _flags;
-    private readonly RouteOptions _routeOptions;
     private readonly NavigationType _navigationType;
 
     /// <summary>
@@ -16,15 +15,13 @@ public sealed class NavigationArgs
     /// </summary>
     /// <param name="navigationType">The navigation type that is occurring.</param>
     /// <param name="flags">Flags that provide additional information about the navigation.</param>
-    /// <param name="routeOptions">Options for the new route.</param>
-    public NavigationArgs(NavigationType navigationType, NavigationFlags flags, RouteOptions routeOptions)
+    public NavigationArgs(NavigationType navigationType, NavigationFlags flags)
     {
         _navigationType.ThrowIfNotValid(nameof(navigationType));
         _flags.ThrowIfNotValid(nameof(flags));
 
         _navigationType = navigationType;
         _flags = flags;
-        _routeOptions = routeOptions;
     }
 
     /// <summary>
@@ -68,9 +65,4 @@ public sealed class NavigationArgs
     /// Gets a value indicating whether a child navigation will occur to a child view after this navigation completes.
     /// </summary>
     public bool HasChildNavigation => _flags.HasFlag(NavigationFlags.HasChildNavigation);
-
-    /// <summary>
-    /// Gets the options for the current route that is being navigated to.
-    /// </summary>
-    public RouteOptions RouteOptions => _routeOptions;
 }

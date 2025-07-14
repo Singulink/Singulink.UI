@@ -238,7 +238,7 @@ partial class Navigator
                         if (routeItem.AlreadyNavigatedTo)
                         {
                             var flags = i >= numCommonItems ? NavigatingFlags.WillBeNavigatedFrom : NavigatingFlags.None;
-                            var args = new NavigatingArgs(navigationType, flags, route.Options);
+                            var args = new NavigatingArgs(navigationType, flags);
                             await routeItem.ViewModel.OnNavigatingFromAsync(args);
 
                             if (_dialogTcsStack.Count > 0)
@@ -329,7 +329,7 @@ partial class Navigator
             if (hasChildNavigation)
                 navFlags |= NavigationFlags.HasChildNavigation;
 
-            var args = new NavigationArgs(navigationType, navFlags, route.Options);
+            var args = new NavigationArgs(navigationType, navFlags);
             await routeItem.ViewModel.OnNavigatedToAsync(args);
 
             routeItem.IsFirstNavigation = false;
