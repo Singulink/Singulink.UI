@@ -1,6 +1,9 @@
 using Singulink.UI.Navigation.InternalServices;
+using Singulink.UI.Tasks;
 
 namespace Singulink.UI.Navigation;
+
+#pragma warning disable CA1708 // Identifiers should differ by more than case: https://github.com/dotnet/roslyn/issues/78859
 
 /// <summary>
 /// Provides extension methods for view models to access their associated navigators and parameters.
@@ -8,39 +11,48 @@ namespace Singulink.UI.Navigation;
 public static class ViewModelExtensions
 {
     /// <summary>
-    /// Returns the dialog navigator for the view model.
+    /// Provides extension methods for routed view models without parameters.
     /// </summary>
-    public static IDialogNavigator GetNavigator(this IDialogViewModel viewModel)
+    extension(IRoutedViewModelBase viewModel)
     {
-        return MixinManager.GetDialogNavigator(viewModel) ??
-            throw new InvalidOperationException("No dialog navigator has been set. Ensure the dialog has been shown.");
+        /// <summary>
+        /// Gets the navigator for the view model.
+        /// </summary>
+        public INavigator Navigator => MixinManager.GetNavigator(viewModel) ??
+            throw new InvalidOperationException("View model is not associated with a navigator.");
+
+        /// <summary>
+        /// Gets the task runner for the view model.
+        /// </summary>
+        public ITaskRunner TaskRunner => viewModel.Navigator.TaskRunner;
     }
 
     /// <summary>
-    /// Returns the navigator for the view model.
+    /// Provides extension methods for routed view models with parameters.
     /// </summary>
-    public static INavigator GetNavigator(this IRoutedViewModelBase viewModel)
+    extension<TParam>(IRoutedViewModel<TParam> viewModel) where TParam : notnull
     {
-        return MixinManager.GetNavigator(viewModel) ??
-            throw new InvalidOperationException("No navigator has been set. Ensure the view model has been navigated to.");
+        /// <summary>
+        /// Gets the parameter (or parameters tuple, if there are multiple parameters) for the view model.
+        /// </summary>
+        public TParam Parameter => MixinManager.TryGetParameter(viewModel, out var parameter) ? parameter :
+            throw new InvalidOperationException("View model is not associated with a parameter.");
     }
 
     /// <summary>
-    /// Returns the parameter (or parameters tuple, if there are multiple parameters) for the view model.
+    /// Provides extension methods for dialog view models to access their associated dialog navigators.
     /// </summary>
-    public static TParam GetParameter<TParam>(this IRoutedViewModel<TParam> viewModel) where TParam : notnull
+    extension(IDialogViewModel viewModel)
     {
-        if (!MixinManager.TryGetParameter(viewModel, out var parameter))
-            throw new InvalidOperationException("No parameter has been set. Ensure the view model has been navigated to.");
+        /// <summary>
+        /// Gets the dialog navigator for the view model.
+        /// </summary>
+        public IDialogNavigator Navigator => MixinManager.GetNavigator(viewModel) ??
+                throw new InvalidOperationException("View model is not associated with a dialog navigator.");
 
-        return parameter;
-    }
-
-    /// <summary>
-    /// Returns a value indicating whether the view model has been navigated to and has an accessible navigator.
-    /// </summary>
-    public static bool HasNavigated(this IRoutedViewModelBase viewModel)
-    {
-        return MixinManager.GetNavigator(viewModel) is not null;
+        /// <summary>
+        /// Gets the task runner for the view model.
+        /// </summary>
+        public ITaskRunner TaskRunner => viewModel.Navigator.TaskRunner;
     }
 }

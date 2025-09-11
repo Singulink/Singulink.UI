@@ -18,5 +18,5 @@ public abstract class ViewNavigator
     /// <summary>
     /// Sets the active view for the control.
     /// </summary>
-    protected internal abstract void SetActiveView(UIElement? view);
+    protected internal abstract void SetActiveView(FrameworkElement? view);
 }

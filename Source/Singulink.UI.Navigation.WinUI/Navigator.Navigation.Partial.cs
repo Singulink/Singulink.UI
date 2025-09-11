@@ -1,5 +1,3 @@
-using Singulink.UI.Navigation.WinUI.Utilities;
-
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <content>
@@ -11,21 +9,17 @@ partial class Navigator
     public async Task<NavigationResult> NavigatePartialAsync(RouteOptions routeOptions)
     {
         EnsureThreadAccess();
-        CloseLightDismissPopups();
-
-        return await NavigateAsync(NavigationType.New, null, routeOptions);
+        return await NavigateNewAsync(null, routeOptions);
     }
 
     /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel}(IConcreteChildRoutePart{TParentViewModel}, RouteOptions?)"/>
     public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel>(
-        IConcreteChildRoutePart<TParentViewModel> childRoute,
+        IConcreteChildRoutePart<TParentViewModel> childRoutePart,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
     {
         EnsureThreadAccess();
-        CloseLightDismissPopups();
-
-        return await NavigatePartialAsync(typeof(TParentViewModel), [childRoute], routeOptions);
+        return await NavigatePartialAsync(typeof(TParentViewModel), [childRoutePart], routeOptions);
     }
 
     /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TChildViewModel1}(IConcreteChildRoutePart{TParentViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1}, RouteOptions?)"/>
@@ -37,8 +31,6 @@ partial class Navigator
         where TChildViewModel1 : class
     {
         EnsureThreadAccess();
-        CloseLightDismissPopups();
-
         return await NavigatePartialAsync(typeof(TParentViewModel), [childRoutePart1, childRoutePart2], routeOptions);
     }
 
@@ -53,20 +45,26 @@ partial class Navigator
         where TChildViewModel2 : class
     {
         EnsureThreadAccess();
-        CloseLightDismissPopups();
-
         return await NavigatePartialAsync(typeof(TParentViewModel), [childRoutePart1, childRoutePart2, childRoutePart3], routeOptions);
     }
 
     private async Task<NavigationResult> NavigatePartialAsync(Type parentViewModelType, List<IConcreteRoutePart> requestedChildRoutes, RouteOptions? routeOptions)
     {
-        var currentRoute = CurrentRouteInternal ?? throw new InvalidOperationException("Cannot navigate partial route when no route is currently active.");
+        var currentRoute = CurrentRouteImpl ?? throw new InvalidOperationException("Cannot navigate to a partial route before the navigator has a route.");
 
-        int parentRouteItemIndex = currentRoute.Items
-            .FindLastIndex(ri => ri.ConcreteRoutePart.RoutePart.ViewModelType == parentViewModelType);
+        int parentRouteItemIndex = -1;
+
+        for (int i = currentRoute.Items.Count - 1; i >= 0; i--)
+        {
+            if (currentRoute.Items[i].ViewModelType == parentViewModelType)
+            {
+                parentRouteItemIndex = i;
+                break;
+            }
+        }
 
         if (parentRouteItemIndex < 0)
-            throw new InvalidOperationException($"Current route does not contain a parent view model of type '{parentViewModelType}'.");
+            throw new NavigationRouteException($"Current route does not contain a parent view model of type '{parentViewModelType}'.");
 
         var routes = currentRoute.Items
             .Take(parentRouteItemIndex + 1)
@@ -74,6 +72,6 @@ partial class Navigator
             .Concat(requestedChildRoutes)
             .ToList();
 
-        return await NavigateNewWithEnsureMatched(routes, routeOptions);
+        return await NavigateNewWithRouteCheckAsync(routes, routeOptions);
     }
 }

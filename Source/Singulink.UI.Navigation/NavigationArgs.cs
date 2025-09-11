@@ -7,62 +7,29 @@ namespace Singulink.UI.Navigation;
 /// </summary>
 public sealed class NavigationArgs
 {
-    private readonly NavigationFlags _flags;
-    private readonly NavigationType _navigationType;
-
     /// <summary>
-    /// Initializes a new instance of the <see cref="NavigationArgs"/> class with the specified navigation type, flags, and route options.
+    /// Initializes a new instance of the <see cref="NavigationArgs"/> class.
     /// </summary>
-    /// <param name="navigationType">The navigation type that is occurring.</param>
-    /// <param name="flags">Flags that provide additional information about the navigation.</param>
-    public NavigationArgs(NavigationType navigationType, NavigationFlags flags)
+    public NavigationArgs(NavigationType navigationType, bool hasChildNavigation)
     {
-        _navigationType.ThrowIfNotValid(nameof(navigationType));
-        _flags.ThrowIfNotValid(nameof(flags));
-
-        _navigationType = navigationType;
-        _flags = flags;
+        navigationType.ThrowIfNotValid(nameof(navigationType));
+        NavigationType = navigationType;
+        HasChildNavigation = hasChildNavigation;
     }
 
     /// <summary>
     /// Gets the type of navigation that is occurring.
     /// </summary>
-    public NavigationType NavigationType => _navigationType;
+    public NavigationType NavigationType { get; }
 
     /// <summary>
-    /// Gets a value indicating whether this is the first time the view is being navigated to.
+    /// Gets a value indicating whether a navigation will occur to a child view model.
     /// </summary>
-    /// <remarks>
-    /// The value of this property is only <see langword="true"/> for the first call to <see cref="IRoutedViewModelBase.OnNavigatedToAsync"/> on a view model,
-    /// even if the navigation is cancelled/rerouted during that call.
-    /// </remarks>
-    public bool IsFirstNavigation => _flags.HasFlag(NavigationFlags.FirstNavigation);
+    public bool HasChildNavigation { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the view was already navigated to during the last navigation.
+    /// Gets or sets an action that will be invoked to redirect the navigation to a different route. The action must call a navigation method on the provided
+    /// navigator to perform the redirection. If the action does not call a navigation method, the original navigation will proceed as normal.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The value of this property will be <see langword="true"/> if the view model had already been navigated to during a previous navigation but had not been
-    /// navigated away from. Some situations where this can happen are:</para>
-    /// <list type="bullet">
-    /// <item>The new route is the same as the last navigated route.</item>
-    /// <item>Only route options changed but the rest of the route is the same.</item>
-    /// <item>A refresh of the current route was requested (in which case <see cref="NavigationType"/> will be set to <see
-    /// cref="NavigationType.Refresh"/>).</item>
-    /// <item>The view model is a common parent for this route and the last navigated route but child child navigations changed.</item>
-    /// </list>
-    /// <para>
-    /// Any logic that depends on being paired with navigations away from the view model (i.e. adding/removing event handlers) should be conditional on this
-    /// property being <see langword="false"/>, otherwise the navigated to logic may be executed more times than the navigated away logic. Additionally, the
-    /// view model will not be transitioned to a "navigated to" state if it cancels/reroutes the navigation, so logic that should be paired with navigations
-    /// away from the view model should not be executed if this view model cancels the navigation - a subsequent navigated away from call will not occur in that
-    /// case.</para>
-    /// </remarks>
-    public bool AlreadyNavigatedTo => _flags.HasFlag(NavigationFlags.AlreadyNavigatedTo);
-
-    /// <summary>
-    /// Gets a value indicating whether a child navigation will occur to a child view after this navigation completes.
-    /// </summary>
-    public bool HasChildNavigation => _flags.HasFlag(NavigationFlags.HasChildNavigation);
+    public Action<IRedirectNavigator>? Redirect { get; set; }
 }

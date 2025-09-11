@@ -6,44 +6,66 @@ namespace Singulink.UI.Navigation;
 public interface IRoutedViewModelBase
 {
     /// <summary>
-    /// Gets a value indicating whether the view can be cached in the back navigation stack. Defaults to <see langword="true"/>. You may want to set to this to <see
-    /// langword="false"/> if the view or view model can use a large amount of memory, in which case it will be recreated if navigated to again.
+    /// Gets a value indicating whether the view model and its associated view can be cached in navigation stack.
     /// </summary>
     /// <remarks>
-    /// Use <see cref="INavigatorBuilder.MaxNavigationStacksSize"/> and <see cref="INavigatorBuilder.MaxBackStackCachedViewDepth"/> to control the maximum depth of
-    /// the back navigation stack and its view cache.
+    /// <para>
+    /// If the view or view model is consuming a large amount of memory, this property should return <see langword="false"/> to avoid caching the when they are
+    /// not active. Removing a parent view model that provided services to a child view model from the cache will also remove of all of its children from the
+    /// cache.</para>
+    /// <para>
+    /// Use <see cref="INavigatorBuilder.ConfigureNavigationStacks(int, int, int)"/> to control the maximum depth of cached views and view models.</para>
     /// </remarks>
-    public bool CanViewBeCached => true;
+    public bool CanBeCached => true;
 
     /// <summary>
-    /// Invoked when the view model is navigated to.
+    /// Invoked when the view model is navigated to (i.e. becomes visible). May be invoked multiple times on the same view model instance if the view model is
+    /// navigated away from but still cached when a route containing the view model is navigated to again. Calls are always paired with future calls to <see
+    /// cref="OnNavigatedAwayAsync"/>.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// All view models in the route have this method called on each navigation, even if they are already navigated to (see <see
-    /// cref="NavigationArgs.AlreadyNavigatedTo"/> for more information).</para>
-    /// <para>
-    /// This method can show dialogs as long as <see cref="NavigationArgs.HasChildNavigation"/> on <paramref name="args"/> is <see langword="false"/> or the
-    /// dialogs are closed before the task completes. This method can cancel the current navigation and reroute to another destination by calling a navigation
-    /// method on the view model's <see cref="INavigator"/> before the task completes, in which case it should stop any further processing and complete its
-    /// task.</para>
+    /// This method can show dialogs as long as they are closed before the returned task completes or <see cref="NavigationArgs.HasChildNavigation"/> on
+    /// <paramref name="args"/> is <see langword="false"/>.
     /// </remarks>
     public Task OnNavigatedToAsync(NavigationArgs args) => Task.CompletedTask;
 
     /// <summary>
-    /// Invoked when the view model is being navigated away from and allows the navigation to be cancelled.
+    /// Invoked when the view model is being navigated away from. Can be used to cancel the new navigation (e.g. if there is unsaved data).
     /// </summary>
     /// <remarks>
-    /// This method can show dialogs as long as they are closed before the task completes. The <see cref="NavigatingArgs.Cancel"/> property is checked on
-    /// <paramref name="args"/> after the task returned by this method completes. This method cannot reroute to another destination.
+    /// This method can show dialogs as long as they are closed before the returned task completes. The <see cref="NavigatingArgs.Cancel"/> property on
+    /// <paramref name="args"/> is checked after the task returned by this method completes to determine whether the new navigation should be cancelled.
     /// </remarks>
-    public Task OnNavigatingFromAsync(NavigatingArgs args) => Task.CompletedTask;
+    public Task OnNavigatingAwayAsync(NavigatingArgs args) => Task.CompletedTask;
 
     /// <summary>
     /// Invoked when the view model is navigated away from.
     /// </summary>
     /// <remarks>
-    /// This method cannot show dialogs or cancel/reroute the navigation.
+    /// This method cannot show dialogs or cancel/reroute the new navigation. It should only be used to clean up resources or unhook event handlers that were
+    /// added in <see cref="OnNavigatedToAsync(NavigationArgs)"/>. Calls are always paired with previous calls to <see
+    /// cref="OnNavigatedToAsync(NavigationArgs)"/>.
     /// </remarks>
-    public void OnNavigatedFrom() { }
+    public Task OnNavigatedAwayAsync() => Task.CompletedTask;
+
+    /// <summary>
+    /// Invoked whenever a route that contains this view model is navigated to, even if the view model was already active in the previous route. If the view
+    /// model was not already active in the previous route then it will fire after <see cref="OnNavigatedToAsync(NavigationArgs)"/>, and any time the route is
+    /// refreshed or changed while this view model remains active in the new route.
+    /// </summary>
+    /// <remarks>
+    /// This method can show dialogs as long as they are closed before the returned task completes or <see cref="NavigationArgs.HasChildNavigation"/> on
+    /// <paramref name="args"/> is <see langword="false"/>.
+    /// </remarks>
+    public Task OnRouteNavigatedAsync(NavigationArgs args) => Task.CompletedTask;
+
+    /// <summary>
+    /// Invoked whenever this view model is active in the current route and a new route is being navigated to, even if the view model will remain active in the
+    /// new route. If the view model will not remain active in the new route then it will fire after <see cref="OnNavigatingAwayAsync(NavigatingArgs)"/>.
+    /// </summary>
+    /// <remarks>
+    /// This method can show dialogs as long as they are closed before the returned task completes. The <see cref="NavigatingArgs.Cancel"/> property on
+    /// <paramref name="args"/> is checked after the task returned by this method completes to determine whether the new navigation should be cancelled.
+    /// </remarks>
+    public Task OnRouteNavigatingAsync(NavigatingArgs args) => Task.CompletedTask;
 }

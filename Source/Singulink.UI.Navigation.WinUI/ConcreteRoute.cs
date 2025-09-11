@@ -1,45 +1,46 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Singulink.UI.Navigation.InternalServices;
 
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <summary>
 /// Contains information about a route.
 /// </summary>
-internal class ConcreteRoute : IConcreteRoute
+internal sealed class ConcreteRoute : IConcreteRoute
 {
     /// <inheritdoc cref="IConcreteRoute.Options"/>
     public RouteOptions Options { get; }
 
     /// <inheritdoc cref="IConcreteRoute.Parts"/>
-    public IReadOnlyList<IConcreteRoutePart> Parts => field ??= Items.Select(i => i.ConcreteRoutePart).ToImmutableArray();
+    public IReadOnlyList<IConcreteRoutePart> Parts => field ??= [.. Items.Select(i => i.ConcreteRoutePart)];
 
-    internal ImmutableArray<Item> Items { get; }
+    internal IReadOnlyList<Item> Items { get; }
 
-    /// <inheritdoc cref="IConcreteRoute.Path"/>/>
-    public string Path => field ??= Navigator.GetPath(Items.Select(i => i.ConcreteRoutePart));
+    /// <inheritdoc cref="IConcreteRoute.Path"/>
+    public string Path => field ??= RoutingHelpers.GetPath(Items.Select(i => i.ConcreteRoutePart));
 
-    internal ConcreteRoute(ImmutableArray<Item> items, RouteOptions options)
+    internal ConcreteRoute(IReadOnlyList<Item> items, RouteOptions options)
     {
-        Items = items;
+        Items = [..items];
         Options = options;
     }
 
-    /// <inheritdoc cref="IConcreteRoute.ToString"/>/>
+    /// <inheritdoc cref="IConcreteRoute.ToString"/>
     public override string ToString() => $"{Path}{Options}";
 
-    internal class Item(IConcreteRoutePart routePart, Func<UIElement> createViewFunc)
+    internal sealed class Item(Item? parentItem, IConcreteRoutePart concreteRoutePart, MappingInfo mappingInfo)
     {
-        private readonly Func<UIElement> _createViewFunc = createViewFunc;
+        public IConcreteRoutePart ConcreteRoutePart => concreteRoutePart;
 
-        public IConcreteRoutePart ConcreteRoutePart { get; } = routePart;
+        public FrameworkElement? View { get; private set; }
 
-        public UIElement? View { get; private set; }
+        public IRoutedViewModelBase? ViewModel => (IRoutedViewModelBase)View?.DataContext;
 
-        public IRoutedViewModelBase? ViewModel { get; private set; }
+        public Item? ParentItem => parentItem;
 
-        public bool IsFirstNavigation { get; set; } = true;
+        public bool HasDependentChildren { get; private set; }
 
         [MemberNotNullWhen(true, nameof(View))]
         [MemberNotNullWhen(true, nameof(ViewModel))]
@@ -47,8 +48,8 @@ internal class ConcreteRoute : IConcreteRoute
         {
             get;
             set {
-                if (value && !HasViewAndModel)
-                    throw new UnreachableException("Cannot set AlreadyNavigatedTo to true when the view and model have not been created yet.");
+                if (value && !IsMaterialized)
+                    throw new UnreachableException("Cannot set AlreadyNavigatedTo to true when the item is not materialized.");
 
                 field = value;
             }
@@ -56,41 +57,98 @@ internal class ConcreteRoute : IConcreteRoute
 
         [MemberNotNullWhen(true, nameof(View))]
         [MemberNotNullWhen(true, nameof(ViewModel))]
-        public bool HasViewAndModel => View is not null && ViewModel is not null;
+        public bool IsMaterialized => View is not null;
 
-        public ViewNavigator? ChildViewNavigator => (View as IParentView)?.CreateChildViewNavigator();
+        public ViewNavigator? ChildViewNavigator { get; private set; }
+
+        public Type ViewModelType => mappingInfo.ViewModelType;
+
+        public Type ViewType => mappingInfo.ViewType;
 
         [MemberNotNull(nameof(View))]
         [MemberNotNull(nameof(ViewModel))]
-        public void EnsureViewCreatedAndModelInitialized(INavigator navigator)
+        public void EnsureMaterialized(Navigator navigator)
         {
-            if (View is not null)
-            {
-                if (ViewModel != ((IRoutedViewBase)View).Model)
-                    throw new InvalidOperationException($"View of type '{View.GetType()}' has a different view model than the one it was initialized with. Ensure the view model does not change after the view is created.");
-
+            if (IsMaterialized)
                 return;
-            }
 
-            View = _createViewFunc();
-            ViewModel = ((IRoutedViewBase)View).Model ?? throw new InvalidOperationException($"View of type '{View.GetType()}' returned a null view model. View model must be created in the view's constructor.");
-            ConcreteRoutePart.RoutePart.InitializeViewModel(ViewModel, navigator, ConcreteRoutePart);
+            var view = mappingInfo.CreateView();
+            IRoutedViewModelBase viewModel;
+
+            if (view.DataContext is null)
+                view.DataContext = viewModel = mappingInfo.CreateViewModel(navigator, this);
+            else if (view.DataContext.GetType().IsAssignableTo(mappingInfo.ViewModelType))
+                viewModel = (IRoutedViewModelBase)view.DataContext;
+            else
+                throw new InvalidOperationException($"The view of type '{mappingInfo.ViewType}' has a data context of type '{view.DataContext.GetType()}' which is not assignable to the expected view model type '{mappingInfo.ViewModelType}'.");
+
+            view.DataContextChanged += (s, e) => {
+                if (e.NewValue != viewModel)
+                {
+                    view.DataContext = viewModel;
+                    throw new InvalidOperationException("Navigator managed views cannot change their data context.");
+                }
+            };
+
+            var childViewNavigator = (view as IParentView)?.CreateChildViewNavigator();
+
+            View = view;
+            ChildViewNavigator = childViewNavigator;
+
+            Debug.Assert(ViewModel is not null, "View model should not be null");
         }
 
-        public void ClearViewAndModel()
+        public async ValueTask DisposeMaterializedComponents()
         {
-            View = null;
-            ViewModel = null;
-            IsFirstNavigation = true;
-            AlreadyNavigatedTo = false;
+            try
+            {
+                if (ViewModel is IAsyncDisposable asyncDisposableModel)
+                    await asyncDisposableModel.DisposeAsync();
+                else if (ViewModel is IDisposable disposableModel)
+                    disposableModel.Dispose();
+            }
+            finally
+            {
+                View = null;
+                ChildViewNavigator = null;
+
+                AlreadyNavigatedTo = false;
+                HasDependentChildren = false;
+            }
+        }
+
+        public object? GetChildViewModelService(Type serviceType)
+        {
+            if (!IsMaterialized)
+                throw new UnreachableException("Attempt to get services from a parent that is not materialized.");
+
+            object service = (ViewModel as IServiceProvider)?.GetService(serviceType);
+
+            if (service is not null)
+            {
+                if (!service.GetType().IsAssignableTo(serviceType))
+                    throw new InvalidOperationException($"View model type '{ViewModel.GetType()}' returned a service type '{service.GetType()}' which is not assignable to requested service type '{serviceType}'.");
+            }
+            else if (ViewModel.GetType().IsAssignableTo(serviceType))
+            {
+                service = ViewModel;
+            }
+
+            if (service is not null)
+            {
+                HasDependentChildren = true;
+                return service;
+            }
+
+            return ParentItem?.GetChildViewModelService(serviceType);
         }
 
         public override string ToString()
         {
-            string result = ConcreteRoutePart.RoutePart.ViewModelType.Name.ToString();
+            string result = ConcreteRoutePart.RoutePart.ViewModelType.Name;
 
-            if (HasViewAndModel)
-                result += "[cached]";
+            if (IsMaterialized)
+                result += "[materialized]";
 
             result += $@", Path: ""{ConcreteRoutePart.ToString()}""";
 

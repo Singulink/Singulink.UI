@@ -9,18 +9,32 @@ partial class Navigator
     public async Task<NavigationResult> GoBackAsync()
     {
         EnsureThreadAccess();
-        CloseLightDismissPopups();
 
-        return await NavigateAsync(NavigationType.Back, null, null);
+        if (!HasBackHistory)
+            throw new InvalidOperationException("Cannot navigate back when the back history is empty.");
+
+        var route = _routeStack[_currentRouteIndex - 1];
+
+        return await NavigateAsyncCore(NavigationType.Back, route, () => {
+            _currentRouteIndex--;
+            return null;
+        });
     }
 
     /// <inheritdoc cref="INavigator.GoForwardAsync"/>
     public async Task<NavigationResult> GoForwardAsync()
     {
         EnsureThreadAccess();
-        CloseLightDismissPopups();
 
-        return await NavigateAsync(NavigationType.Forward, null, null);
+        if (!HasForwardHistory)
+            throw new InvalidOperationException("Cannot navigate forward when the forward history is empty.");
+
+        var route = _routeStack[_currentRouteIndex + 1];
+
+        return await NavigateAsyncCore(NavigationType.Forward, route, () => {
+            _currentRouteIndex++;
+            return null;
+        });
     }
 
     /// <inheritdoc cref="INavigator.HandleSystemBackRequest()"/>
@@ -33,7 +47,7 @@ partial class Navigator
 
         if (IsShowingDialog)
         {
-            if (_dialogTcsStack.Peek().Dialog.DataContext is IDismissableDialogViewModel dismissableVm)
+            if (_dialogStack.Peek().Dialog.DataContext is IDismissableDialogViewModel dismissableVm)
                 dismissableVm.OnDismissRequested();
 
             return true;
@@ -42,7 +56,8 @@ partial class Navigator
         if (!HasBackHistory)
             return false;
 
-        TaskRunner.RunAndForget(NavigateAsync(NavigationType.Back, null, null));
+        TaskRunner.RunAndForget(GoBackAsync());
+
         return true;
     }
 
@@ -57,8 +72,8 @@ partial class Navigator
         if (!HasForwardHistory)
             return false;
 
-        CloseLightDismissPopups();
-        TaskRunner.RunAndForget(NavigateAsync(NavigationType.Forward, null, null));
+        TaskRunner.RunAndForget(GoForwardAsync());
+
         return true;
     }
 
@@ -66,8 +81,8 @@ partial class Navigator
     public async Task<NavigationResult> RefreshAsync()
     {
         EnsureThreadAccess();
-        CloseLightDismissPopups();
 
-        return await NavigateAsync(NavigationType.Refresh, null, null);
+        var route = CurrentRouteImpl ?? throw new InvalidOperationException("Cannot refresh before the navigator has a route.");
+        return await NavigateAsyncCore(NavigationType.Refresh, route, null);
     }
 }

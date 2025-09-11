@@ -59,8 +59,11 @@ public sealed class MessageDialogViewModel : IDismissableDialogViewModel
     public void OnButtonClick(int index)
     {
         _resultButtonIndex = index;
-        this.GetNavigator().Close();
+        this.Navigator.Close();
     }
+
+    /// <inheritdoc/>
+    Task IDialogViewModel.OnDialogShownAsync() => Task.CompletedTask;
 
     /// <inheritdoc/>
     void IDismissableDialogViewModel.OnDismissRequested()

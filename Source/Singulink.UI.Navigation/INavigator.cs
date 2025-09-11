@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using Singulink.UI.Tasks;
 
 namespace Singulink.UI.Navigation;
@@ -11,7 +10,7 @@ namespace Singulink.UI.Navigation;
 /// Navigator instances are not thread-safe and should only be accessed from the UI thread. Attempting to access methods or properties from a non-UI thread will
 /// result in an <see cref="InvalidOperationException"/> being thrown. Any exceptions to this rule are documented in method or property summaries.
 /// </remarks>
-public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
+public interface INavigator : IDialogPresenter, INotifyPropertyChanged
 {
     /// <summary>
     /// Gets a value indicating whether the navigator can navigate back to the previous view. This property can be used to bind the enabled state of a back
@@ -30,6 +29,11 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// "pull to refresh" feature in the UI and should be checked before calling <see cref="RefreshAsync"/>.
     /// </summary>
     public bool CanRefresh { get; }
+
+    /// <summary>
+    /// Gets information about the current route, including the path and options.
+    /// </summary>
+    public IConcreteRoute CurrentRoute { get; }
 
     /// <summary>
     /// Gets a value indicating whether the navigator has back history.
@@ -52,9 +56,13 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     public bool IsShowingDialog { get; }
 
     /// <summary>
-    /// Gets information about the current route, including the path and options.
+    /// Gets the service provider for this navigator. This property can be accessed from any thread.
     /// </summary>
-    public IConcreteRoute? CurrentRoute { get; }
+    /// <remarks>
+    /// This service provider is the root provider used to resolve services other than those provided directly by views or view models in a route. It can be
+    /// injected into view models via a constructor parameter of type <see cref="IServiceProvider"/>.
+    /// </remarks>
+    public IServiceProvider Services { get; }
 
     /// <summary>
     /// Gets the task runner for this navigator. This property can be accessed from any thread.
@@ -64,7 +72,7 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// <summary>
     /// Clears back and forward navigation history.
     /// </summary>
-    public void ClearHistory();
+    public ValueTask ClearHistory();
 
     /// <summary>
     /// Returns the routes that are in the back navigation stack, ordered from the most recent to the oldest. Does not include the current route.
@@ -110,40 +118,42 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     public bool HandleSystemForwardRequest();
 
     /// <summary>
-    /// Determines whether the specified route is a partial match to the start of the current route.
+    /// Determines whether the current route contains a parent view with the specified view model type.
+    /// </summary>
+    public bool CurrentRouteHasParent<TViewModel>();
+
+    /// <summary>
+    /// Determines whether the current route path starts with the same path as the specified route.
     /// </summary>
     /// <remarks>
-    /// The routes are considered a partial match if the current route starts with the same path as the specified route. It does not require the routes to match
-    /// up with the same view or view model.
+    /// This method does not require the mapped views or view models on the current and specified routes to match, only the route paths.
     /// </remarks>
-    public bool CurrentRouteStartsWith<TRootViewModel>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoute,
+    public bool CurrentPathStartsWith<TRootViewModel>(
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
         IConcreteChildRoutePart<TRootViewModel> childRoutePart)
         where TRootViewModel : class;
 
     /// <summary>
-    /// Determines whether the specified route is a partial match to the start of the current route.
+    /// Determines whether the current route path starts with the same path as the specified route.
     /// </summary>
     /// <remarks>
-    /// The routes are considered a partial match if the current route starts with the same path as the specified route. It does not require the routes to match
-    /// up with the same view or view model.
+    /// This method does not require the mapped views or view models on the current and specified routes to match, only the route paths.
     /// </remarks>
-    public bool CurrentRouteStartsWith<TRootViewModel, TChildViewModel1>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoute,
+    public bool CurrentPathStartsWith<TRootViewModel, TChildViewModel1>(
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
         IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1> childRoutePart2)
         where TRootViewModel : class
         where TChildViewModel1 : class;
 
     /// <summary>
-    /// Determines whether the specified route is a partial match to the start of the current route.
+    /// Determines whether the current route path starts with the same path as the specified route.
     /// </summary>
     /// <remarks>
-    /// The routes are considered a partial match if the current route starts with the same path as the specified route. It does not require the routes to match
-    /// up with the same view or view model.
+    /// This method does not require the mapped views or view models on the current and specified routes to match, only the route paths.
     /// </remarks>
-    public bool CurrentRouteStartsWith<TRootViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoute,
+    public bool CurrentPathStartsWith<TRootViewModel, TChildViewModel1, TChildViewModel2>(
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
         IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
         IConcreteChildRoutePart<TChildViewModel2> childRoutePart3)
@@ -159,14 +169,14 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// <summary>
     /// Navigates to the specified route.
     /// </summary>
-    public Task<NavigationResult> NavigateAsync(IConcreteRootRoutePart route, RouteOptions? routeOptions = null);
+    public Task<NavigationResult> NavigateAsync(IConcreteRootRoutePart rootRoutePart, RouteOptions? routeOptions = null);
 
     /// <summary>
     /// Navigates to the specified route.
     /// </summary>
     public Task<NavigationResult> NavigateAsync<TRootViewModel>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoute,
-        IConcreteChildRoutePart<TRootViewModel> childRoute,
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
+        IConcreteChildRoutePart<TRootViewModel> childRoutePart,
         RouteOptions? routeOptions = null)
         where TRootViewModel : class;
 
@@ -174,7 +184,7 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// Navigates to the specified route.
     /// </summary>
     public Task<NavigationResult> NavigateAsync<TRootViewModel, TChildViewModel1>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoute,
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
         IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
         RouteOptions? routeOptions = null)
@@ -185,7 +195,7 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// Navigates to the specified route.
     /// </summary>
     public Task<NavigationResult> NavigateAsync<TRootViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoute,
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
         IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
         IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
@@ -204,7 +214,7 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
     /// cref="InvalidOperationException"/> is thrown.
     /// </summary>
     public Task<NavigationResult> NavigatePartialAsync<TParentViewModel>(
-        IConcreteChildRoutePart<TParentViewModel> childRoute,
+        IConcreteChildRoutePart<TParentViewModel> childRoutePart,
         RouteOptions? routeOptions = null)
         where TParentViewModel : class;
 
@@ -233,19 +243,13 @@ public interface INavigator : IDialogNavigatorBase, INotifyPropertyChanged
         where TChildViewModel2 : class;
 
     /// <summary>
+    /// Navigates to the parent view in the current route that has the specified view model type.
+    /// </summary>
+    public Task<NavigationResult> NavigateToParentAsync<TParentViewModel>(RouteOptions? options = null)
+        where TParentViewModel : class;
+
+    /// <summary>
     /// Refreshes the current route.
     /// </summary>
     public Task<NavigationResult> RefreshAsync();
-
-    /// <summary>
-    /// Gets the route parameter from the current route.
-    /// </summary>
-    public bool TryGetCurrentRouteParameter<TViewModel, TParam>(RoutePart<TViewModel, TParam> routePart, [MaybeNullWhen(false)] out TParam parameter)
-        where TViewModel : class, IRoutedViewModel<TParam>
-        where TParam : notnull;
-
-    /// <summary>
-    /// Returns the last view model that can be assigned to the specified view model type from the current route.
-    /// </summary>
-    public bool TryGetCurrentRouteViewModel<TViewModel>([MaybeNullWhen(false)] out TViewModel viewModel) where TViewModel : class;
 }

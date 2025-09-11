@@ -7,15 +7,13 @@ namespace Singulink.UI.Navigation.WinUI;
 /// </content>
 partial class Navigator
 {
-    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(TViewModel)"/>
-    public Task ShowDialogAsync<TViewModel>(TViewModel viewModel)
-        where TViewModel : class, IDialogViewModel
+    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync{TViewModel}(TViewModel)"/>
+    public async Task ShowDialogAsync<TViewModel>(TViewModel viewModel) where TViewModel : class, IDialogViewModel
     {
-        return ShowDialogAsync(null, viewModel);
+        await ShowDialogAsync(null, viewModel);
     }
 
-    internal async Task ShowDialogAsync<TViewModel>(ContentDialog? requestingParentDialog, TViewModel viewModel)
-        where TViewModel : class, IDialogViewModel
+    internal async Task ShowDialogAsync<TViewModel>(ContentDialog? requestingParentDialog, TViewModel viewModel) where TViewModel : class, IDialogViewModel
     {
         EnsureThreadAccess();
 
@@ -25,67 +23,61 @@ partial class Navigator
         EnsureDialogIsTopDialog(requestingParentDialog);
         CloseLightDismissPopups();
 
-        if (MixinManager.GetDialogNavigator(viewModel) is not DialogNavigator dn)
-            MixinManager.SetDialogNavigator(viewModel, dn = new DialogNavigator(this, CreateDialogFor(viewModel)));
-        else if (dn.Navigator != this)
+        if (MixinManager.GetNavigator(viewModel) is not DialogNavigator dialogNavigator)
+            MixinManager.SetNavigator(viewModel, dialogNavigator = new DialogNavigator(this, CreateDialogFor(viewModel)));
+        else if (dialogNavigator.RootNavigator != this)
             throw new InvalidOperationException("The dialog view model is associated with a different root navigator instance.");
 
         var tcs = new TaskCompletionSource();
 
-        using (var notifier = new PropertyChangedNotifier(this, OnPropertyChanged))
+        using (new PropertyChangedNotifier(this))
         {
-            _dialogTcsStack.Push((dn.Dialog, tcs));
+            _dialogStack.Push((dialogNavigator.Dialog, tcs));
 
             requestingParentDialog?.Hide();
-            _ = dn.Dialog.ShowAsync();
+            _ = dialogNavigator.Dialog.ShowAsync();
         }
 
+        dialogNavigator.TaskRunner.RunAsBusyAndForget(viewModel.OnDialogShownAsync());
         await tcs.Task;
 
         void EnsureDialogIsTopDialog(ContentDialog? requestingParentDialog)
         {
-            _dialogTcsStack.TryPeek(out var parentDialogInfo);
+            _dialogStack.TryPeek(out var parentDialogInfo);
             var parentDialog = parentDialogInfo.Dialog;
 
             if (requestingParentDialog != parentDialog)
             {
                 if (requestingParentDialog is null)
-                {
-                    const string message = "Another dialog is currently showing. Child dialogs must be shown using the dialog navigator of the parent dialog.";
-                    throw new InvalidOperationException(message);
-                }
+                    throw new InvalidOperationException("Another dialog is currently showing. Child dialogs must be shown using the dialog navigator of the parent dialog.");
                 else
-                {
                     throw new InvalidOperationException("Dialog cannot show a child dialog because it is not the currently top showing dialog.");
-                }
             }
         }
     }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-    internal async void CloseDialog(ContentDialog dialog)
+    internal void CloseDialog(ContentDialog dialog)
     {
-#pragma warning restore CS1998
-
         EnsureThreadAccess();
         CloseLightDismissPopups();
 
-        if (!_dialogTcsStack.TryPeek(out var dialogInfo) || dialogInfo.Dialog != dialog)
+        if (!_dialogStack.TryPeek(out var dialogInfo) || dialogInfo.Dialog != dialog)
             throw new InvalidOperationException("Dialog is not currently the top showing dialog.");
 
-        using var notifier = new PropertyChangedNotifier(this, OnPropertyChanged);
-        _dialogTcsStack.Pop();
+        using (new PropertyChangedNotifier(this))
+        {
+            _dialogStack.Pop();
+            dialog.Hide();
+        }
 
-        dialog.Hide();
-        notifier.Update();
-
-        if (_dialogTcsStack.TryPeek(out var parentDialogInfo))
+        if (_dialogStack.TryPeek(out var parentDialogInfo))
             _ = parentDialogInfo.Dialog.ShowAsync();
 
         dialogInfo.Tcs.SetResult();
     }
 
     private ContentDialog CreateDialogFor<TViewModel>(TViewModel viewModel)
+        where TViewModel : class, IDialogViewModel
     {
         if (!_viewModelTypeToDialogActivator.TryGetValue(typeof(TViewModel), out var ctorFunc))
             throw new KeyNotFoundException($"No dialog registered for view model of type '{typeof(TViewModel)}'.");
@@ -93,6 +85,14 @@ partial class Navigator
         var dialog = ctorFunc.Invoke();
         dialog.DataContext = viewModel;
         dialog.XamlRoot = _viewNavigator.NavigationControl.XamlRoot ?? throw new InvalidOperationException("XamlRoot is not available");
+
+        dialog.DataContextChanged += (_, e) => {
+            if (e.NewValue != viewModel)
+            {
+                dialog.DataContext = viewModel;
+                throw new InvalidOperationException("Navigator managed views cannot change their data context.");
+            }
+        };
 
         dialog.PrimaryButtonClick += OnPrimaryDialogButtonClick;
         dialog.SecondaryButtonClick += OnSecondaryDialogButtonClick;
@@ -103,34 +103,31 @@ partial class Navigator
 
         void OnPrimaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
-            if (_dialogTcsStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
-            {
-                args.Cancel = true;
-                topDialogInfo.Dialog.PrimaryButtonCommand?.Execute(topDialogInfo.Dialog.PrimaryButtonCommandParameter);
-            }
+            args.Cancel = true;
+
+            if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
+                dialogInfo.Dialog.PrimaryButtonCommand?.Execute(dialogInfo.Dialog.PrimaryButtonCommandParameter);
         }
 
         void OnSecondaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
-            if (_dialogTcsStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
-            {
-                args.Cancel = true;
-                topDialogInfo.Dialog.SecondaryButtonCommand?.Execute(topDialogInfo.Dialog.SecondaryButtonCommandParameter);
-            }
+            args.Cancel = true;
+
+            if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
+                dialogInfo.Dialog.SecondaryButtonCommand?.Execute(dialogInfo.Dialog.SecondaryButtonCommandParameter);
         }
 
         void OnCloseDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
-            if (_dialogTcsStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
-            {
-                args.Cancel = true;
-                topDialogInfo.Dialog.CloseButtonCommand?.Execute(topDialogInfo.Dialog.CloseButtonCommandParameter);
-            }
+            args.Cancel = true;
+
+            if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
+                dialogInfo.Dialog.CloseButtonCommand?.Execute(dialogInfo.Dialog.CloseButtonCommandParameter);
         }
 
         async void OnDialogClosing(ContentDialog sender, ContentDialogClosingEventArgs args)
         {
-            if (_dialogTcsStack.TryPeek(out var topDialogInfo) && topDialogInfo.Dialog == sender)
+            if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
             {
                 args.Cancel = true;
 
@@ -143,8 +140,13 @@ partial class Navigator
 
                     // Make sure we are still the top dialog and another event didn't close the dialog after the yield.
 
-                    if (_dialogTcsStack.TryPeek(out topDialogInfo) && topDialogInfo.Dialog == sender)
+                    if (_dialogStack.TryPeek(out dialogInfo) &&
+                        dialogInfo.Dialog == sender &&
+                        MixinManager.GetNavigator(dismissableViewModel) is { } dn &&
+                        !dn.TaskRunner.IsBusy)
+                    {
                         dismissableViewModel.OnDismissRequested();
+                    }
                 }
             }
         }

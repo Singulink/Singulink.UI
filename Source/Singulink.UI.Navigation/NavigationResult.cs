@@ -11,12 +11,7 @@ public enum NavigationResult
     Success,
 
     /// <summary>
-    /// The navigation was cancelled while navigating away.
+    /// The navigation was cancelled while navigating away from the current route.
     /// </summary>
     Cancelled,
-
-    /// <summary>
-    /// The navigation was cancelled and rerouted to another route while navigating to it.
-    /// </summary>
-    Rerouted,
 }

@@ -1,9 +1,10 @@
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Represents a navigator that can show dialogs. Implemented by both <see cref="INavigator"/> and <see cref="IDialogNavigator"/> (to show child dialogs).
+/// Represents a presenter that can show dialogs. Implemented by both <see cref="INavigator"/> and <see cref="IDialogNavigator"/> (to show top-level and child
+/// dialogs, respectively).
 /// </summary>
-public interface IDialogNavigatorBase
+public interface IDialogPresenter
 {
     /// <summary>
     /// Shows a dialog with the specified view model and returns a task that completes when the dialog closes.

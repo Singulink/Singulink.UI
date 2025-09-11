@@ -1,30 +1,35 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.UI.Xaml.Media;
 using Singulink.UI.Tasks;
 
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <inheritdoc cref="INavigator"/>
-public partial class Navigator : INavigator
+public sealed partial class Navigator : INavigator, IAsyncDisposable
 {
+    private static readonly ConcreteRoute EmptyRoute = new([], RouteOptions.Empty);
+
     private readonly ViewNavigator _viewNavigator;
 
-    private readonly FrozenDictionary<Type, ViewInfo> _viewModelTypeToViewInfo;
+    private readonly FrozenDictionary<Type, MappingInfo> _viewModelTypeToMappingInfo;
     private readonly FrozenDictionary<Type, Func<ContentDialog>> _viewModelTypeToDialogActivator;
     private readonly ImmutableArray<RoutePart> _routeParts;
 
+    private readonly IServiceProvider _rootServices;
+
     private readonly int _maxStackSize;
-    private readonly int _maxBackStackCachedViewDepth;
-    private readonly int _maxForwardStackCachedViewDepth;
+    private readonly int _maxBackStackCachedDepth;
+    private readonly int _maxForwardStackCachedDepth;
 
-    private readonly Stack<(ContentDialog Dialog, TaskCompletionSource Tcs)> _dialogTcsStack = [];
+    private readonly Stack<(ContentDialog Dialog, TaskCompletionSource Tcs)> _dialogStack = [];
 
-    private readonly List<ConcreteRoute> _routeStack = [];
+    private List<ConcreteRoute> _routeStack = [];
     private int _currentRouteIndex = -1;
 
-    private CancellationTokenSource? _navigationCts;
+    private bool _isNavigating;
+    private bool _isRedirecting;
+    private bool _isDisposed;
 
     private bool _blockNavigation;
     private bool _blockDialogs;
@@ -50,17 +55,20 @@ public partial class Navigator : INavigator
         builder.Validate();
 
         _routeParts = [.. builder.RouteParts];
-        _viewModelTypeToViewInfo = builder.ViewModelTypeToViewInfo.ToFrozenDictionary();
+        _viewModelTypeToMappingInfo = builder.ViewModelTypeToMappingInfo.ToFrozenDictionary();
 
-        IEnumerable<KeyValuePair<Type, Func<ContentDialog>>> vmTypeToDialogActivator = builder.ViewModelTypeToDialogActivator;
+        var vmTypeToDialogActivator = builder.ViewModelTypeToDialogActivator.AsEnumerable();
 
         if (!builder.ViewModelTypeToDialogActivator.ContainsKey(typeof(MessageDialogViewModel)))
             vmTypeToDialogActivator = vmTypeToDialogActivator.Append(new(typeof(MessageDialogViewModel), () => new MessageDialog()));
 
         _viewModelTypeToDialogActivator = vmTypeToDialogActivator.ToFrozenDictionary();
-        _maxStackSize = builder.MaxNavigationStacksSize;
-        _maxBackStackCachedViewDepth = builder.MaxBackStackCachedViewDepth;
-        _maxForwardStackCachedViewDepth = builder.MaxForwardStackCachedViewDepth;
+
+        _rootServices = builder.Services;
+
+        _maxStackSize = builder.MaxNavigationStacksSize + 1; // +1 to account for the current route
+        _maxBackStackCachedDepth = builder.MaxBackStackCachedDepth;
+        _maxForwardStackCachedDepth = builder.MaxForwardStackCachedDepth;
     }
 
     /// <inheritdoc cref="INavigator.CanGoBack"/>
@@ -68,14 +76,7 @@ public partial class Navigator : INavigator
     {
         get {
             EnsureThreadAccess();
-
-            if (IsNavigating)
-                return false;
-
-            if (IsShowingDialog)
-                return _dialogTcsStack.Peek().Dialog.DataContext is IDismissableDialogViewModel;
-
-            return HasBackHistory;
+            return !IsNavigating && !IsShowingDialog && HasBackHistory;
         }
     }
 
@@ -84,11 +85,7 @@ public partial class Navigator : INavigator
     {
         get {
             EnsureThreadAccess();
-
-            if (IsNavigating || IsShowingDialog)
-                return false;
-
-            return HasForwardHistory;
+            return !IsNavigating && !IsShowingDialog && HasForwardHistory;
         }
     }
 
@@ -97,7 +94,16 @@ public partial class Navigator : INavigator
     {
         get {
             EnsureThreadAccess();
-            return !IsNavigating && !IsShowingDialog && CurrentRouteInternal is not null;
+            return !IsNavigating && !IsShowingDialog && CurrentRouteImpl is not null;
+        }
+    }
+
+    /// <inheritdoc/>
+    public IConcreteRoute CurrentRoute
+    {
+        get {
+            EnsureThreadAccess();
+            return CurrentRouteImpl ?? EmptyRoute;
         }
     }
 
@@ -124,7 +130,7 @@ public partial class Navigator : INavigator
     {
         get {
             EnsureThreadAccess();
-            return _blockNavigation || _navigationCts is not null;
+            return _isNavigating;
         }
     }
 
@@ -133,40 +139,82 @@ public partial class Navigator : INavigator
     {
         get {
             EnsureThreadAccess();
-            return _dialogTcsStack.Count > 0;
+            return _dialogStack.Count > 0;
         }
     }
+
+    /// <inheritdoc cref="INavigator.Services"/>
+    public IServiceProvider Services => _rootServices;
 
     /// <inheritdoc cref="INavigator.TaskRunner"/>
     public ITaskRunner TaskRunner { get; }
 
-    /// <inheritdoc/>
-    public IConcreteRoute? CurrentRoute
-    {
-        get {
-            EnsureThreadAccess();
-            return CurrentRouteInternal;
-        }
-    }
-
-    private ConcreteRoute? CurrentRouteInternal => _currentRouteIndex >= 0 ? _routeStack[_currentRouteIndex] : null;
+    private ConcreteRoute? CurrentRouteImpl => _currentRouteIndex >= 0 ? _routeStack[_currentRouteIndex] : null;
 
     /// <inheritdoc cref="INavigator.ClearHistory"/>
-    public void ClearHistory()
+    public async ValueTask ClearHistory()
     {
         EnsureThreadAccess();
 
-        if (_routeStack.Count <= 0)
+        if (_routeStack.Count is 0)
             return;
 
-        var current = _routeStack[_currentRouteIndex];
+        var currentRoute = _routeStack[_currentRouteIndex];
+        var removedRoutes = _routeStack;
 
-        using (new PropertyChangedNotifier(this, OnPropertyChanged))
+        using (EnterNavigationGuard(blockDialogs: true))
         {
-            _routeStack.Clear();
-            _routeStack.Add(current);
-            _currentRouteIndex = 0;
+            using (new PropertyChangedNotifier(this))
+            {
+                removedRoutes.RemoveAt(_currentRouteIndex);
+                _routeStack = [currentRoute];
+                _currentRouteIndex = 0;
+            }
+
+            await TrimRoutesAndCacheAsync(removedRoutes);
         }
+    }
+
+    /// <summary>
+    /// Disposes the navigator and all cached views and view models.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (_isDisposed)
+            return;
+
+        EnsureThreadAccess();
+
+        if (_dialogStack.Count > 0)
+            throw new InvalidOperationException("Cannot dispose the navigator while dialogs are showing.");
+
+        _isDisposed = true;
+
+        await TaskRunner.WaitForIdleAsync(true);
+
+        _blockDialogs = true;
+        _blockNavigation = true;
+
+        _viewNavigator.SetActiveView(null);
+
+        if (CurrentRouteImpl is { } currentRoute)
+        {
+            foreach (var routeItem in currentRoute.Items.Reverse())
+            {
+                if (routeItem.AlreadyNavigatedTo)
+                    await routeItem.ViewModel.OnNavigatedAwayAsync();
+            }
+        }
+
+        var removedRoutes = _routeStack;
+
+        _routeStack.Clear();
+        _currentRouteIndex = -1;
+
+        PropertyChanged = null;
+
+        await TaskRunner.WaitForIdleAsync(true);
+        await TrimRoutesAndCacheAsync(removedRoutes);
     }
 
     /// <inheritdoc cref="INavigator.GetBackStack"/>
@@ -179,6 +227,7 @@ public partial class Navigator : INavigator
 
         var stack = _routeStack[.._currentRouteIndex];
         stack.Reverse();
+
         return stack;
     }
 
@@ -193,55 +242,13 @@ public partial class Navigator : INavigator
         return _routeStack[(_currentRouteIndex + 1)..];
     }
 
-    /// <inheritdoc cref="INavigator.TryGetCurrentRouteParameter{TViewModel, TParam}(RoutePart{TViewModel, TParam}, out TParam)"/>
-    public bool TryGetCurrentRouteParameter<TViewModel, TParam>(RoutePart<TViewModel, TParam> routePart, [MaybeNullWhen(false)] out TParam parameter)
-        where TViewModel : class, IRoutedViewModel<TParam>
-        where TParam : notnull
-    {
-        EnsureThreadAccess();
-        var routeItems = CurrentRouteInternal?.Items ?? [];
-
-        for (int i = routeItems.Length - 1; i >= 0; i--)
-        {
-            var concreteRoute = routeItems[i].ConcreteRoutePart;
-
-            if (concreteRoute.RoutePart == routePart && concreteRoute is IParameterizedConcreteRoute<TViewModel, TParam> paramConcreteRoute)
-            {
-                parameter = paramConcreteRoute.Parameter;
-                return true;
-            }
-        }
-
-        parameter = default;
-        return false;
-    }
-
-    /// <inheritdoc cref="INavigator.TryGetCurrentRouteViewModel{TViewModel}(out TViewModel)"/>
-    public bool TryGetCurrentRouteViewModel<TViewModel>([MaybeNullWhen(false)] out TViewModel viewModel)
-        where TViewModel : class
-    {
-        EnsureThreadAccess();
-
-        var routeItem = CurrentRouteInternal?.Items
-            .LastOrDefault(i => i.ConcreteRoutePart.RoutePart.ViewModelType.IsAssignableTo(typeof(TViewModel)));
-
-        if (routeItem is not null)
-        {
-            routeItem.EnsureViewCreatedAndModelInitialized(this);
-            viewModel = (TViewModel)routeItem.ViewModel;
-            return true;
-        }
-
-        viewModel = null;
-        return false;
-    }
-
-    internal static string GetPath(IEnumerable<IConcreteRoutePart> routeParts) => string.Join("/", routeParts.Select(r => r.ToString()).Where(r => r.Length > 0));
-
     private void EnsureThreadAccess()
     {
         if (_viewNavigator.NavigationControl.DispatcherQueue?.HasThreadAccess is not true)
             throw new InvalidOperationException("Navigator can only be accessed from the UI thread.");
+
+        if (_isDisposed)
+            throw new ObjectDisposedException(nameof(Navigator), "Navigator has been disposed.");
     }
 
     private bool CloseLightDismissPopups()
@@ -261,5 +268,64 @@ public partial class Navigator : INavigator
         }
 
         return closedPopup;
+    }
+
+    private async ValueTask TrimRoutesAndCacheAsync(List<ConcreteRoute>? removedRoutes)
+    {
+        if (_routeStack.Count > _maxStackSize)
+        {
+            int trimCount = _routeStack.Count - _maxStackSize;
+            _routeStack.RemoveRange(0, trimCount);
+            _currentRouteIndex -= trimCount;
+        }
+
+        if (_routeStack.Count <= 1)
+            return;
+
+        var keepMaterialized = new HashSet<ConcreteRoute.Item>(_routeStack.Count * 3);
+
+        int cachedStartIndex = Math.Max(0, _currentRouteIndex - _maxBackStackCachedDepth);
+        int cachedEndIndex = Math.Min(_routeStack.Count - 1, _currentRouteIndex + _maxForwardStackCachedDepth);
+
+        // Keep all materialized components on route items that can be cached within the cached range
+
+        for (int j = cachedStartIndex; j <= cachedEndIndex; j++)
+        {
+            var route = _routeStack[j];
+
+            foreach (var item in route.Items)
+            {
+                // Always keep views from the current route
+
+                if (item.IsMaterialized && (j == _currentRouteIndex || item.ViewModel.CanBeCached))
+                    keepMaterialized.Add(item);
+            }
+        }
+
+        // Dispose all materialized items in routes that are not in the keepMaterialized set
+
+        var routes = _routeStack.AsEnumerable();
+
+        if (removedRoutes is not null)
+            routes = routes.Concat(removedRoutes);
+
+        foreach (var route in routes)
+        {
+            bool forceDisposeChildren = false;
+
+            foreach (var routeItem in route.Items)
+            {
+                if (routeItem.IsMaterialized && (forceDisposeChildren || !keepMaterialized.Contains(routeItem)))
+                {
+                    // If a disposed item has dependent children, we need to dispose its children as well since they may hold references to the disposed parent
+                    // or disposed services that the parent provided.
+
+                    if (routeItem.HasDependentChildren)
+                        forceDisposeChildren = true;
+
+                    await routeItem.DisposeMaterializedComponents();
+                }
+            }
+        }
     }
 }

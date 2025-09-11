@@ -12,8 +12,6 @@ public partial class ParamsTestViewModel : ObservableObject, IRoutedViewModel
     [ObservableProperty]
     public partial string StringValue { get; set; } = string.Empty;
 
-    public INavigator Navigator => this.GetNavigator();
-
     [RelayCommand]
     public async Task NavigateWithParameters()
     {
@@ -21,11 +19,11 @@ public partial class ParamsTestViewModel : ObservableObject, IRoutedViewModel
 
         try
         {
-            await Navigator.NavigatePartialAsync(Routes.Main.ShowParamsTestChild.ToConcrete((IntValue, StringValue)));
+            await this.Navigator.NavigatePartialAsync(Routes.Main.ShowParamsTestChild.ToConcrete((IntValue, StringValue)));
         }
         catch (Exception ex)
         {
-            _ = Navigator.ShowMessageDialogAsync(ex.Message, "Error");
+            _ = this.Navigator.ShowMessageDialogAsync(ex.Message, "Error");
         }
     }
 }

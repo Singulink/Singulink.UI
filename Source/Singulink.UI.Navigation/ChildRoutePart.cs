@@ -16,6 +16,9 @@ public class ChildRoutePart<TParentViewModel, TChildViewModel> : RoutePart<TChil
     /// <inheritdoc/>
     RoutePart IConcreteRoutePart.RoutePart => this;
 
+    /// <inheritdoc/>
+    object? IConcreteRoutePart.Parameter => null;
+
     internal override bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out IConcreteRoutePart concreteRoute, out ReadOnlySpan<char> rest)
     {
         if (RouteBuilder.TryMatch(routeString, out rest))
@@ -76,6 +79,8 @@ public class ChildRoutePart<TParentViewModel, TChildViewModel, TParam> : RoutePa
         public TParam Parameter { get; }
 
         RoutePart IConcreteRoutePart.RoutePart => RoutePart;
+
+        object? IConcreteRoutePart.Parameter => Parameter;
 
         public Concrete(ChildRoutePart<TParentViewModel, TChildViewModel, TParam> routePart, TParam paramValue)
         {

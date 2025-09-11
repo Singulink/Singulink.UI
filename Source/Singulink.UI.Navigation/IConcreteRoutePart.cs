@@ -11,6 +11,12 @@ public interface IConcreteRoutePart : IEquatable<IConcreteRoutePart>
     public RoutePart RoutePart { get; }
 
     /// <summary>
+    /// Gets the parameter (or parameters tuple, if there are multiple parameters) for this concrete route part, or <see langword="null"/> if the route part
+    /// does not take a parameter.
+    /// </summary>
+    public object? Parameter { get; }
+
+    /// <summary>
     /// Gets the path string for this concrete route part.
     /// </summary>
     public string ToString();

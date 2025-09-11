@@ -7,37 +7,23 @@ namespace Singulink.UI.Navigation;
 /// </summary>
 public class NavigatingArgs
 {
-    private readonly NavigatingFlags _flags;
-    private readonly NavigationType _navigationType;
-
     /// <summary>
-    /// Initializes a new instance of the <see cref="NavigatingArgs"/> class with the specified navigation type, flags, and new route options.
+    /// Initializes a new instance of the <see cref="NavigatingArgs"/> class.
     /// </summary>
     /// <param name="navigationType">The navigation type that is occurring.</param>
-    /// <param name="flags">Flags that provide additional information about the navigation.</param>
-    public NavigatingArgs(NavigationType navigationType, NavigatingFlags flags)
+    public NavigatingArgs(NavigationType navigationType)
     {
         navigationType.ThrowIfNotValid(nameof(navigationType));
-        flags.ThrowIfNotValid(nameof(flags));
-
-        _navigationType = navigationType;
-        _flags = flags;
+        NavigationType = navigationType;
     }
 
     /// <summary>
     /// Gets the type of navigation that is occurring.
     /// </summary>
-    public NavigationType NavigationType => _navigationType;
+    public NavigationType NavigationType { get; }
 
     /// <summary>
-    /// Gets a value indicating whether this view model will be navigated away from if the navigation is not cancelled. If this is <see langword="false"/> then
-    /// the view model will remain active in the new route but child child navigations or route options may be changing (or not, i.e. in the case of a
-    /// refresh).
-    /// </summary>
-    public bool WillBeNavigatedFrom => _flags.HasFlag(NavigatingFlags.WillBeNavigatedFrom);
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the navigation should be canceled and the current route should remain active.
+    /// Gets or sets a value indicating whether the new navigation should be canceled and the current route should remain active.
     /// </summary>
     public bool Cancel { get; set; }
 }

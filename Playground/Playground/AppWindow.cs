@@ -14,7 +14,7 @@ namespace Playground;
 
 public class AppWindow : Window
 {
-    private readonly INavigator _navigator;
+    private readonly Navigator _navigator;
 
     public AppWindow()
     {
@@ -41,7 +41,7 @@ public class AppWindow : Window
 
     public async void BeginNavigation()
     {
-        if (_navigator.CurrentRoute is null)
+        if (_navigator.CurrentRoute.Parts.Count is 0)
             await _navigator.NavigateAsync(Routes.LoginRoot);
     }
 
@@ -57,7 +57,7 @@ public class AppWindow : Window
 
             builder.MapDialog<DismissableDialogViewModel, DismissableDialog>();
 
-            builder.ConfigureNavigationStacks(maxSize: 10, maxBackCachedViewDepth: 3, maxForwardCachedViewDepth: 3);
+            builder.ConfigureNavigationStacks(maxSize: 10, maxBackCachedDepth: 3, maxForwardCachedDepth: 3);
             builder.AddAllRoutes();
         });
     }

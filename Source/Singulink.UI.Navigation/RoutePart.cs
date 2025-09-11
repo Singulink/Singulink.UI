@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Singulink.UI.Navigation.InternalServices;
 
 namespace Singulink.UI.Navigation;
 
@@ -22,11 +21,6 @@ public abstract class RoutePart
     }
 
     internal abstract bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out IConcreteRoutePart concreteRoute, out ReadOnlySpan<char> rest);
-
-    internal virtual void InitializeViewModel(IRoutedViewModelBase viewModel, INavigator navigator, IConcreteRoutePart route)
-    {
-        MixinManager.SetNavigator(viewModel, navigator);
-    }
 }
 
 /// <summary>
@@ -55,15 +49,6 @@ public abstract class RoutePart<TViewModel, TParam> : RoutePart
     private protected RoutePart(RouteBuilder<TParam> routeBuilder, Type? parentViewModelType) : base(typeof(TViewModel), parentViewModelType)
     {
         RouteBuilder = routeBuilder;
-    }
-
-    internal override void InitializeViewModel(IRoutedViewModelBase viewModel, INavigator navigator, IConcreteRoutePart route)
-    {
-        base.InitializeViewModel(viewModel, navigator, route);
-
-        var vm = (TViewModel)viewModel;
-        var parameterizedRoute = (IParameterizedConcreteRoute<TViewModel, TParam>)route;
-        MixinManager.SetParameter(vm, parameterizedRoute.Parameter);
     }
 
     internal string GetConcreteRouteString(TParam parameter) => RouteBuilder.GetPartPath(parameter);

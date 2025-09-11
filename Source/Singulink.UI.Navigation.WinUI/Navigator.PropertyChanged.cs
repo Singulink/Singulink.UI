@@ -24,30 +24,28 @@ partial class Navigator
     private struct PropertyChangedNotifier : IDisposable
     {
         private Navigator? _navigator;
-        private readonly Action<PropertyChangedEventArgs> _onPropertyChanged;
 
-        private bool _canUserGoBack;
-        private bool _canUserGoForward;
-        private bool _canUserRefresh;
+        private bool _canGoBack;
+        private bool _canGoForward;
+        private bool _canRefresh;
         private bool _hasBackHistory;
         private bool _hasForwardHistory;
         private bool _isNavigating;
         private bool _isShowingDialog;
         private ConcreteRoute? _currentRoute;
 
-        public PropertyChangedNotifier(Navigator navigator, Action<PropertyChangedEventArgs> onPropertyChanged)
+        public PropertyChangedNotifier(Navigator navigator)
         {
             _navigator = navigator;
-            _onPropertyChanged = onPropertyChanged;
 
-            _canUserGoBack = navigator.CanGoBack;
-            _canUserGoForward = navigator.CanGoForward;
-            _canUserRefresh = navigator.CanRefresh;
+            _canGoBack = navigator.CanGoBack;
+            _canGoForward = navigator.CanGoForward;
+            _canRefresh = navigator.CanRefresh;
             _hasBackHistory = navigator.HasBackHistory;
             _hasForwardHistory = navigator.HasForwardHistory;
             _isNavigating = navigator.IsNavigating;
             _isShowingDialog = navigator.IsShowingDialog;
-            _currentRoute = navigator.CurrentRouteInternal;
+            _currentRoute = navigator.CurrentRouteImpl;
         }
 
         public void Update()
@@ -55,14 +53,14 @@ partial class Navigator
             if (_navigator is null)
                 throw new ObjectDisposedException(typeof(PropertyChangedNotifier).Name);
 
-            CheckUpdateNotify(ref _canUserGoBack, _navigator.CanGoBack, CanUserGoBackChangedArgs);
-            CheckUpdateNotify(ref _canUserGoForward, _navigator.CanGoForward, CanUserGoForwardChangedArgs);
-            CheckUpdateNotify(ref _canUserRefresh, _navigator.CanRefresh, CanUserRefreshChangedArgs);
+            CheckUpdateNotify(ref _canGoBack, _navigator.CanGoBack, CanUserGoBackChangedArgs);
+            CheckUpdateNotify(ref _canGoForward, _navigator.CanGoForward, CanUserGoForwardChangedArgs);
+            CheckUpdateNotify(ref _canRefresh, _navigator.CanRefresh, CanUserRefreshChangedArgs);
             CheckUpdateNotify(ref _hasBackHistory, _navigator.HasBackHistory, HasBackHistoryChangedArgs);
             CheckUpdateNotify(ref _hasForwardHistory, _navigator.HasForwardHistory, HasForwardHistoryChangedArgs);
             CheckUpdateNotify(ref _isNavigating, _navigator.IsNavigating, IsNavigatingChangedArgs);
             CheckUpdateNotify(ref _isShowingDialog, _navigator.IsShowingDialog, IsShowingDialogChangedArgs);
-            CheckUpdateNotify(ref _currentRoute, _navigator.CurrentRouteInternal, CurrentRouteChangedArgs);
+            CheckUpdateNotify(ref _currentRoute, _navigator.CurrentRouteImpl, CurrentRouteChangedArgs);
         }
 
         public void Dispose()
@@ -79,7 +77,7 @@ partial class Navigator
             if (!EqualityComparer<T>.Default.Equals(field, value))
             {
                 field = value;
-                _onPropertyChanged(e);
+                _navigator!.OnPropertyChanged(e);
             }
         }
     }

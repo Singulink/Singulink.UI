@@ -7,9 +7,8 @@ namespace Singulink.UI.Navigation.InternalServices;
 /// Provides methods for associating navigators and parameters with view models.
 /// </summary>
 /// <remarks>
-/// This class is used internally by UI framework-specific navigator implementations to associate navigators and parameters with view models, but it can also be
-/// used in view model tests to associate mocked navigators with view models and provide parameters to view models before the test calls <see
-/// cref="IRoutedViewModelBase.OnNavigatedToAsync(Singulink.UI.Navigation.NavigationArgs)"/>.
+/// This class is used internally by navigator implementations to associate navigators and parameters with view models, and can be used in view model tests to
+/// do the same.
 /// </remarks>
 public static class MixinManager
 {
@@ -20,7 +19,7 @@ public static class MixinManager
     /// <summary>
     /// Returns the dialog navigator associated with the specified view model.
     /// </summary>
-    public static IDialogNavigator? GetDialogNavigator(IDialogViewModel viewModel)
+    public static IDialogNavigator? GetNavigator(IDialogViewModel viewModel)
     {
         return _viewModelToDialogNavigatorTable.TryGetValue(viewModel, out var dialogNavigator) ? dialogNavigator : null;
     }
@@ -29,7 +28,7 @@ public static class MixinManager
     /// Associates a dialog navigator with the specified view model.
     /// </summary>
     /// <exception cref="InvalidOperationException">A dialog navigator has already been associated with the view model.</exception>
-    public static void SetDialogNavigator(IDialogViewModel viewModel, IDialogNavigator dialogNavigator)
+    public static void SetNavigator(IDialogViewModel viewModel, IDialogNavigator dialogNavigator)
     {
         if (!_viewModelToDialogNavigatorTable.TryAdd(viewModel, dialogNavigator))
             throw new InvalidOperationException("A dialog navigator has already been associated with the view model.");
@@ -60,11 +59,11 @@ public static class MixinManager
     {
         if (_viewModelToParameterTable.TryGetValue(viewModel, out object parameterObj))
         {
-            if (parameterObj is ParameterBox<T> box)
-            {
-                parameter = box.Value;
-                return true;
-            }
+            if (parameterObj is not T p)
+                throw new InvalidOperationException($"The parameter associated with the view model is not of the expected type '{typeof(T)}'.");
+
+            parameter = p;
+            return true;
         }
 
         parameter = default;
@@ -77,17 +76,12 @@ public static class MixinManager
     /// <exception cref="InvalidOperationException">A parameter has already been associated with the view model.</exception>
     public static void SetParameter<T>(IRoutedViewModel<T> viewModel, T parameter) where T : notnull
     {
-        if (!_viewModelToParameterTable.TryAdd(viewModel, new ParameterBox<T>(parameter)))
-            throw new InvalidOperationException("A parameter has already been associated with the view model.");
+        SetParameter((IRoutedViewModelBase)viewModel, parameter);
     }
 
-    private class ParameterBox<T>
+    internal static void SetParameter(IRoutedViewModelBase viewModel, object parameter)
     {
-        public T Value { get; }
-
-        public ParameterBox(T value)
-        {
-            Value = value;
-        }
+        if (!_viewModelToParameterTable.TryAdd(viewModel, parameter))
+            throw new InvalidOperationException("A parameter has already been associated with the view model.");
     }
 }

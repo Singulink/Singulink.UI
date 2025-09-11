@@ -1,11 +1,10 @@
 using Playground.ViewModels.ParamsTest;
-using Singulink.UI.Navigation.WinUI;
 
 namespace Playground.Views.ParamsTest;
 
-public sealed partial class ParamsTestPage : UserControl, IRoutedView<ParamsTestViewModel>
+public sealed partial class ParamsTestPage : UserControl
 {
-    public ParamsTestViewModel Model { get; } = new();
+    public ParamsTestViewModel Model => (ParamsTestViewModel)DataContext;
 
     public ParamsTestPage()
     {

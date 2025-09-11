@@ -1,11 +1,10 @@
 using Playground.ViewModels;
-using Singulink.UI.Navigation.WinUI;
 
 namespace Playground.Views;
 
-public sealed partial class LoginRoot : UserControl, IRoutedView<LoginViewModel>
+public sealed partial class LoginRoot : UserControl
 {
-    public LoginViewModel Model { get; } = new();
+    public LoginViewModel Model => (LoginViewModel)DataContext;
 
     public LoginRoot()
     {

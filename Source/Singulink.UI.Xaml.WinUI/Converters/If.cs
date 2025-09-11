@@ -1,5 +1,7 @@
 namespace Singulink.UI.Xaml.Converters;
 
+#pragma warning disable CA1716 // Identifiers should not match keywords
+
 /// <summary>
 /// Provides conversion methods to <see cref="bool"/> for use in XAML bindings.
 /// </summary>

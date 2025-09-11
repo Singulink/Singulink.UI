@@ -2,6 +2,8 @@ using Windows.Foundation;
 
 namespace Singulink.UI.Xaml.Layout;
 
+#pragma warning disable CA1010 // Generic interface should also be implemented
+
 /// <summary>
 /// Invisible control that sizes itself to take up all the available space in its layout container.
 /// </summary>
@@ -68,30 +70,4 @@ public sealed partial class PushBounds : FrameworkElement
 
         pb.UpdateLayout();
     }
-}
-
-/// <summary>
-/// Specifies which directions to push layout bounds.
-/// </summary>
-public enum PushBoundsMode
-{
-    /// <summary>
-    /// Do not push the layout bounds.
-    /// </summary>
-    None,
-
-    /// <summary>
-    /// Push the layout bounds horizontally.
-    /// </summary>
-    Horizontal,
-
-    /// <summary>
-    /// Push the layout bounds vertically.
-    /// </summary>
-    Vertical,
-
-    /// <summary>
-    /// Push the layout bounds in both the horizontal and vertical directions.
-    /// </summary>
-    Both,
 }

@@ -4,11 +4,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <NoWarn>$(NoWarn);CA1010</NoWarn>
 
     <DebugType>portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
-
-    <DefaultLanguage>en</DefaultLanguage>
 
     <WeaverConfiguration>
       <Weavers>

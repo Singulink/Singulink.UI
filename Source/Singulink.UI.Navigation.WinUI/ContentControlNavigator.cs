@@ -17,5 +17,5 @@ public class ContentControlNavigator : ViewNavigator
     public override ContentControl NavigationControl { get; }
 
     /// <inheritdoc/>
-    protected internal override void SetActiveView(UIElement? view) => NavigationControl.Content = view;
+    protected internal override void SetActiveView(FrameworkElement? view) => NavigationControl.Content = view;
 }

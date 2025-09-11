@@ -6,15 +6,13 @@ namespace Playground.ViewModels.ParamsTest;
 
 public partial class ShowParamsTestViewModel : ObservableObject, IRoutedViewModel<(int IntValue, string StringValue)>
 {
-    public INavigator Navigator => this.GetNavigator();
+    public int IntValue => this.Parameter.IntValue;
 
-    public int IntValue => this.GetParameter().IntValue;
-
-    public string StringValue => this.GetParameter().StringValue;
+    public string StringValue => this.Parameter.StringValue;
 
     [RelayCommand]
     public async Task GoBackAsync()
     {
-        await Navigator.NavigatePartialAsync(Routes.Main.ParamsTestChild);
+        await this.Navigator.NavigatePartialAsync(Routes.Main.ParamsTestChild);
     }
 }

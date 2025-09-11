@@ -11,6 +11,9 @@ public class RootRoutePart<TViewModel> : RoutePart<TViewModel>, IConcreteRootRou
     /// <inheritdoc/>
     RoutePart IConcreteRoutePart.RoutePart => this;
 
+    /// <inheritdoc/>
+    object? IConcreteRoutePart.Parameter => null;
+
     internal RootRoutePart(RouteBuilder routeBuilder) : base(routeBuilder, null)
     {
     }
@@ -75,10 +78,12 @@ public class RootRoutePart<TViewModel, TParam> : RoutePart<TViewModel, TParam>
 
         RoutePart IConcreteRoutePart.RoutePart => RoutePart;
 
-        public Concrete(RootRoutePart<TViewModel, TParam> routePart, TParam paramValue)
+        object? IConcreteRoutePart.Parameter => Parameter;
+
+        public Concrete(RootRoutePart<TViewModel, TParam> routePart, TParam parameter)
         {
             RoutePart = routePart;
-            Parameter = paramValue;
+            Parameter = parameter;
         }
 
         public override string ToString() => RoutePart.GetConcreteRouteString(Parameter);

@@ -2,7 +2,9 @@
 
 [![Chat on Discord](https://img.shields.io/discord/906246067773923490)](https://discord.gg/EkQhJFsBu6)
 
-**UI Toolkit** provides a variety of complimentary MVVM and XAML-based components that help streamline complex UI development scenarios. It is currently focused on WinUI and Uno-based applications but some components are UI framework-agnostic. Details of each component are provided below:
+**UI Toolkit** provides a variety of complimentary MVVM and XAML-based components that help streamline complex UI development scenarios. It is currently focused on WinUI and Uno-based applications but some components are UI framework-agnostic.
+
+Details of each component are provided below:
 
 | Library | Status | Package |
 | --- | --- | --- |
@@ -11,10 +13,10 @@
 | **Singulink.UI.Tasks** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Tasks.svg)](https://www.nuget.org/packages/Singulink.UI.Tasks/) |
 | **Singulink.UI.Xaml.WinUI** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Xaml.WinUI.svg)](https://www.nuget.org/packages/Singulink.UI.Xaml.WinUI/) |
 
-Libraries may be in any of the following states:
-- Internal: Source code (and possibly a nuget package) is available to the public but the library is intended to be used internally until further development.
-- Preview: The library is available for public preview but the APIs may not be fully documented and the API surface is subject to change without notice.
-- Public: The library is intended for public use with a fully documented and stable API surface.
+Libraries may be in the following states:
+- Internal: Source code (and possibly a nuget package) is available but the library is intended for internal use at this time.
+- Preview: Library is available for public preview but the APIs may not be fully documented and the API surface is subject to change without notice.
+- Public: Library is intended for public use with a fully documented and stable API surface.
 
 You are free to use any libraries or code in this repository that you find useful and feedback/contributions are welcome regardless of library state.
 
@@ -35,13 +37,14 @@ Designed for handling MVVM-based applications with complex deep-linked navigatio
 **Key Features**:
 
 ✔️ First-class asynchronous navigation with automatic busy-state management  
-✔️ "Strongly-typed everything" so the compiler can catch mistakes early and validate routes and navigations - no magic strings!  
+✔️ "Strongly-typed everything" so the compiler can catch mistakes early and validate routes, parameters and navigations - no magic strings!  
 ✔️ "Zero code-behind" so you never need to handle events or override methods in pages or dialogs  
+✔️ Simple navigation configuration, all business logic contained within view models  
 ✔️ Comprehensive deep-linking support with automatic route parameter parsing  
 ✔️ Compatible with all MVVM frameworks  
-✔️ Single window or multi-window apps, child navigation views  
+✔️ Single window or multi-window apps, nested child navigation views  
 ✔️ Intuitive, straightforward and foolproof content dialogs / message dialogs / nested dialogs  
-✔️ Just as easy to use with or without a DI container (we prefer not to use one at all with this library)  
+✔️ Easy to use with or without a DI container  
 ✔️ Full integration with **Singulink.UI.Tasks** ([see below](#singulinkuitasks)) for simple and easy management of busy-state while long running operations are executing on pages or dialogs  
 
 The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. We plan to add more UI framework implementations soon (probably WPF and Avalonia initially).

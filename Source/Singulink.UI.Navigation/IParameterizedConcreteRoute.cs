@@ -10,5 +10,5 @@ public interface IParameterizedConcreteRoute<TViewModel, TParam> : IConcreteRout
     /// <summary>
     /// Gets the parameter for the concrete route.
     /// </summary>
-    public TParam Parameter { get; }
+    public new TParam Parameter { get; }
 }

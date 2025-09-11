@@ -6,11 +6,11 @@ namespace Playground.ViewModels.Home;
 public partial class HomeViewModel : ObservableObject, IRoutedViewModel
 {
     [ObservableProperty]
-    public partial string Message { get; private set; } = string.Empty;
+    public partial string Messages { get; private set; }
 
-    public Task OnNavigatedToAsync(NavigationArgs args)
+    public HomeViewModel(IMessageProvider messageProvider, MessageContainer messageContainer)
     {
-        Message = "Welcome to the Home View!";
-        return Task.CompletedTask;
+        Messages = $"IMessageProvider: {messageProvider.GetMessage()}\r\n\r\n" +
+            $"MessageContainer: {messageContainer.Message}";
     }
 }

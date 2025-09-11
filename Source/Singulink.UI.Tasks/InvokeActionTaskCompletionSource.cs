@@ -1,6 +1,6 @@
 namespace Singulink.UI.Tasks;
 
-internal class InvokeActionTaskCompletionSource(Action action) : TaskCompletionSource, IInvokable
+internal sealed class InvokeActionTaskCompletionSource(Action action) : TaskCompletionSource, IInvokable
 {
     public void Invoke()
     {
@@ -16,7 +16,7 @@ internal class InvokeActionTaskCompletionSource(Action action) : TaskCompletionS
     }
 }
 
-internal class InvokeActionTaskCompletionSource<T>(T state, Action<T> action) : TaskCompletionSource, IInvokable
+internal sealed class InvokeActionTaskCompletionSource<T>(T state, Action<T> action) : TaskCompletionSource, IInvokable
 {
     public void Invoke()
     {

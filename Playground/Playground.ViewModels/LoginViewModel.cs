@@ -12,11 +12,9 @@ public partial class LoginViewModel : ObservableObject, IRoutedViewModel
     [ObservableProperty]
     public partial string Password { get; set; } = string.Empty;
 
-    public INavigator Navigator => this.GetNavigator();
-
     public async Task OnNavigatedToAsync(NavigationArgs args)
     {
-        Navigator.ClearHistory();
+        await this.Navigator.ClearHistory();
         await Task.Delay(500); // Simulate async loading
     }
 
@@ -25,11 +23,11 @@ public partial class LoginViewModel : ObservableObject, IRoutedViewModel
     {
         // Simulate a login process (email and password would be checked here)
 
-        await Navigator.TaskRunner.RunAsBusyAsync(async () => await Task.Delay(2000));
+        await this.Navigator.TaskRunner.RunAsBusyAsync(async () => await Task.Delay(2000));
 
         // Navigate to the main view after successful login
 
-        await Navigator.NavigateAsync(Routes.MainRoot);
-        Navigator.ClearHistory();
+        await this.Navigator.NavigateAsync(Routes.MainRoot);
+        await this.Navigator.ClearHistory();
     }
 }

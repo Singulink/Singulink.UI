@@ -1,11 +1,10 @@
 using Playground.ViewModels.DialogTest;
-using Singulink.UI.Navigation.WinUI;
 
 namespace Playground.Views.DialogTest;
 
-public sealed partial class DialogTestPage : UserControl, IRoutedView<DialogTestViewModel>
+public sealed partial class DialogTestPage : UserControl
 {
-    public DialogTestViewModel Model { get; } = new();
+    public DialogTestViewModel Model => (DialogTestViewModel)DataContext;
 
     public DialogTestPage()
     {

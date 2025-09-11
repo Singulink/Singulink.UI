@@ -2,15 +2,15 @@ using Singulink.UI.Tasks;
 
 namespace Singulink.UI.Navigation.WinUI;
 
-internal class DialogNavigator(Navigator navigator, ContentDialog dialog) : IDialogNavigator
+internal sealed class DialogNavigator(Navigator navigator, ContentDialog dialog) : IDialogNavigator
 {
-    internal Navigator Navigator => navigator;
+    internal Navigator RootNavigator => navigator;
 
-    public ContentDialog Dialog => dialog;
+    internal ContentDialog Dialog => dialog;
 
-    public ITaskRunner TaskRunner { get; } = new TaskRunner(busy => dialog.IsEnabled = !busy);
+    public ITaskRunner TaskRunner => field ??= new TaskRunner(busy => dialog.IsEnabled = !busy);
 
-    /// <inheritdoc cref="IDialogNavigatorBase.ShowDialogAsync{TViewModel}(TViewModel)"/>
+    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync{TViewModel}(TViewModel)"/>
     public async Task ShowDialogAsync<TViewModel>(TViewModel viewModel)
         where TViewModel : class, IDialogViewModel
     {

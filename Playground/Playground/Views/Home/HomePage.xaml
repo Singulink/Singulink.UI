@@ -6,7 +6,7 @@
   Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
   <Grid>
-    <TextBlock Text="{x:Bind Model.Message}"
+    <TextBlock Text="{x:Bind Model.Messages}"
                HorizontalAlignment="Center"
                VerticalAlignment="Center"/>
   </Grid>

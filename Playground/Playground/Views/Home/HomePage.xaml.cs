@@ -1,11 +1,10 @@
 using Playground.ViewModels.Home;
-using Singulink.UI.Navigation.WinUI;
 
 namespace Playground.Views.Home;
 
-public sealed partial class HomePage : UserControl, IRoutedView<HomeViewModel>
+public sealed partial class HomePage : UserControl
 {
-    public HomeViewModel Model { get; } = new();
+    public HomeViewModel Model => (HomeViewModel)DataContext;
 
     public HomePage()
     {

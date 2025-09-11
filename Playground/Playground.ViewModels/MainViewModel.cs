@@ -1,14 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Singulink.UI.Navigation;
-using Singulink.UI.Tasks;
 
 namespace Playground.ViewModels;
 
-public partial class MainViewModel : ObservableObject, IRoutedViewModel
+public partial class MainViewModel : ObservableObject, IRoutedViewModel, IMessageProvider, IServiceProvider
 {
-    public INavigator Navigator => this.GetNavigator();
-
-    private ITaskRunner TaskRunner => Navigator.TaskRunner;
+    public INavigator Navigator => ViewModelExtensions.get_Navigator(this);
 
     public IReadOnlyList<MenuItem> MainMenuItems { get; } = [
         new("Home", Routes.Main.HomeChild),
@@ -21,38 +18,36 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel
     ];
 
     [ObservableProperty]
-    public partial MenuItem SelectedMenuItem { get; set; }
-
-    public MainViewModel()
-    {
-        SelectedMenuItem = MainMenuItems[0];
-    }
+    public partial MenuItem SelectedMenuItem { get; set; } = new("", null);
 
     public async Task OnNavigatedToAsync(NavigationArgs args)
     {
-        // Simulate first-time loading
+        SelectedMenuItem = MainMenuItems[0];
+        await Task.Delay(1000);
+    }
 
-        if (!args.AlreadyNavigatedTo)
-            await Task.Delay(1000);
-
+    public Task OnRouteNavigatedAsync(NavigationArgs args)
+    {
         // If there is no child navigation (because a view routed directly to "/" instead of "/Home", for example),
         // navigate to the selected menu item (which is Home by default).
 
         if (!args.HasChildNavigation)
-            await Navigator.NavigatePartialAsync(SelectedMenuItem.ChildRoutePart!);
+            args.Redirect = nav => nav.NavigatePartial(SelectedMenuItem.ChildRoutePart!);
+
+        return Task.CompletedTask;
     }
 
-    public void BeginBackRequest() => TaskRunner.RunAndForget((Func<Task>)(async () => {
+    public void BeginBackRequest() => this.TaskRunner.RunAndForget(async () => {
         await Navigator.GoBackAsync();
-        SelectedMenuItem = MainMenuItems.First((Func<MenuItem, bool>)(mi => Navigator.CurrentRouteStartsWith((IConcreteRootRoutePart<MainViewModel>)Routes.MainRoot, mi.ChildRoutePart!)));
-    }));
+        SelectedMenuItem = MainMenuItems.First(mi => Navigator.CurrentPathStartsWith(Routes.MainRoot, mi.ChildRoutePart!));
+    });
 
     partial void OnSelectedMenuItemChanged(MenuItem value)
     {
-        if (!this.HasNavigated() || Navigator.CurrentRoute?.Parts.Last() == value.ChildRoutePart)
+        if (Navigator.IsNavigating || Navigator.CurrentRoute.Parts.Last() == value.ChildRoutePart)
             return;
 
-        TaskRunner.RunAndForget(async () => {
+        this.TaskRunner.RunAndForget(async () => {
             if (value.ChildRoutePart is not null)
             {
                 await Navigator.NavigatePartialAsync(value.ChildRoutePart);
@@ -62,6 +57,16 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel
             await Task.Delay(500); // Simulate logout
             await Navigator.NavigateAsync(Routes.LoginRoot);
         });
+    }
+
+    string IMessageProvider.GetMessage() => "Hello from MainViewModel via IMessageProvider!";
+
+    object? IServiceProvider.GetService(Type serviceType)
+    {
+        if (serviceType == typeof(MessageContainer))
+            return new MessageContainer("Hello from MainViewModel via IServiceProvider + MessageContainer!");
+        else
+            return null;
     }
 }
 

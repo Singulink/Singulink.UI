@@ -41,6 +41,7 @@
       SkiaRenderer;
     </UnoFeatures>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Playground.ViewModels\Playground.ViewModels.csproj" />
     <ProjectReference Include="..\..\Source\Singulink.UI.Navigation\Singulink.UI.Navigation.csproj" />
