@@ -108,7 +108,12 @@ partial class Navigator
                 _routeStack.RemoveRange(_currentRouteIndex + 1, removedRoutes.Count);
             }
 
-            if (route != CurrentRouteImpl)
+            if (_isRedirecting && _currentRouteIndex > 0)
+            {
+                (removedRoutes ??= []).Add(_routeStack[_currentRouteIndex]);
+                _routeStack[_currentRouteIndex] = route;
+            }
+            else if (route != CurrentRouteImpl)
             {
                 _routeStack.Add(route);
                 _currentRouteIndex = _routeStack.Count - 1;
@@ -275,8 +280,8 @@ partial class Navigator
                     viewNavigator.SetActiveView(routeItem.View);
                 }
 
-                var args = new NavigationArgs(navigationType, hasChildNavigation);
-                RedirectNavigator redirectNavigator = null;
+                var redirectNavigator = new RedirectNavigator();
+                var args = new NavigationArgs(navigationType, hasChildNavigation, redirectNavigator);
 
                 using (EnterNavigationGuard(blockDialogs: false))
                 {
@@ -293,7 +298,7 @@ partial class Navigator
                         }
                     }
 
-                    if (args.Redirect is null)
+                    if (redirectNavigator.GetRedirectTask is null)
                     {
                         await routeItem.ViewModel.OnRouteNavigatedAsync(args);
 
@@ -304,22 +309,16 @@ partial class Navigator
                                 $"(view model '{routeItem.ViewModel.GetType()}').");
                         }
                     }
-
-                    if (args.Redirect is not null)
-                    {
-                        redirectNavigator = new RedirectNavigator();
-                        args.Redirect.Invoke(redirectNavigator);
-                    }
                 }
 
-                if (redirectNavigator?.GetRedirectTask is { } getRedirectTask)
+                if (redirectNavigator.GetRedirectTask is not null)
                 {
                     bool wasRedirecting = _isRedirecting;
 
                     try
                     {
                         _isRedirecting = true;
-                        return await getRedirectTask(this);
+                        return await redirectNavigator.GetRedirectTask(this);
                     }
                     finally
                     {

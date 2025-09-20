@@ -20,28 +20,6 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel, IMessag
     [ObservableProperty]
     public partial MenuItem SelectedMenuItem { get; set; } = new("", null);
 
-    public async Task OnNavigatedToAsync(NavigationArgs args)
-    {
-        SelectedMenuItem = MainMenuItems[0];
-        await Task.Delay(1000);
-    }
-
-    public Task OnRouteNavigatedAsync(NavigationArgs args)
-    {
-        // If there is no child navigation (because a view routed directly to "/" instead of "/Home", for example),
-        // navigate to the selected menu item (which is Home by default).
-
-        if (!args.HasChildNavigation)
-            args.Redirect = nav => nav.NavigatePartial(SelectedMenuItem.ChildRoutePart!);
-
-        return Task.CompletedTask;
-    }
-
-    public void BeginBackRequest() => this.TaskRunner.RunAndForget(async () => {
-        await Navigator.GoBackAsync();
-        SelectedMenuItem = MainMenuItems.First(mi => Navigator.CurrentPathStartsWith(Routes.MainRoot, mi.ChildRoutePart!));
-    });
-
     partial void OnSelectedMenuItemChanged(MenuItem value)
     {
         if (Navigator.IsNavigating || Navigator.CurrentRoute.Parts.Last() == value.ChildRoutePart)
@@ -58,6 +36,28 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel, IMessag
             await Navigator.NavigateAsync(Routes.LoginRoot);
         });
     }
+
+    public async Task OnNavigatedToAsync(NavigationArgs args)
+    {
+        SelectedMenuItem = MainMenuItems[0];
+        await Task.Delay(1000);
+    }
+
+    public Task OnRouteNavigatedAsync(NavigationArgs args)
+    {
+        // If there is no child navigation (because a view routed directly to "/" instead of "/Home", for example),
+        // navigate to the selected menu item (which is Home by default).
+
+        if (!args.HasChildNavigation)
+            args.RedirectNavigator.NavigatePartial(SelectedMenuItem.ChildRoutePart!);
+
+        return Task.CompletedTask;
+    }
+
+    public void BeginBackRequest() => this.TaskRunner.RunAndForget(async () => {
+        await Navigator.GoBackAsync();
+        SelectedMenuItem = MainMenuItems.First(mi => Navigator.CurrentPathStartsWith(Routes.MainRoot, mi.ChildRoutePart!));
+    });
 
     string IMessageProvider.GetMessage() => "Hello from MainViewModel via IMessageProvider!";
 

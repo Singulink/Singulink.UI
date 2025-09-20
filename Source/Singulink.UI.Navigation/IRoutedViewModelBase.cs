@@ -19,18 +19,23 @@ public interface IRoutedViewModelBase
     public bool CanBeCached => true;
 
     /// <summary>
-    /// Invoked when the view model is navigated to (i.e. becomes visible). May be invoked multiple times on the same view model instance if the view model is
+    /// Called when the view model is navigated to (i.e. becomes visible). May be called multiple times on the same view model instance if the view model is
     /// navigated away from but still cached when a route containing the view model is navigated to again. Calls are always paired with future calls to <see
     /// cref="OnNavigatedAwayAsync"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// This method can show dialogs as long as they are closed before the returned task completes or <see cref="NavigationArgs.HasChildNavigation"/> on
-    /// <paramref name="args"/> is <see langword="false"/>.
+    /// <paramref name="args"/> is <see langword="false"/>.</para>
+    /// <para>
+    /// A redirection can be requested by calling a navigation method on the <see cref="NavigationArgs.RedirectNavigator"/> property on <paramref name="args"/>.
+    /// If a redirection is requested, the rest of the current navigation will be cancelled and the redirection will occur after the task returned by this
+    /// method completes. If the view model remains active in the redirected route, this method will not be called again.</para>
     /// </remarks>
     public Task OnNavigatedToAsync(NavigationArgs args) => Task.CompletedTask;
 
     /// <summary>
-    /// Invoked when the view model is being navigated away from. Can be used to cancel the new navigation (e.g. if there is unsaved data).
+    /// Called when the view model is being navigated away from. Can be used to cancel the new navigation (e.g. if there is unsaved data).
     /// </summary>
     /// <remarks>
     /// This method can show dialogs as long as they are closed before the returned task completes. The <see cref="NavigatingArgs.Cancel"/> property on
@@ -39,7 +44,7 @@ public interface IRoutedViewModelBase
     public Task OnNavigatingAwayAsync(NavigatingArgs args) => Task.CompletedTask;
 
     /// <summary>
-    /// Invoked when the view model is navigated away from.
+    /// Called when the view model is navigated away from.
     /// </summary>
     /// <remarks>
     /// This method cannot show dialogs or cancel/reroute the new navigation. It should only be used to clean up resources or unhook event handlers that were
@@ -49,19 +54,24 @@ public interface IRoutedViewModelBase
     public Task OnNavigatedAwayAsync() => Task.CompletedTask;
 
     /// <summary>
-    /// Invoked whenever a route that contains this view model is navigated to, even if the view model was already active in the previous route. If the view
-    /// model was not already active in the previous route then it will fire after <see cref="OnNavigatedToAsync(NavigationArgs)"/>, and any time the route is
-    /// refreshed or changed while this view model remains active in the new route.
+    /// Called whenever a route that contains the view model is navigated to, even if the view model was already active in the previous route. If the view
+    /// model was not already active in the previous route then it will be called after <see cref="OnNavigatedToAsync(NavigationArgs)"/>, and any time the route
+    /// is refreshed or changed while the view model remains active in the new route.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// This method can show dialogs as long as they are closed before the returned task completes or <see cref="NavigationArgs.HasChildNavigation"/> on
-    /// <paramref name="args"/> is <see langword="false"/>.
+    /// <paramref name="args"/> is <see langword="false"/>.</para>
+    /// <para>
+    /// A redirection can be requested by calling a navigation method on the <see cref="NavigationArgs.RedirectNavigator"/> property on <paramref name="args"/>.
+    /// If a redirection is requested, the rest of the current navigation will be cancelled and the redirection will occur after the task returned by this
+    /// method completes. If the view model remains active in the redirected route, this method will be called again.</para>
     /// </remarks>
     public Task OnRouteNavigatedAsync(NavigationArgs args) => Task.CompletedTask;
 
     /// <summary>
-    /// Invoked whenever this view model is active in the current route and a new route is being navigated to, even if the view model will remain active in the
-    /// new route. If the view model will not remain active in the new route then it will fire after <see cref="OnNavigatingAwayAsync(NavigatingArgs)"/>.
+    /// Called whenever the view model is active in the current route and a new route is being navigated to, even if the view model will remain active in the
+    /// new route. If the view model will not remain active in the new route then it will be called after <see cref="OnNavigatingAwayAsync(NavigatingArgs)"/>.
     /// </summary>
     /// <remarks>
     /// This method can show dialogs as long as they are closed before the returned task completes. The <see cref="NavigatingArgs.Cancel"/> property on

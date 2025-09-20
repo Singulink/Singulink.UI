@@ -11,11 +11,6 @@ public interface IRedirectNavigator
     public void GoBack();
 
     /// <summary>
-    /// Navigates forward to the next view.
-    /// </summary>
-    public void GoForward();
-
-    /// <summary>
     /// Navigates to the specified route.
     /// </summary>
     public void Navigate(string route);

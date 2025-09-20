@@ -6,25 +6,16 @@ internal sealed class RedirectNavigator : IRedirectNavigator
 
     public void GoBack()
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.GoBackAsync();
-    }
-
-    public void GoForward()
-    {
-        EnsureRedirectNotSet();
-        GetRedirectTask = n => n.GoForwardAsync();
     }
 
     public void Navigate(string route)
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigateAsync(route);
     }
 
     public void Navigate(IConcreteRootRoutePart rootRoutePart, RouteOptions? routeOptions = null)
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigateAsync(rootRoutePart, routeOptions);
     }
 
@@ -33,7 +24,6 @@ internal sealed class RedirectNavigator : IRedirectNavigator
         IConcreteChildRoutePart<TRootViewModel> childRoutePart,
         RouteOptions? routeOptions = null) where TRootViewModel : class
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigateAsync(rootRoutePart, childRoutePart, routeOptions);
     }
 
@@ -45,7 +35,6 @@ internal sealed class RedirectNavigator : IRedirectNavigator
         where TRootViewModel : class
         where TChildViewModel1 : class
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigateAsync(rootRoutePart, childRoutePart1, childRoutePart2, routeOptions);
     }
 
@@ -59,13 +48,11 @@ internal sealed class RedirectNavigator : IRedirectNavigator
         where TChildViewModel1 : class
         where TChildViewModel2 : class
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigateAsync(rootRoutePart, childRoutePart1, childRoutePart2, childRoutePart3, routeOptions);
     }
 
     public void NavigatePartial(RouteOptions routeOptions)
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigatePartialAsync(routeOptions);
     }
 
@@ -74,7 +61,6 @@ internal sealed class RedirectNavigator : IRedirectNavigator
         RouteOptions? routeOptions = null)
         where TParentViewModel : class
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigatePartialAsync(childRoutePart, routeOptions);
     }
 
@@ -85,7 +71,6 @@ internal sealed class RedirectNavigator : IRedirectNavigator
         where TParentViewModel : class
         where TChildViewModel1 : class
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigatePartialAsync(childRoutePart1, childRoutePart2, routeOptions);
     }
 
@@ -98,19 +83,11 @@ internal sealed class RedirectNavigator : IRedirectNavigator
         where TChildViewModel1 : class
         where TChildViewModel2 : class
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigatePartialAsync(childRoutePart1, childRoutePart2, childRoutePart3, routeOptions);
     }
 
     public void NavigateToParent<TParentViewModel>(RouteOptions? options = null) where TParentViewModel : class
     {
-        EnsureRedirectNotSet();
         GetRedirectTask = n => n.NavigateToParentAsync<TParentViewModel>(options);
-    }
-
-    private void EnsureRedirectNotSet()
-    {
-        if (GetRedirectTask is not null)
-            throw new InvalidOperationException("The redirect navigator can only be used for a single redirect navigation operation.");
     }
 }

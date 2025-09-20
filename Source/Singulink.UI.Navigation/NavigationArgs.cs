@@ -10,11 +10,12 @@ public sealed class NavigationArgs
     /// <summary>
     /// Initializes a new instance of the <see cref="NavigationArgs"/> class.
     /// </summary>
-    public NavigationArgs(NavigationType navigationType, bool hasChildNavigation)
+    public NavigationArgs(NavigationType navigationType, bool hasChildNavigation, IRedirectNavigator redirectNavigator)
     {
         navigationType.ThrowIfNotValid(nameof(navigationType));
         NavigationType = navigationType;
         HasChildNavigation = hasChildNavigation;
+        RedirectNavigator = redirectNavigator;
     }
 
     /// <summary>
@@ -28,8 +29,8 @@ public sealed class NavigationArgs
     public bool HasChildNavigation { get; }
 
     /// <summary>
-    /// Gets or sets an action that will be invoked to redirect the navigation to a different route. The action must call a navigation method on the provided
-    /// navigator to perform the redirection. If the action does not call a navigation method, the original navigation will proceed as normal.
+    /// Gets a navigator that can be used to request a redirect to a different route. The redirect navigation occurs after the current navigation handler
+    /// completes.
     /// </summary>
-    public Action<IRedirectNavigator>? Redirect { get; set; }
+    public IRedirectNavigator RedirectNavigator { get; }
 }
