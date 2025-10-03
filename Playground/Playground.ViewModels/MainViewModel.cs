@@ -49,7 +49,7 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel, IMessag
         // navigate to the selected menu item (which is Home by default).
 
         if (!args.HasChildNavigation)
-            args.RedirectNavigator.NavigatePartial(SelectedMenuItem.ChildRoutePart!);
+            args.Redirect = Redirect.NavigatePartial(SelectedMenuItem.ChildRoutePart!);
 
         return Task.CompletedTask;
     }

@@ -424,7 +424,7 @@ dotnet_diagnostic.SA1214.severity = suggestion
 dotnet_diagnostic.SA1402.severity = none
 
 # IDE0028: Simplify collection initialization
-dotnet_diagnostic.IDE0028.severity = warning
+dotnet_diagnostic.IDE0028.severity = suggestion
 
 # IDE0057: Use range operator
 dotnet_diagnostic.IDE0057.severity = warning

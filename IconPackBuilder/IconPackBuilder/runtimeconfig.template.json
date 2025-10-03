@@ -1,0 +1,8 @@
+{
+  "frameworks": [
+    {
+      "name": "Microsoft.WindowsDesktop.App",
+      "version": "10.0.0"
+    }
+  ]
+}

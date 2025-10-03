@@ -3,12 +3,12 @@ using Singulink.UI.Navigation;
 
 namespace Playground.ViewModels.DialogTest;
 
-public partial class DismissableDialogViewModel : IDismissableDialogViewModel
+public partial class DismissibleDialogViewModel : IDismissibleDialogViewModel
 {
     [RelayCommand]
     public async Task DoSomethingAsync()
     {
-        await this.Navigator.TaskRunner.RunAsBusyAsync(async () => {
+        await this.TaskRunner.RunAsBusyAsync(async () => {
             // Simulate a long-running task
             await Task.Delay(1500);
         });
@@ -20,7 +20,7 @@ public partial class DismissableDialogViewModel : IDismissableDialogViewModel
     [RelayCommand]
     public void Close() => this.Navigator.Close();
 
-    public async void OnDismissRequested()
+    public async Task OnDismissRequestedAsync()
     {
         int result = await this.Navigator.ShowMessageDialogAsync("Are you sure you want to close this dialog?", "Confirm", DialogButtonLabels.YesNo);
 

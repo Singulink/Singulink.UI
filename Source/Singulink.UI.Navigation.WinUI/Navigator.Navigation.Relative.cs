@@ -1,3 +1,5 @@
+using Singulink.UI.Navigation.InternalServices;
+
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <content>
@@ -45,10 +47,13 @@ partial class Navigator
         if (CloseLightDismissPopups() || IsNavigating)
             return true;
 
-        if (IsShowingDialog)
+        if (_dialogStack.TryPeek(out var dialogInfo))
         {
-            if (_dialogStack.Peek().Dialog.DataContext is IDismissableDialogViewModel dismissableVm)
-                dismissableVm.OnDismissRequested();
+            if (dialogInfo.Dialog.DataContext is IDismissibleDialogViewModel dismissibleVm &&
+                MixinManager.GetNavigator(dismissibleVm) is { } dn && !dn.TaskRunner.IsBusy)
+            {
+                dn.TaskRunner.RunAsBusyAndForget(dismissibleVm.OnDismissRequestedAsync());
+            }
 
             return true;
         }

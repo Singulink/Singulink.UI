@@ -28,9 +28,9 @@ public interface IRoutedViewModelBase
     /// This method can show dialogs as long as they are closed before the returned task completes or <see cref="NavigationArgs.HasChildNavigation"/> on
     /// <paramref name="args"/> is <see langword="false"/>.</para>
     /// <para>
-    /// A redirection can be requested by calling a navigation method on the <see cref="NavigationArgs.RedirectNavigator"/> property on <paramref name="args"/>.
-    /// If a redirection is requested, the rest of the current navigation will be cancelled and the redirection will occur after the task returned by this
-    /// method completes. If the view model remains active in the redirected route, this method will not be called again.</para>
+    /// A redirection can be requested setting the <see cref="NavigationArgs.Redirect"/> property on <paramref name="args"/>. If a redirection is requested, the
+    /// rest of the current navigation will be cancelled and the redirection will occur after the task returned by this method completes. This method will not
+    /// be called again if the view model is still active in the redirected route.</para>
     /// </remarks>
     public Task OnNavigatedToAsync(NavigationArgs args) => Task.CompletedTask;
 
@@ -54,18 +54,18 @@ public interface IRoutedViewModelBase
     public Task OnNavigatedAwayAsync() => Task.CompletedTask;
 
     /// <summary>
-    /// Called whenever a route that contains the view model is navigated to, even if the view model was already active in the previous route. If the view
-    /// model was not already active in the previous route then it will be called after <see cref="OnNavigatedToAsync(NavigationArgs)"/>, and any time the route
-    /// is refreshed or changed while the view model remains active in the new route.
+    /// Called whenever a route that contains the view model is navigated to, even if the view model was already active in the previous route. If the view model
+    /// was not already active in the previous route then it will be called after <see cref="OnNavigatedToAsync(NavigationArgs)"/>, and any time the route is
+    /// refreshed or changed while the view model remains active in the new route.
     /// </summary>
     /// <remarks>
     /// <para>
     /// This method can show dialogs as long as they are closed before the returned task completes or <see cref="NavigationArgs.HasChildNavigation"/> on
     /// <paramref name="args"/> is <see langword="false"/>.</para>
     /// <para>
-    /// A redirection can be requested by calling a navigation method on the <see cref="NavigationArgs.RedirectNavigator"/> property on <paramref name="args"/>.
-    /// If a redirection is requested, the rest of the current navigation will be cancelled and the redirection will occur after the task returned by this
-    /// method completes. If the view model remains active in the redirected route, this method will be called again.</para>
+    /// A redirection can be requested by setting the <see cref="NavigationArgs.Redirect"/> property on <paramref name="args"/>. If a redirection is requested,
+    /// the rest of the current navigation will be cancelled and the redirection will occur after the task returned by this method completes. If the view model
+    /// remains active in the redirected route, this method will be called again.</para>
     /// </remarks>
     public Task OnRouteNavigatedAsync(NavigationArgs args) => Task.CompletedTask;
 

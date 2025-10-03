@@ -10,12 +10,18 @@ public class NavigatingArgs
     /// <summary>
     /// Initializes a new instance of the <see cref="NavigatingArgs"/> class.
     /// </summary>
-    /// <param name="navigationType">The navigation type that is occurring.</param>
-    public NavigatingArgs(NavigationType navigationType)
+    public NavigatingArgs(INavigator navigator, NavigationType navigationType)
     {
         navigationType.ThrowIfNotValid(nameof(navigationType));
+
+        Navigator = navigator;
         NavigationType = navigationType;
     }
+
+    /// <summary>
+    /// Gets the navigator that is performing the navigation.
+    /// </summary>
+    public INavigator Navigator { get; }
 
     /// <summary>
     /// Gets the type of navigation that is occurring.

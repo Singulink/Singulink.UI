@@ -1,0 +1,25 @@
+﻿<UserControl
+  x:Class="IconPackBuilder.Views.StartRoot"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:IconPackBuilder.Views">
+
+  <Grid>
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20" Width="500" Padding="32">
+      <TextBlock Text="Icon Pack Builder" HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold" />
+      <TextBlock Text="Create a new project or open an existing one." FontSize="15" HorizontalAlignment="Center" Opacity="0.8" />
+
+      <StackPanel Spacing="4">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
+          <TextBox PlaceholderText="New Project Name"
+                   Text="{x:Bind Model.NewProjectName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+          <Button Grid.Column="1" Content="Create" Command="{x:Bind Model.CreateProjectCommand}" />
+        </Grid>
+        <TextBlock Text="Project name must be in Namespace.Class format." Opacity="0.8" HorizontalAlignment="Center" />
+      </StackPanel>
+
+      <Button Content="Open existing project" Command="{x:Bind Model.OpenProjectCommand}" HorizontalAlignment="Center" />
+    </StackPanel>
+  </Grid>
+</UserControl>

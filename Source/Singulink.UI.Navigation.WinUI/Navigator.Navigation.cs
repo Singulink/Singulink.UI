@@ -208,31 +208,29 @@ partial class Navigator
                         if (routeItem.AlreadyNavigatedTo)
                         {
                             bool willNavigateAway = i >= numCommonItems;
-                            var args = new NavigatingArgs(navigationType);
+                            var args = new NavigatingArgs(this, navigationType);
 
-                            if (willNavigateAway)
+                            void EnsureDialogsClosed()
                             {
-                                await routeItem.ViewModel.OnNavigatingAwayAsync(args);
-
                                 if (_dialogStack.Count > 0)
                                 {
                                     throw new InvalidOperationException(
                                         $"All dialogs must be closed before completing navigating event tasks " +
                                         $"(view model '{routeItem.ViewModel.GetType()}').");
                                 }
+                            }
+
+                            if (willNavigateAway)
+                            {
+                                await routeItem.ViewModel.OnNavigatingAwayAsync(args);
+                                EnsureDialogsClosed();
 
                                 if (args.Cancel)
                                     return NavigationResult.Cancelled;
                             }
 
                             await routeItem.ViewModel.OnRouteNavigatingAsync(args);
-
-                            if (_dialogStack.Count > 0)
-                            {
-                                throw new InvalidOperationException(
-                                    $"All dialogs must be closed before completing navigating event tasks " +
-                                    $"(view model '{routeItem.ViewModel.GetType()}').");
-                            }
+                            EnsureDialogsClosed();
 
                             if (args.Cancel)
                                 return NavigationResult.Cancelled;
@@ -280,45 +278,42 @@ partial class Navigator
                     viewNavigator.SetActiveView(routeItem.View);
                 }
 
-                var redirectNavigator = new RedirectNavigator();
-                var args = new NavigationArgs(navigationType, hasChildNavigation, redirectNavigator);
+                var args = new NavigationArgs(this, navigationType, hasChildNavigation);
 
                 using (EnterNavigationGuard(blockDialogs: false))
                 {
+                    void EnsureDialogsClosed()
+                    {
+                        if (hasChildNavigation && _dialogStack.Count > 0)
+                        {
+                            throw new InvalidOperationException(
+                                $"All dialogs must be closed before completing navigated event tasks with child navigations " +
+                                $"(view model '{routeItem.ViewModel.GetType()}').");
+                        }
+                    }
+
                     if (!routeItem.AlreadyNavigatedTo)
                     {
                         routeItem.AlreadyNavigatedTo = true;
                         await routeItem.ViewModel.OnNavigatedToAsync(args);
-
-                        if (hasChildNavigation && _dialogStack.Count > 0)
-                        {
-                            throw new InvalidOperationException(
-                                $"All dialogs must be closed before completing navigated event tasks with child navigations " +
-                                $"(view model '{routeItem.ViewModel.GetType()}').");
-                        }
+                        EnsureDialogsClosed();
                     }
 
-                    if (redirectNavigator.GetRedirectTask is null)
+                    if (args.Redirect is null)
                     {
                         await routeItem.ViewModel.OnRouteNavigatedAsync(args);
-
-                        if (hasChildNavigation && _dialogStack.Count > 0)
-                        {
-                            throw new InvalidOperationException(
-                                $"All dialogs must be closed before completing navigated event tasks with child navigations " +
-                                $"(view model '{routeItem.ViewModel.GetType()}').");
-                        }
+                        EnsureDialogsClosed();
                     }
                 }
 
-                if (redirectNavigator.GetRedirectTask is not null)
+                if (args.Redirect is not null)
                 {
                     bool wasRedirecting = _isRedirecting;
 
                     try
                     {
                         _isRedirecting = true;
-                        return await redirectNavigator.GetRedirectTask(this);
+                        return await args.Redirect.ExecuteAsync(this);
                     }
                     finally
                     {
@@ -333,29 +328,29 @@ partial class Navigator
         }
     }
 
-    private bool TryMatchRoute(string route, [MaybeNullWhen(false)] out List<IConcreteRoutePart> routeItems)
+    private bool TryMatchRoute(string routeString, [MaybeNullWhen(false)] out List<IConcreteRoutePart> routeParts)
     {
-        routeItems = [];
+        routeParts = [];
 
-        if (TryMatchRoute(route, null, routeItems, out _))
+        if (TryMatchRoute(routeString, null, routeParts, out _))
         {
-            routeItems.Reverse();
+            routeParts.Reverse();
             return true;
         }
 
         return false;
     }
 
-    private bool TryMatchRoute(ReadOnlySpan<char> routeString, Type? parentViewModelType, List<IConcreteRoutePart> routeItems, out ReadOnlySpan<char> rest)
+    private bool TryMatchRoute(ReadOnlySpan<char> routeString, Type? parentViewModelType, List<IConcreteRoutePart> routeParts, out ReadOnlySpan<char> rest)
     {
-        foreach (var route in _routeParts)
+        foreach (var routePart in _routeParts)
         {
-            if (route.ParentViewModelType != parentViewModelType || !route.TryMatch(routeString, out var concreteRoute, out rest))
+            if (routePart.ParentViewModelType != parentViewModelType || !routePart.TryMatch(routeString, out var concreteRoute, out rest))
                 continue;
 
-            if (rest.Length is 0 || TryMatchRoute(rest, route.ViewModelType, routeItems, out rest))
+            if (rest.Length is 0 || TryMatchRoute(rest, routePart.ViewModelType, routeParts, out rest))
             {
-                routeItems.Add(concreteRoute);
+                routeParts.Add(concreteRoute);
                 return true;
             }
         }
@@ -375,7 +370,7 @@ partial class Navigator
         {
             throw new NavigationRouteException(
                 $"Route '{routeString}' matched a different route than what was specified. " +
-                "Routes may be misconfigured, missing or specified in an incorrect order.");
+                $"Routes may be misconfigured, missing or specified in an incorrect order.");
         }
     }
 }

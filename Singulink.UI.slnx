@@ -1,0 +1,23 @@
+<Solution>
+  <Folder Name="/IconPackBuilder/">
+    <Project Path="IconPackBuilder/IconPackBuilder.Core/IconPackBuilder.Core.csproj" Id="cddbbbd5-8c5f-4abc-aa77-b112d756194b" />
+    <Project Path="IconPackBuilder/IconPackBuilder.Data/IconPackBuilder.Data.csproj" />
+    <Project Path="IconPackBuilder/IconPackBuilder.ViewModels/IconPackBuilder.ViewModels.csproj" />
+    <Project Path="IconPackBuilder/IconPackBuilder/IconPackBuilder.csproj">
+      <Deploy />
+    </Project>
+  </Folder>
+  <Folder Name="/Playground/">
+    <Project Path="Playground/Playground.ViewModels/Playground.ViewModels.csproj" />
+    <Project Path="Playground/Playground/Playground.csproj">
+      <Deploy Solution="Debug|*" />
+    </Project>
+  </Folder>
+  <Folder Name="/Source/">
+    <Project Path="Source/Singulink.UI.Icons/Singulink.UI.Icons.csproj" />
+    <Project Path="Source/Singulink.UI.Navigation.WinUI/Singulink.UI.Navigation.WinUI.csproj" />
+    <Project Path="Source/Singulink.UI.Navigation/Singulink.UI.Navigation.csproj" />
+    <Project Path="Source/Singulink.UI.Tasks/Singulink.UI.Tasks.csproj" />
+    <Project Path="Source/Singulink.UI.Xaml.WinUI/Singulink.UI.Xaml.WinUI.csproj" />
+  </Folder>
+</Solution>

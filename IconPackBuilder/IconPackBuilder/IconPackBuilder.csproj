@@ -1,0 +1,64 @@
+﻿<Project Sdk="Uno.Sdk">
+  <PropertyGroup>
+    <!-- ;net9.0-desktop -->
+    <TargetFrameworks>net10.0-windows10.0.26100;net10.0-desktop</TargetFrameworks>
+
+    <OutputType>Exe</OutputType>
+    <UnoSingleProject>true</UnoSingleProject>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Display name -->
+    <ApplicationTitle>Singulink Icon Pack Builder</ApplicationTitle>
+    <!-- App Identifier -->
+    <ApplicationId>com.singulink.IconPackBuilder</ApplicationId>
+    <!-- Versions -->
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <!-- Package Publisher -->
+    <ApplicationPublisher>Singulink</ApplicationPublisher>
+    <!-- Package Description -->
+    <Description>Utility to build trimmed font-based icon packs.</Description>
+    <!--
+      If you encounter this error message:
+
+        error NETSDK1148: A referenced assembly was compiled using a newer version of Microsoft.Windows.SDK.NET.dll.
+        Please update to a newer .NET SDK in order to reference this assembly.
+
+      This means that the two packages below must be aligned with the "build" version number of
+      the "Microsoft.Windows.SDK.BuildTools" package above, and the "revision" version number
+      must be the highest found in https://www.nuget.org/packages/Microsoft.Windows.SDK.NET.Ref.
+    -->
+    <!-- <WindowsSdkPackageVersion>10.0.22621.28</WindowsSdkPackageVersion> -->
+
+    <!--
+      UnoFeatures let's you quickly add and manage implicit package references based on the features you want to use.
+      https://aka.platform.uno/singleproject-features
+    -->
+    <UnoFeatures>
+      Lottie;
+      Toolkit;
+      Mvvm;
+      ThemeService;
+      SkiaRenderer;
+    </UnoFeatures>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentIcons.WinUI" Version="1.3.316" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.WinUI\Singulink.UI.Navigation.WinUI.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Xaml.WinUI\Singulink.UI.Xaml.WinUI.csproj" />
+    <ProjectReference Include="..\IconPackBuilder.Core\IconPackBuilder.Core.csproj" />
+    <ProjectReference Include="..\IconPackBuilder.ViewModels\IconPackBuilder.ViewModels.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Converters\" />
+  </ItemGroup>
+</Project>

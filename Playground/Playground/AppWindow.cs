@@ -55,7 +55,7 @@ public class AppWindow : Window
             builder.MapRoutedView<ParamsTestViewModel, ParamsTestPage>();
             builder.MapRoutedView<ShowParamsTestViewModel, ShowParamsTestPage>();
 
-            builder.MapDialog<DismissableDialogViewModel, DismissableDialog>();
+            builder.MapDialog<DismissibleDialogViewModel, DismissibleDialog>();
 
             builder.ConfigureNavigationStacks(maxSize: 10, maxBackCachedDepth: 3, maxForwardCachedDepth: 3);
             builder.AddAllRoutes();

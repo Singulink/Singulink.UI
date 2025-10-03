@@ -1,10 +1,10 @@
 ﻿<ContentDialog
-  x:Class="Playground.Views.DialogTest.DismissableDialog"
+  x:Class="Playground.Views.DialogTest.DismissibleDialog"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:local="using:Playground.Views.DialogTest"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  Title="Dismissable Dialog"
+  Title="Dismissible Dialog"
   Style="{ThemeResource DefaultContentDialogStyle}"
   PrimaryButtonText="Close"
   PrimaryButtonCommand="{x:Bind Model.CloseCommand}">

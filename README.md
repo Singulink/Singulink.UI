@@ -8,6 +8,7 @@ Details of each component are provided below:
 
 | Library | Status | Package |
 | --- | --- | --- |
+| **Singulink.UI.Icons** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Icons.svg)](https://www.nuget.org/packages/Singulink.UI.Icons/) |
 | **Singulink.UI.Navigation** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation/) |
 | **Singulink.UI.Navigation.WinUI** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.WinUI.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation.WinUI/) |
 | **Singulink.UI.Tasks** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Tasks.svg)](https://www.nuget.org/packages/Singulink.UI.Tasks/) |
@@ -29,6 +30,12 @@ We are a small team of engineers and designers dedicated to building beautiful, 
 These packages are part of our **Singulink Libraries** collection. Visit https://github.com/Singulink to see our full list of publicly available libraries and other open-source projects.
 
 ## Components
+
+### Singulink.UI.Icons
+
+Provides supporting base types that are used by **Icon Pack Builder** when generating strongly-typed icon packs that can be used in any UI framework that supports font-based icons. **Icon Pack Builder** is currently in beta and under development in this repository, and will be documented separately when ready.
+
+**Supported Platforms**: .NET 8.0+, any UI framework (i.e. UWP/WinUI, Uno Platform, Avalonia, WPF, etc)
 
 ### Singulink.UI.Navigation
 

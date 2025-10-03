@@ -131,21 +131,19 @@ partial class Navigator
             {
                 args.Cancel = true;
 
-                if (sender.DataContext is IDismissableDialogViewModel dismissableViewModel)
+                if (sender.DataContext is IDismissibleDialogViewModel dismissibleVm)
                 {
-                    // Yield to prevent reentrant Hide() calls if the dismissable view model calls Close() in OnDismissRequested
+                    // Yield to prevent reentrant Hide() calls if the dismissible view model calls Close() in OnDismissRequested
                     // otherwise the dialog will not hide.
 
                     await Task.Yield();
 
                     // Make sure we are still the top dialog and another event didn't close the dialog after the yield.
 
-                    if (_dialogStack.TryPeek(out dialogInfo) &&
-                        dialogInfo.Dialog == sender &&
-                        MixinManager.GetNavigator(dismissableViewModel) is { } dn &&
-                        !dn.TaskRunner.IsBusy)
+                    if (_dialogStack.TryPeek(out dialogInfo) && dialogInfo.Dialog == sender &&
+                        MixinManager.GetNavigator(dismissibleVm) is { } navigator && !navigator.TaskRunner.IsBusy)
                     {
-                        dismissableViewModel.OnDismissRequested();
+                        await navigator.TaskRunner.RunAsBusyAsync(dismissibleVm.OnDismissRequestedAsync());
                     }
                 }
             }

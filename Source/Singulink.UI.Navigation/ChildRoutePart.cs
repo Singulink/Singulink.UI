@@ -92,7 +92,7 @@ public class ChildRoutePart<TParentViewModel, TChildViewModel, TParam> : RoutePa
 
         bool IEquatable<IConcreteRoutePart>.Equals(IConcreteRoutePart? other)
         {
-            return other is Concrete specified && specified.RoutePart == RoutePart && specified.Parameter.Equals(Parameter);
+            return other is Concrete concrete && concrete.RoutePart == RoutePart && concrete.Parameter.Equals(Parameter);
         }
     }
 }

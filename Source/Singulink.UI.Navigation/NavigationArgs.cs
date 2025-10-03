@@ -10,13 +10,19 @@ public sealed class NavigationArgs
     /// <summary>
     /// Initializes a new instance of the <see cref="NavigationArgs"/> class.
     /// </summary>
-    public NavigationArgs(NavigationType navigationType, bool hasChildNavigation, IRedirectNavigator redirectNavigator)
+    public NavigationArgs(INavigator navigator, NavigationType navigationType, bool hasChildNavigation)
     {
         navigationType.ThrowIfNotValid(nameof(navigationType));
+
+        Navigator = navigator;
         NavigationType = navigationType;
         HasChildNavigation = hasChildNavigation;
-        RedirectNavigator = redirectNavigator;
     }
+
+    /// <summary>
+    /// Gets the navigator that is performing the navigation.
+    /// </summary>
+    public INavigator Navigator { get; }
 
     /// <summary>
     /// Gets the type of navigation that is occurring.
@@ -29,8 +35,11 @@ public sealed class NavigationArgs
     public bool HasChildNavigation { get; }
 
     /// <summary>
-    /// Gets a navigator that can be used to request a redirect to a different route. The redirect navigation occurs after the current navigation handler
-    /// completes.
+    /// Gets or sets a redirect to a different route.
     /// </summary>
-    public IRedirectNavigator RedirectNavigator { get; }
+    /// <remarks>
+    /// This property is checked after the handler that provided these args completes, and if set, any remaining navigation is cancelled and the redirect is
+    /// performed. The cancelled navigation does not appear in the navigation history.
+    /// </remarks>
+    public Redirect? Redirect { get; set; }
 }

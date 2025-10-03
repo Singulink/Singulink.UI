@@ -100,9 +100,10 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// or if a back navigation was initiated; otherwise <see langword="false"/> (meaning there was no back history).
     /// </summary>
     /// <remarks>
-    /// If a dialog is showing and it implements <see cref="IDismissableDialogViewModel"/>, the <see cref="IDismissableDialogViewModel.OnDismissRequested"/>
-    /// method will be called to allow the dialog to handle the back request. If the dialog is not dismissable or if a navigation is currently in progress then
-    /// the back request will still be marked as handled but the request will be ignored and no navigation will occur.
+    /// If a dialog is showing and it implements <see cref="IDismissibleDialogViewModel"/>, the <see
+    /// cref="IDismissibleDialogViewModel.OnDismissRequestedAsync"/> method will be called to allow the dialog to handle the back request. If the dialog is not
+    /// dismissible or if a navigation is currently in progress then the back request will still be marked as handled but the request will be ignored and no
+    /// navigation will occur.
     /// </remarks>
     public bool HandleSystemBackRequest();
 
