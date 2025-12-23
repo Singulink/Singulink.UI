@@ -28,4 +28,7 @@ public class IconGlyph : IIconGlyph
         CodePoint = codePoint;
         Glyph = char.ConvertFromUtf32(codePoint);
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => Glyph;
 }

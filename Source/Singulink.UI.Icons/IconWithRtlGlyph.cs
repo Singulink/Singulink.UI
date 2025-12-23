@@ -33,4 +33,7 @@ public class IconWithRtlGlyph : IIconGlyph
         Glyph = char.ConvertFromUtf32(codePoint);
         RtlGlyph = char.ConvertFromUtf32(rtlCodePoint);
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => Glyph;
 }
