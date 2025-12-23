@@ -15,6 +15,7 @@ public static class MixinManager
     private static readonly ConditionalWeakTable<IDialogViewModel, IDialogNavigator> _viewModelToDialogNavigatorTable = [];
     private static readonly ConditionalWeakTable<IRoutedViewModelBase, INavigator> _viewModelToNavigatorTable = [];
     private static readonly ConditionalWeakTable<IRoutedViewModelBase, object> _viewModelToParameterTable = [];
+    private static readonly ConditionalWeakTable<IRoutedViewModelBase, Dictionary<Type, object>> _viewModelToChildServicesTable = [];
 
     /// <summary>
     /// Returns the dialog navigator associated with the specified view model.
@@ -83,5 +84,22 @@ public static class MixinManager
     {
         if (!_viewModelToParameterTable.TryAdd(viewModel, parameter))
             throw new InvalidOperationException("A parameter has already been associated with the view model.");
+    }
+
+    /// <summary>
+    /// Gets a child view model service associated with the specified view model.
+    /// </summary>
+    public static object? GetChildService(IRoutedViewModelBase viewModel, Type serviceType)
+    {
+        if (_viewModelToChildServicesTable.TryGetValue(viewModel, out var services) && services.TryGetValue(serviceType, out object service))
+            return service;
+
+        return null;
+    }
+
+    internal static void SetChildService<TService>(IRoutedViewModelBase viewModel, TService service) where TService : notnull
+    {
+        var services = _viewModelToChildServicesTable.GetOrCreateValue(viewModel);
+        services[typeof(TService)] = service;
     }
 }

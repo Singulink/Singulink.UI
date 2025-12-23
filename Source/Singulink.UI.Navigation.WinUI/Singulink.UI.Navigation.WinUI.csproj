@@ -9,7 +9,7 @@
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     
-    <Version>5.0.3-preview.3</Version>
+    <Version>5.0.3</Version>
     <PackageTags>WinUI; Uno Platform; Navigation; MVVM; Toolkit;</PackageTags>
     <Description>WinUI 3 / Uno Platform support for the Singulink.Navigation framework.</Description>
   </PropertyGroup>

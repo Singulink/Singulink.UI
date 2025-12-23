@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Singulink.UI.Navigation.InternalServices;
@@ -122,7 +121,8 @@ internal sealed class ConcreteRoute : IConcreteRoute
             if (!IsMaterialized)
                 throw new UnreachableException("Attempt to get services from a parent that is not materialized.");
 
-            object service = (ViewModel as IServiceProvider)?.GetService(serviceType);
+            object service = MixinManager.GetChildService(ViewModel, serviceType) ??
+                (ViewModel as IServiceProvider)?.GetService(serviceType);
 
             if (service is not null)
             {

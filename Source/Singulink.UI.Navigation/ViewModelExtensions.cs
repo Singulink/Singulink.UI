@@ -25,6 +25,13 @@ public static class ViewModelExtensions
         /// Gets the task runner for the view model.
         /// </summary>
         public ITaskRunner TaskRunner => viewModel.Navigator.TaskRunner;
+
+        /// <summary>
+        /// Associates a child service instance of the specified type with the current view model.
+        /// </summary>
+        /// <typeparam name="TService">The type of the service to associate.</typeparam>
+        /// <param name="service">The service instance to provide to child view models.</param>
+        public void SetChildService<TService>(TService service) where TService : notnull => MixinManager.SetChildService(viewModel, service);
     }
 
     /// <summary>
