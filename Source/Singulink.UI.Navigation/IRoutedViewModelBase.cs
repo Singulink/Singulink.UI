@@ -6,13 +6,13 @@ namespace Singulink.UI.Navigation;
 public interface IRoutedViewModelBase
 {
     /// <summary>
-    /// Gets a value indicating whether the view model and its associated view can be cached in navigation stack.
+    /// Gets a value indicating whether the view model and its associated view can be cached in the navigation stacks.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// If the view or view model is consuming a large amount of memory, this property should return <see langword="false"/> to avoid caching the when they are
-    /// not active. Removing a parent view model that provided services to a child view model from the cache will also remove of all of its children from the
-    /// cache.</para>
+    /// If a view model (or its associated view) consumes a large amount of memory or should be recreated whenever it is navigated to, this property should
+    /// return <see langword="false"/> to avoid being cached when it is inactive. If a parent view model that provided services to a child view model is evicted
+    /// from cache then all of its children are also evicted.</para>
     /// <para>
     /// Use <see cref="INavigatorBuilder.ConfigureNavigationStacks(int, int, int)"/> to control the maximum depth of cached views and view models.</para>
     /// </remarks>

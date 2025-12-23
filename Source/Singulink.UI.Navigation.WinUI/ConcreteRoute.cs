@@ -75,11 +75,19 @@ internal sealed class ConcreteRoute : IConcreteRoute
             IRoutedViewModelBase viewModel;
 
             if (view.DataContext is null)
+            {
                 view.DataContext = viewModel = mappingInfo.CreateViewModel(navigator, this);
+            }
             else if (view.DataContext.GetType().IsAssignableTo(mappingInfo.ViewModelType))
+            {
                 viewModel = (IRoutedViewModelBase)view.DataContext;
+            }
             else
-                throw new InvalidOperationException($"The view of type '{mappingInfo.ViewType}' has a data context of type '{view.DataContext.GetType()}' which is not assignable to the expected view model type '{mappingInfo.ViewModelType}'.");
+            {
+                throw new InvalidOperationException(
+                    $"The view of type '{mappingInfo.ViewType}' has a data context of type '{view.DataContext.GetType()}' " +
+                    $"which is not assignable to the expected view model type '{mappingInfo.ViewModelType}'.");
+            }
 
             view.DataContextChanged += (s, e) => {
                 if (e.NewValue != viewModel)
@@ -127,7 +135,11 @@ internal sealed class ConcreteRoute : IConcreteRoute
             if (service is not null)
             {
                 if (!service.GetType().IsAssignableTo(serviceType))
-                    throw new InvalidOperationException($"View model type '{ViewModel.GetType()}' returned a service type '{service.GetType()}' which is not assignable to requested service type '{serviceType}'.");
+                {
+                    throw new InvalidOperationException(
+                        $"View model type '{ViewModel.GetType()}' returned a service type '{service.GetType()}' " +
+                        $"which is not assignable to requested service type '{serviceType}'.");
+                }
             }
             else if (ViewModel.GetType().IsAssignableTo(serviceType))
             {
