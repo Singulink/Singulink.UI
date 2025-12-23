@@ -41,6 +41,7 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel, IMessag
     {
         SelectedMenuItem = MainMenuItems[0];
         await Task.Delay(1000);
+        this.SetChildService(new MessageContainer("Hello from MainViewModel via child service MessageContainer!"));
     }
 
     public Task OnRouteNavigatedAsync(NavigationArgs args)
@@ -59,12 +60,12 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel, IMessag
         SelectedMenuItem = MainMenuItems.First(mi => Navigator.CurrentPathStartsWith(Routes.MainRoot, mi.ChildRoutePart!));
     });
 
-    string IMessageProvider.GetMessage() => "Hello from MainViewModel via IMessageProvider!";
+    string IMessageProvider.GetMessage() => "Hello from MainViewModel via direct IMessageProvider!";
 
     object? IServiceProvider.GetService(Type serviceType)
     {
-        if (serviceType == typeof(MessageContainer))
-            return new MessageContainer("Hello from MainViewModel via IServiceProvider + MessageContainer!");
+        if (serviceType == typeof(MessageContainer2))
+            return new MessageContainer2("Hello from MainViewModel via IServiceProvider + MessageContainer2!");
         else
             return null;
     }

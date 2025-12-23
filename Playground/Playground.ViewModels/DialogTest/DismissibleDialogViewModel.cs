@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.Input;
 using Singulink.UI.Navigation;
+using Singulink.UI.Tasks;
 
 namespace Playground.ViewModels.DialogTest;
 
@@ -8,10 +9,9 @@ public partial class DismissibleDialogViewModel : IDismissibleDialogViewModel
     [RelayCommand]
     public async Task DoSomethingAsync()
     {
-        await this.TaskRunner.RunAsBusyAsync(async () => {
-            // Simulate a long-running task
-            await Task.Delay(1500);
-        });
+        using var scope = this.TaskRunner.EnterBusyScope();
+
+        await Task.Delay(1500);
 
         // Show a message dialog after the task is done
         await this.Navigator.ShowMessageDialogAsync("Task completed successfully!", "Success");
