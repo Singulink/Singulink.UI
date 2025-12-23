@@ -7,7 +7,7 @@
     <Description>Strongly-typed AOT-friendly navigation framework with comprehensive deep-linking support.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Singulink.Enums" Version="2.2.0" />
+    <PackageReference Include="Singulink.Enums" Version="2.3.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Singulink.UI.Tasks\Singulink.UI.Tasks.csproj" />
