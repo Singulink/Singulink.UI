@@ -17,8 +17,10 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private readonly IReadOnlyList<IconGroupModel> _iconGroups;
+    private readonly IReadOnlyDictionary<string, IconGroupModel> _iconGroupsById;
     private readonly IFontSubsetter _fontSubsetter;
     private readonly IReadOnlyList<IExporter> _exporters;
+
     private FileStream? _projectStream;
 
     public IAbsoluteFilePath ProjectFile { get; }
@@ -66,6 +68,8 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
             .Select(ig => new IconGroupModel(this, ig))
             .OrderBy(ig => ig.Info.Name, StringComparer.InvariantCulture)
         ];
+
+        _iconGroupsById = _iconGroups.ToDictionary(ig => ig.Info.Id);
 
         VariantFilter = iconsSource.Variants[0];
     }
@@ -121,12 +125,12 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
 
         var allCodePoints = new List<int>();
 
-        foreach (var icon in selectedIcons)
+        foreach (var (_, icon) in selectedIcons)
         {
-            allCodePoints.Add(icon.Icon.Info.CodePoint);
+            allCodePoints.Add(icon.Info.CodePoint);
 
-            if (icon.Icon.Info.RtlCodePoint.HasValue)
-                allCodePoints.Add(icon.Icon.Info.RtlCodePoint.Value);
+            if (icon.Info.RtlCodePoint.HasValue)
+                allCodePoints.Add(icon.Info.RtlCodePoint.Value);
         }
 
         exportDir.Delete(recursive: true);

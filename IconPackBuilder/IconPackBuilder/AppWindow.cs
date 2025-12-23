@@ -16,17 +16,17 @@ public sealed class AppWindow : Window
 
     public AppWindow()
     {
-
-        Title = "Icon Pack Builder";
-        this.SetWindowIcon();
-
 #if DEBUG
         this.UseStudio();
 #endif
 
+        Title = "Icon Pack Builder";
+        this.SetWindowIcon();
+
         var services = new ServiceCollection();
+
         services.AddSingleton<IconsSource>(SeagullIconSource.Instance);
-        services.AddSingleton<IFontSubsetter>(WpfFontSubsetter.Instance);
+        services.AddSingleton<IFontSubsetter>(new PyFtSubsetter());
         services.AddSingleton<IExporter>(CSharpExporter.Instance);
         services.AddSingleton<IFileDialogHandler>(new FileDialogHandler(this));
 

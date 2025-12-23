@@ -44,11 +44,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="FluentIcons.WinUI" Version="1.3.316" />
+    <PackageReference Include="FluentIcons.WinUI" Version="2.0.316" />
+    <PackageReference Include="WaterTrans.GlyphLoader.Core" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -60,5 +57,12 @@
 
   <ItemGroup>
     <Folder Include="Converters\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Tools\pyftsubset.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 </Project>

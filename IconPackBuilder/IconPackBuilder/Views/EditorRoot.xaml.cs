@@ -2,8 +2,6 @@ using IconPackBuilder.ViewModels;
 
 namespace IconPackBuilder.Views;
 
-#pragma warning disable CA1822 // Mark members as static
-
 public sealed partial class EditorRoot : UserControl
 {
     public EditorRootModel Model => (EditorRootModel)DataContext;

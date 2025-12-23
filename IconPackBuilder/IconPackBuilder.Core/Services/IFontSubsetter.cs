@@ -4,5 +4,5 @@ namespace IconPackBuilder.Core.Services;
 
 public interface IFontSubsetter
 {
-    public Task SaveAsync(IAbsoluteFilePath sourcePath, IAbsoluteFilePath destinationPath, IEnumerable<int> codePoints);
+    public Task SaveAsync(IAbsoluteFilePath sourceFile, IAbsoluteFilePath destinationFile, IEnumerable<int> codePoints);
 }

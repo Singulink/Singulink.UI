@@ -10,7 +10,7 @@ namespace IconPackBuilder.ViewModels;
 
 public partial class StartRootModel(IconsSource iconsSource, IFileDialogHandler fileDialogHandler) : ObservableObject, IRoutedViewModel
 {
-    private static readonly string[] ProjectFileFilters = [".ipbproj"];
+    private static readonly string[] ProjectFileFilters = [".ipproj"];
     private static readonly JsonSerializerOptions ProjectJsonOptions = new() { WriteIndented = true };
 
     [ObservableProperty]

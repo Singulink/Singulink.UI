@@ -2,9 +2,8 @@ using System.Text;
 using FluentIcons.Common;
 using IconPackBuilder.Core;
 using Singulink.IO;
-
+using WaterTrans.GlyphLoader;
 using Symbol = FluentIcons.Common.Symbol;
-using WpfMedia = System.Windows.Media;
 
 namespace IconPackBuilder.IconSources;
 
@@ -26,7 +25,7 @@ public sealed class SeagullIconSource : IconsSource
 
     public override Version Version => typeof(Symbol).Assembly.GetName().Version ?? throw new InvalidOperationException("Unable to determine version.");
 
-    public override IRelativeFilePath FontFile { get; } = FilePath.ParseRelative($"{Folder}/Assets/SeagullFluentIcons.ttf", PathFormat.Universal);
+    public override IRelativeFilePath FontFile { get; } = FilePath.ParseRelative($"{Folder}/Assets/SeagullFluentIcons.otf", PathFormat.Universal);
 
     public override string FontFamilyName => "Seagull Fluent Icons";
 
@@ -39,8 +38,12 @@ public sealed class SeagullIconSource : IconsSource
 
     public override IEnumerable<IconGroupInfo> LoadIconGroups()
     {
-        string iconUri = "file:///" + (DirectoryPath.GetAppBase() + FontFile).PathDisplay;
-        var typeface = new WpfMedia.GlyphTypeface(new Uri(iconUri, UriKind.Absolute));
+        var fontFile = DirectoryPath.GetAppBase() + FontFile;
+
+        Typeface typeface;
+
+        using (var fontStream = fontFile.OpenStream(FileMode.Open, FileAccess.Read))
+            typeface = new Typeface(fontStream);
 
         ImmutableArray<IconVariant> variants = [IconVariant.Regular, IconVariant.Filled, IconVariant.Color, IconVariant.Light];
 
