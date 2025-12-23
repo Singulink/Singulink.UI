@@ -3,7 +3,7 @@ namespace Singulink.UI.Tasks;
 /// <summary>
 /// Represents a scope for a busy task.
 /// </summary>
-public sealed class BusyTaskScope : IDisposable
+public sealed partial class BusyTaskScope : IDisposable
 {
     private readonly TaskCompletionSource _tcs;
 
