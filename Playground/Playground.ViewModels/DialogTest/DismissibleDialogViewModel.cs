@@ -18,7 +18,15 @@ public partial class DismissibleDialogViewModel : IDismissibleDialogViewModel
     }
 
     [RelayCommand]
-    public void Close() => this.Navigator.Close();
+    public async Task SaveAsync()
+    {
+        using (this.TaskRunner.EnterBusyScope())
+        {
+            await Task.Delay(500);
+        }
+
+        this.Navigator.Close();
+    }
 
     public async Task OnDismissRequestedAsync()
     {

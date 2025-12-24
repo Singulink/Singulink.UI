@@ -6,6 +6,9 @@ namespace Singulink.UI.Navigation;
 /// </summary>
 public interface IDialogPresenter
 {
+    // TODO: Consider options for overloads that allow you to show a dialog with a parameterless constructor,
+    // e.g. ShowDialogAsync<TViewModel>() where TViewModel : IDialogViewModel, new()
+
     /// <summary>
     /// Shows a dialog with the specified view model and returns a task that completes when the dialog closes.
     /// </summary>

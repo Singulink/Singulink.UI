@@ -6,8 +6,9 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   Title="Dismissible Dialog"
   Style="{ThemeResource DefaultContentDialogStyle}"
-  PrimaryButtonText="Close"
-  PrimaryButtonCommand="{x:Bind Model.CloseCommand}">
+  PrimaryButtonText="Save"
+  PrimaryButtonCommand="{x:Bind Model.SaveCommand}"
+  SecondaryButtonText="Close">
 
   <StackPanel Spacing="10">
     <TextBlock Text="This dialog can be dismissed by pressing the Escape key." TextWrapping="Wrap"/>

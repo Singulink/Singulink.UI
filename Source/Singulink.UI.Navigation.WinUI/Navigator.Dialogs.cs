@@ -112,7 +112,12 @@ partial class Navigator : IDialogPresenter
             args.Cancel = true;
 
             if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
-                dialogInfo.Dialog.PrimaryButtonCommand?.Execute(dialogInfo.Dialog.PrimaryButtonCommandParameter);
+            {
+                if (dialogInfo.Dialog.PrimaryButtonCommand is { } command)
+                    command.Execute(dialogInfo.Dialog.PrimaryButtonCommandParameter);
+                else
+                    CloseDialog(dialogInfo.Dialog);
+            }
         }
 
         void OnSecondaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
@@ -120,7 +125,12 @@ partial class Navigator : IDialogPresenter
             args.Cancel = true;
 
             if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
-                dialogInfo.Dialog.SecondaryButtonCommand?.Execute(dialogInfo.Dialog.SecondaryButtonCommandParameter);
+            {
+                if (dialogInfo.Dialog.SecondaryButtonCommand is { } command)
+                    command.Execute(dialogInfo.Dialog.SecondaryButtonCommandParameter);
+                else
+                    CloseDialog(dialogInfo.Dialog);
+            }
         }
 
         void OnCloseDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
@@ -128,7 +138,12 @@ partial class Navigator : IDialogPresenter
             args.Cancel = true;
 
             if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
-                dialogInfo.Dialog.CloseButtonCommand?.Execute(dialogInfo.Dialog.CloseButtonCommandParameter);
+            {
+                if (dialogInfo.Dialog.CloseButtonCommand is { } command)
+                    command.Execute(dialogInfo.Dialog.CloseButtonCommandParameter);
+                else
+                    CloseDialog(dialogInfo.Dialog);
+            }
         }
 
         async void OnDialogClosing(ContentDialog sender, ContentDialogClosingEventArgs args)

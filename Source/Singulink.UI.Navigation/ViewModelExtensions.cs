@@ -27,7 +27,7 @@ public static class ViewModelExtensions
         public ITaskRunner TaskRunner => viewModel.Navigator.TaskRunner;
 
         /// <summary>
-        /// Associates a child service instance of the specified type with the current view model.
+        /// Associates a child service instance of the specified type with the view model.
         /// </summary>
         /// <typeparam name="TService">The type of the service to associate.</typeparam>
         /// <param name="service">The service instance to provide to child view models.</param>
