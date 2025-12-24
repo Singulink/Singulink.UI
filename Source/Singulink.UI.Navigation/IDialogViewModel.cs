@@ -14,3 +14,14 @@ public interface IDialogViewModel
     /// </remarks>
     public Task OnDialogShownAsync() => Task.CompletedTask;
 }
+
+/// <summary>
+/// Represents a view model that can be used in a dialog that returns a result when closed.
+/// </summary>
+public interface IDialogViewModel<TResult> : IDialogViewModel
+{
+    /// <summary>
+    /// Gets the result of the dialog.
+    /// </summary>
+    public TResult Result { get; }
+}

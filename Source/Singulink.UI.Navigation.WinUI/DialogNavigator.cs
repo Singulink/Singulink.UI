@@ -10,11 +10,14 @@ internal sealed class DialogNavigator(Navigator navigator, ContentDialog dialog)
 
     public ITaskRunner TaskRunner => field ??= new TaskRunner(busy => dialog.IsEnabled = !busy);
 
-    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync{TViewModel}(TViewModel)"/>
-    public async Task ShowDialogAsync<TViewModel>(TViewModel viewModel)
-        where TViewModel : class, IDialogViewModel
+    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync(IDialogViewModel)"/>
+    public async Task ShowDialogAsync(IDialogViewModel viewModel) => await navigator.ShowDialogAsync(dialog, viewModel);
+
+    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync{TResult}(IDialogViewModel{TResult})"/>
+    public async Task<TResult> ShowDialogAsync<TResult>(IDialogViewModel<TResult> viewModel)
     {
         await navigator.ShowDialogAsync(dialog, viewModel);
+        return viewModel.Result;
     }
 
     /// <inheritdoc cref="IDialogNavigator.Close"/>

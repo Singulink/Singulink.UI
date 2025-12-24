@@ -162,7 +162,7 @@ partial class Navigator
     }
 
     private async Task<NavigationResult> NavigateAsyncCore(
-        NavigationType navigationType, ConcreteRoute route, Func<List<ConcreteRoute>?>? updateRouteStack)
+        NavigationType navigationType, ConcreteRoute route, Func<List<ConcreteRoute>?>? updateRouteStackAndGetRemovedRoutes)
     {
         if (_dialogStack.Count > 0)
             throw new InvalidOperationException("Cannot navigate while a dialog is shown.");
@@ -191,76 +191,12 @@ partial class Navigator
         {
             var currentRoute = CurrentRouteImpl ?? EmptyRoute;
 
-            int numCommonItems = currentRoute.Items.Zip(route.Items)
+            int numRouteItemsToKeep = currentRoute.Items.Zip(route.Items)
                 .TakeWhile(pair => pair.First == pair.Second)
                 .Count();
 
-            if (!_isRedirecting)
-            {
-                using (EnterNavigationGuard(blockDialogs: false))
-                {
-                    notifier.Update();
-
-                    for (int i = currentRoute.Items.Count - 1; i >= 0; i--)
-                    {
-                        var routeItem = currentRoute.Items[i];
-
-                        if (routeItem.AlreadyNavigatedTo)
-                        {
-                            bool willNavigateAway = i >= numCommonItems;
-                            var args = new NavigatingArgs(this, navigationType);
-
-                            void EnsureDialogsClosed()
-                            {
-                                if (_dialogStack.Count > 0)
-                                {
-                                    throw new InvalidOperationException(
-                                        $"All dialogs must be closed before completing navigating event tasks " +
-                                        $"(view model '{routeItem.ViewModel.GetType()}').");
-                                }
-                            }
-
-                            if (willNavigateAway)
-                            {
-                                await routeItem.ViewModel.OnNavigatingAwayAsync(args);
-                                EnsureDialogsClosed();
-
-                                if (args.Cancel)
-                                    return NavigationResult.Cancelled;
-                            }
-
-                            await routeItem.ViewModel.OnRouteNavigatingAsync(args);
-                            EnsureDialogsClosed();
-
-                            if (args.Cancel)
-                                return NavigationResult.Cancelled;
-                        }
-                    }
-                }
-            }
-
-            using (EnterNavigationGuard(blockDialogs: true))
-            {
-                foreach (var routeItem in currentRoute.Items.Skip(numCommonItems - 1))
-                    routeItem.ChildViewNavigator?.SetActiveView(null);
-
-                foreach (var routeItem in currentRoute.Items.Skip(numCommonItems).Reverse())
-                {
-                    if (routeItem.AlreadyNavigatedTo)
-                    {
-                        routeItem.AlreadyNavigatedTo = false;
-                        await routeItem.ViewModel.OnNavigatedAwayAsync();
-                    }
-                }
-
-                if (updateRouteStack is not null)
-                {
-                    var removedRoutes = updateRouteStack.Invoke();
-                    await TrimRoutesAndCacheAsync(removedRoutes);
-                }
-
-                notifier.Update();
-            }
+            if (!await NavigateAwayAsyncCore(navigationType, numRouteItemsToKeep, notifier, updateRouteStackAndGetRemovedRoutes))
+                return NavigationResult.Cancelled;
 
             var viewNavigator = _viewNavigator;
 
@@ -326,6 +262,90 @@ partial class Navigator
 
             return NavigationResult.Success;
         }
+    }
+
+    private async Task<bool> NavigateAwayAsyncCore(
+        NavigationType navigationType,
+        int numRouteItemsToKeep,
+        PropertyChangedNotifier notifier,
+        Func<List<ConcreteRoute>?>? updateRouteStackAndGetRemovedRoutes)
+    {
+        var currentRoute = CurrentRouteImpl;
+
+        if (!_isRedirecting && currentRoute is not null)
+        {
+            using (EnterNavigationGuard(blockDialogs: false))
+            {
+                notifier.Update();
+
+                for (int i = currentRoute.Items.Count - 1; i >= 0; i--)
+                {
+                    var routeItem = currentRoute.Items[i];
+
+                    if (routeItem.AlreadyNavigatedTo)
+                    {
+                        bool willNavigateAway = i >= numRouteItemsToKeep;
+                        var args = new NavigatingArgs(this, navigationType);
+
+                        void EnsureDialogsClosed()
+                        {
+                            if (_dialogStack.Count > 0)
+                            {
+                                throw new InvalidOperationException(
+                                    $"All dialogs must be closed before completing navigating event tasks " +
+                                    $"(view model '{routeItem.ViewModel.GetType()}').");
+                            }
+                        }
+
+                        if (willNavigateAway)
+                        {
+                            await routeItem.ViewModel.OnNavigatingAwayAsync(args);
+                            EnsureDialogsClosed();
+
+                            if (args.Cancel)
+                                return false;
+                        }
+
+                        await routeItem.ViewModel.OnRouteNavigatingAsync(args);
+                        EnsureDialogsClosed();
+
+                        if (args.Cancel)
+                            return false;
+                    }
+                }
+            }
+        }
+
+        using (EnterNavigationGuard(blockDialogs: true))
+        {
+            if (currentRoute is not null)
+            {
+                foreach (var routeItem in currentRoute.Items.Skip(numRouteItemsToKeep - 1))
+                    routeItem.ChildViewNavigator?.SetActiveView(null);
+
+                if (numRouteItemsToKeep is 0)
+                    _viewNavigator.SetActiveView(null);
+
+                foreach (var routeItem in currentRoute.Items.Skip(numRouteItemsToKeep).Reverse())
+                {
+                    if (routeItem.AlreadyNavigatedTo)
+                    {
+                        routeItem.AlreadyNavigatedTo = false;
+                        await routeItem.ViewModel.OnNavigatedAwayAsync();
+                    }
+                }
+            }
+
+            if (updateRouteStackAndGetRemovedRoutes is not null)
+            {
+                var removedRoutes = updateRouteStackAndGetRemovedRoutes.Invoke();
+                await TrimRoutesAndCacheAsync(removedRoutes);
+            }
+
+            notifier.Update();
+        }
+
+        return true;
     }
 
     private bool TryMatchRoute(string routeString, [MaybeNullWhen(false)] out List<IConcreteRoutePart> routeParts)

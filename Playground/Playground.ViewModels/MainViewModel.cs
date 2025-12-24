@@ -20,28 +20,34 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel, IMessag
     [ObservableProperty]
     public partial MenuItem SelectedMenuItem { get; set; } = new("", null);
 
-    partial void OnSelectedMenuItemChanged(MenuItem value)
+    partial void OnSelectedMenuItemChanged(MenuItem oldValue, MenuItem newValue)
     {
-        if (Navigator.IsNavigating || Navigator.CurrentRoute.Parts.Last() == value.ChildRoutePart)
+        if (Navigator.IsNavigating || Navigator.CurrentRoute.Parts.Contains(newValue.ChildRoutePart))
             return;
 
         this.TaskRunner.RunAndForget(async () => {
-            if (value.ChildRoutePart is not null)
+            NavigationResult result;
+
+            if (newValue.ChildRoutePart is not null)
             {
-                await Navigator.NavigatePartialAsync(value.ChildRoutePart);
-                return;
+                result = await Navigator.NavigatePartialAsync(newValue.ChildRoutePart);
+            }
+            else
+            {
+                await Task.Delay(500); // Simulate logout
+                result = await Navigator.NavigateAsync(Routes.LoginRoot);
             }
 
-            await Task.Delay(500); // Simulate logout
-            await Navigator.NavigateAsync(Routes.LoginRoot);
+            if (result is not NavigationResult.Success)
+                SelectedMenuItem = oldValue;
         });
     }
 
     public async Task OnNavigatedToAsync(NavigationArgs args)
     {
+        this.SetChildService(new MessageContainer("Hello from MainViewModel via child service MessageContainer!"));
         SelectedMenuItem = MainMenuItems[0];
         await Task.Delay(1000);
-        this.SetChildService(new MessageContainer("Hello from MainViewModel via child service MessageContainer!"));
     }
 
     public Task OnRouteNavigatedAsync(NavigationArgs args)

@@ -17,6 +17,7 @@ internal sealed class MappingInfo
     /// <summary>
     /// Gets the view model type.
     /// </summary>
+    // Note: NonPublicConstructors is needed for calling GetUninitializedObject() in CreateViewModel().
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
     public Type ViewModelType { get; init; }
 
@@ -35,14 +36,19 @@ internal sealed class MappingInfo
         ViewModelType = viewModelType;
         ViewType = viewType;
 
-        _vmCtor = viewModelType.GetConstructors().OrderByDescending(c => c.GetParameters().Length).FirstOrDefault() ??
-            throw new InvalidOperationException($"View model type '{viewModelType}' must have a public constructor.");
+        var ctorCandidates = viewModelType.GetConstructors();
 
-        var nullabilityContext = new NullabilityInfoContext();
+        if (ctorCandidates.Length is 0)
+            throw new InvalidOperationException($"View model type '{viewModelType}' does not have any public constructors.");
 
-        _vmCtorParams = _vmCtor.GetParameters()
-            .Select(p => (p, nullabilityContext.Create(p).WriteState is NullabilityState.Nullable))
-            .ToImmutableArray();
+        if (ctorCandidates.Length > 1)
+            throw new InvalidOperationException($"View model type '{viewModelType}' has multiple public constructors.");
+
+        _vmCtor = ctorCandidates[0];
+        _vmCtorParams = [.. _vmCtor.GetParameters().Select(p => (p, new NullabilityInfoContext().Create(p).WriteState is NullabilityState.Nullable))];
+
+        if (_vmCtorParams.Any(p => p.Param.ParameterType.IsByRef))
+            throw new InvalidOperationException($"View model type '{viewModelType}' has a constructor with by-ref parameters, which is not supported.");
     }
 
     /// <summary>
@@ -53,7 +59,9 @@ internal sealed class MappingInfo
         Type viewModelType,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
         Type viewType)
-        => new(viewModelType, viewType);
+    {
+        return new(viewModelType, viewType);
+    }
 
     /// <summary>
     /// Creates an instance of the view type.
@@ -80,14 +88,19 @@ internal sealed class MappingInfo
             var (param, isNullable) = _vmCtorParams[i];
             var paramType = param.ParameterType;
 
-            args[i] = routeItem.ParentItem?.GetChildViewModelService(paramType) ?? navigator.Services.GetService(paramType);
+            args[i] = routeItem.ParentItem?.GetChildViewModelService(paramType) ?? navigator.RootServices.GetService(paramType);
 
             if (args[i] is null)
             {
                 if (param.HasDefaultValue)
+                {
                     args[i] = param.DefaultValue;
+                }
                 else if (!isNullable)
-                    throw new InvalidOperationException($"Cannot resolve required constructor parameter '{param.Name}' of type '{paramType}' for view model type '{ViewModelType}'.");
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot resolve required constructor parameter '{param.Name}' of type '{paramType}' for view model type '{ViewModelType}'.");
+                }
             }
         }
 

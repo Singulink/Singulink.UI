@@ -10,6 +10,11 @@ public interface IDialogPresenter
     /// Shows a dialog with the specified view model and returns a task that completes when the dialog closes.
     /// </summary>
     /// <param name="viewModel">The view model for the dialog.</param>
-    public Task ShowDialogAsync<TViewModel>(TViewModel viewModel)
-        where TViewModel : class, IDialogViewModel;
+    public Task ShowDialogAsync(IDialogViewModel viewModel);
+
+    /// <summary>
+    /// Shows a dialog with the specified view model and returns a task that completes with the dialog result when the dialog closes.
+    /// </summary>
+    /// <param name="viewModel">The view model for the dialog.</param>
+    public Task<TResult> ShowDialogAsync<TResult>(IDialogViewModel<TResult> viewModel);
 }

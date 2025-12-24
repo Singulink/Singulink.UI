@@ -1,12 +1,14 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Singulink.UI.Tasks;
+using Windows.UI.Core;
 
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <inheritdoc cref="INavigator"/>
-public sealed partial class Navigator : INavigator, IAsyncDisposable
+public sealed partial class Navigator : INavigator
 {
     private static readonly ConcreteRoute EmptyRoute = new([], RouteOptions.Empty);
 
@@ -29,20 +31,22 @@ public sealed partial class Navigator : INavigator, IAsyncDisposable
 
     private bool _isNavigating;
     private bool _isRedirecting;
-    private bool _isDisposed;
 
     private bool _blockNavigation;
     private bool _blockDialogs;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Navigator"/> class using the specified content control for displaying the active view and mappings provided
-    /// in the build action.
+    /// Initializes a new instance of the <see cref="Navigator"/> class with the specified content control for displaying the active view and
+    /// navigator build action.
     /// </summary>
+    /// <remarks>
+    /// If provided, the navigator will configure the specified host window to handle closed window events and system back requests.
+    /// </remarks>
     public Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)
         : this(new ContentControlNavigator(contentControl), buildAction) { }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Navigator"/> class with the specified root view navigator and mappings provided in the build action.
+    /// Initializes a new instance of the <see cref="Navigator"/> class with the specified root view navigator and navigator build action.
     /// </summary>
     public Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)
     {
@@ -143,8 +147,8 @@ public sealed partial class Navigator : INavigator, IAsyncDisposable
         }
     }
 
-    /// <inheritdoc cref="INavigator.Services"/>
-    public IServiceProvider Services => _rootServices;
+    /// <inheritdoc cref="INavigator.RootServices"/>
+    public IServiceProvider RootServices => _rootServices;
 
     /// <inheritdoc cref="INavigator.TaskRunner"/>
     public ITaskRunner TaskRunner { get; }
@@ -175,48 +179,6 @@ public sealed partial class Navigator : INavigator, IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// Disposes the navigator and all cached views and view models.
-    /// </summary>
-    public async ValueTask DisposeAsync()
-    {
-        if (_isDisposed)
-            return;
-
-        EnsureThreadAccess();
-
-        if (_dialogStack.Count > 0)
-            throw new InvalidOperationException("Cannot dispose the navigator while dialogs are showing.");
-
-        _isDisposed = true;
-
-        await TaskRunner.WaitForIdleAsync(true);
-
-        _blockDialogs = true;
-        _blockNavigation = true;
-
-        _viewNavigator.SetActiveView(null);
-
-        if (CurrentRouteImpl is { } currentRoute)
-        {
-            foreach (var routeItem in currentRoute.Items.Reverse())
-            {
-                if (routeItem.AlreadyNavigatedTo)
-                    await routeItem.ViewModel.OnNavigatedAwayAsync();
-            }
-        }
-
-        var removedRoutes = _routeStack;
-
-        _routeStack.Clear();
-        _currentRouteIndex = -1;
-
-        PropertyChanged = null;
-
-        await TaskRunner.WaitForIdleAsync(true);
-        await TrimRoutesAndCacheAsync(removedRoutes);
-    }
-
     /// <inheritdoc cref="INavigator.GetBackStack"/>
     public IReadOnlyList<IConcreteRoute> GetBackStack()
     {
@@ -242,13 +204,100 @@ public sealed partial class Navigator : INavigator, IAsyncDisposable
         return _routeStack[(_currentRouteIndex + 1)..];
     }
 
+    /// <summary>
+    /// Configures the navigator to handle system back/forward navigation requests on supported platforms.
+    /// </summary>
+    public void HookSystemNavigationRequests()
+    {
+        EnsureThreadAccess();
+
+#if !WINDOWS
+        var navManager = SystemNavigationManager.GetForCurrentView();
+
+        navManager.AppViewBackButtonVisibility = AppViewBackButtonVisibility.Visible;
+        navManager.BackRequested -= OnBackRequested;
+        navManager.BackRequested += OnBackRequested;
+
+        void OnBackRequested(object? sender, BackRequestedEventArgs args) => args.Handled = HandleSystemBackRequest();
+#endif
+    }
+
+    /// <summary>
+    /// Configures the navigator to handle window closed events to trigger navigator shutdown and prevent closing the window if
+    /// navigation or busy task are in progress, dialogs are showing, or any view models are preventing navigating away from the current view.
+    /// </summary>
+    /// <remarks>
+    /// See <see cref="TryShutDownAsync"/> for more information on navigator shutdown.
+    /// </remarks>
+    public void HookWindowClosedEvents(Window window)
+    {
+        EnsureThreadAccess();
+
+        bool isNavigatorShutdown = false;
+
+        window.Closed -= OnWindowClosed;
+        window.Closed += OnWindowClosed;
+
+        async void OnWindowClosed(object sender, WindowEventArgs args)
+        {
+            if (!isNavigatorShutdown)
+            {
+                args.Handled = true;
+
+                if (await TryShutDownAsync())
+                {
+                    isNavigatorShutdown = true;
+                    window.Close();
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc cref="INavigator.TryShutDownAsync"/>
+    public async Task<bool> TryShutDownAsync()
+    {
+        EnsureThreadAccess();
+
+        if (IsNavigating || IsShowingDialog || TaskRunner.IsBusy)
+            return false;
+
+        using var notifier = new PropertyChangedNotifier(this);
+
+        _isNavigating = true;
+
+        try
+        {
+            CloseLightDismissPopups();
+            notifier.Update();
+
+            var navigateAwayTask = NavigateAwayAsyncCore(NavigationType.New, numRouteItemsToKeep: 0, notifier, () => {
+                var removedRoutes = _routeStack.ToList();
+                _routeStack.Clear();
+                _currentRouteIndex = -1;
+
+                return removedRoutes;
+            });
+
+            if (!await TaskRunner.RunAsBusyAsync(navigateAwayTask))
+                return false;
+
+            PropertyChanged = null;
+            _blockDialogs = true;
+            _blockNavigation = true;
+
+            await TaskRunner.WaitForIdleAsync(false);
+            return true;
+        }
+        finally
+        {
+            _isNavigating = false;
+        }
+    }
+
     private void EnsureThreadAccess()
     {
         if (_viewNavigator.NavigationControl.DispatcherQueue?.HasThreadAccess is not true)
             throw new InvalidOperationException("Navigator can only be accessed from the UI thread.");
-
-        if (_isDisposed)
-            throw new ObjectDisposedException(nameof(Navigator), "Navigator has been disposed.");
     }
 
     private bool CloseLightDismissPopups()

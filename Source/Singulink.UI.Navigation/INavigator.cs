@@ -56,13 +56,12 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     public bool IsShowingDialog { get; }
 
     /// <summary>
-    /// Gets the service provider for this navigator. This property can be accessed from any thread.
+    /// Gets the root service provider for this navigator. This property can be accessed from any thread.
     /// </summary>
     /// <remarks>
-    /// This service provider is the root provider used to resolve services other than those provided directly by views or view models in a route. It can be
-    /// injected into view models via a constructor parameter of type <see cref="IServiceProvider"/>.
+    /// This service provider is the root provider used to resolve services other than those provided directly by view models in a route.
     /// </remarks>
-    public IServiceProvider Services { get; }
+    public IServiceProvider RootServices { get; }
 
     /// <summary>
     /// Gets the task runner for this navigator. This property can be accessed from any thread.
@@ -253,4 +252,24 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// Refreshes the current route.
     /// </summary>
     public Task<NavigationResult> RefreshAsync();
+
+    /// <summary>
+    /// Shuts down the navigator by releasing all views and view model resources. Returns <see langword="false"/> if shutdown, navigation or busy tasks are in
+    /// progress, dialogs are showing, or any view models are preventing navigating away from the current view; otherwise returns <see langword="true"/> after
+    /// successfully shutting down.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This method should only be called when the navigator is no longer needed (e.g. when the window hosting it is being closed) to ensure that all resources
+    /// are properly released. This is important in multi-window applications to prevent memory leaks but is not strictly necessary in single-window
+    /// applications since all resources should be released when the application exits. Navigating or showing dialogs is blocked after the shutdown completes
+    /// and attempting to do so will result in an <see cref="InvalidOperationException"/> being thrown.</para>
+    /// <para>
+    /// It may still be beneficial to call this method in single-window applications when the window should be prevented from being closed when dialogs are
+    /// showing or navigating away from the current view is blocked by a view model (e.g. if the user has unsaved changes). The navigator queries active view
+    /// models to see if they allow navigating away by calling <see cref="IRoutedViewModelBase.OnNavigatingAwayAsync(NavigatingArgs)"/>.</para>
+    /// <para>
+    /// If the shutdown process is aborted and the method returns <see langword="false"/> then closing the window should be cancelled.</para>
+    /// </remarks>
+    public Task<bool> TryShutDownAsync();
 }

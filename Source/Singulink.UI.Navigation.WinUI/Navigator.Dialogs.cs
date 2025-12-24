@@ -5,20 +5,27 @@ namespace Singulink.UI.Navigation.WinUI;
 /// <content>
 /// Provides dialog related implementations for the navigator.
 /// </content>
-partial class Navigator
+partial class Navigator : IDialogPresenter
 {
-    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync{TViewModel}(TViewModel)"/>
-    public async Task ShowDialogAsync<TViewModel>(TViewModel viewModel) where TViewModel : class, IDialogViewModel
+    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync(IDialogViewModel)"/>
+    public async Task ShowDialogAsync(IDialogViewModel viewModel)
     {
         await ShowDialogAsync(null, viewModel);
     }
 
-    internal async Task ShowDialogAsync<TViewModel>(ContentDialog? requestingParentDialog, TViewModel viewModel) where TViewModel : class, IDialogViewModel
+    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync{TResult}(IDialogViewModel{TResult})"/>
+    public async Task<TResult> ShowDialogAsync<TResult>(IDialogViewModel<TResult> viewModel)
+    {
+        await ShowDialogAsync(null, viewModel);
+        return viewModel.Result;
+    }
+
+    internal async Task ShowDialogAsync(ContentDialog? requestingParentDialog, IDialogViewModel viewModel)
     {
         EnsureThreadAccess();
 
         if (_blockDialogs)
-            throw new InvalidOperationException("Show dialog requested at an invalid time while dialogs are blocked.");
+            throw new InvalidOperationException("Show dialog requested at an invalid time while showing dialogs is blocked.");
 
         EnsureDialogIsTopDialog(requestingParentDialog);
         CloseLightDismissPopups();
@@ -76,11 +83,10 @@ partial class Navigator
         dialogInfo.Tcs.SetResult();
     }
 
-    private ContentDialog CreateDialogFor<TViewModel>(TViewModel viewModel)
-        where TViewModel : class, IDialogViewModel
+    private ContentDialog CreateDialogFor(IDialogViewModel viewModel)
     {
-        if (!_viewModelTypeToDialogActivator.TryGetValue(typeof(TViewModel), out var ctorFunc))
-            throw new KeyNotFoundException($"No dialog registered for view model of type '{typeof(TViewModel)}'.");
+        if (!_viewModelTypeToDialogActivator.TryGetValue(viewModel.GetType(), out var ctorFunc))
+            throw new KeyNotFoundException($"No dialog registered for view model of type '{viewModel.GetType()}'.");
 
         var dialog = ctorFunc.Invoke();
         dialog.DataContext = viewModel;
@@ -140,11 +146,8 @@ partial class Navigator
 
                     // Make sure we are still the top dialog and another event didn't close the dialog after the yield.
 
-                    if (_dialogStack.TryPeek(out dialogInfo) && dialogInfo.Dialog == sender &&
-                        MixinManager.GetNavigator(dismissibleVm) is { } navigator && !navigator.TaskRunner.IsBusy)
-                    {
-                        await navigator.TaskRunner.RunAsBusyAsync(dismissibleVm.OnDismissRequestedAsync());
-                    }
+                    if (_dialogStack.TryPeek(out dialogInfo) && dialogInfo.Dialog == sender && !dismissibleVm.TaskRunner.IsBusy)
+                        await dismissibleVm.TaskRunner.RunAsBusyAsync(dismissibleVm.OnDismissRequestedAsync());
                 }
             }
         }

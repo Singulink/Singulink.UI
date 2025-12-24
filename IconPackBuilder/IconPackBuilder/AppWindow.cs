@@ -36,13 +36,10 @@ public sealed class AppWindow : Window
         };
 
         Content = rootNav;
-        _navigator = CreateNavigator(rootNav, services.BuildServiceProvider());
 
-#if !WINDOWS
-        var navManager = Windows.UI.Core.SystemNavigationManager.GetForCurrentView();
-        navManager.AppViewBackButtonVisibility = Windows.UI.Core.AppViewBackButtonVisibility.Visible;
-        navManager.BackRequested += (s, e) => e.Handled = _navigator.HandleSystemBackRequest();
-#endif
+        _navigator = CreateNavigator(rootNav, services.BuildServiceProvider());
+        _navigator.HookWindowClosedEvents(this);
+        _navigator.HookSystemNavigationRequests();
     }
 
     public async void BeginNavigation()
