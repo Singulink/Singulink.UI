@@ -9,9 +9,9 @@ namespace IconPackBuilder.IconSources;
 
 #pragma warning disable CA1822 // Mark members as static
 
-public sealed class SeagullIconSource : IconsSource
+public sealed class SeagullIconsSource : IconsSource
 {
-    public static SeagullIconSource Instance => field ??= new();
+    public static SeagullIconsSource Instance => field ??= new();
 
 #if HAS_UNO
     private const string Folder = "FluentIcons.Resources.Uno";

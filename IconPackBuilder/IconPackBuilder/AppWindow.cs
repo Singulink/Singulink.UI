@@ -25,7 +25,7 @@ public sealed class AppWindow : Window
 
         var services = new ServiceCollection();
 
-        services.AddSingleton<IconsSource>(SeagullIconSource.Instance);
+        services.AddSingleton<IconsSource>(SeagullIconsSource.Instance);
         services.AddSingleton<IFontSubsetter>(new PyFtSubsetter());
         services.AddSingleton<IExporter>(CSharpExporter.Instance);
         services.AddSingleton<IFileDialogHandler>(new FileDialogHandler(this));
