@@ -10,19 +10,30 @@
   <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,280">
     <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6" Margin="10" HorizontalAlignment="Left">
       <MenuBar VerticalAlignment="Center">
-        <MenuBarItem Title="Menu">
-          <MenuFlyoutItem Text="Save" Command="{x:Bind Model.SaveProjectCommand}" />
-          <MenuFlyoutItem Text="Export" Command="{x:Bind Model.ExportProjectCommand}" />
+        <MenuBarItem Title="File" AccessKey="F">
+          <MenuFlyoutItem Text="Save" AccessKey="S" Command="{x:Bind Model.SaveProjectCommand}">
+            <MenuFlyoutItem.KeyboardAccelerators>
+              <KeyboardAccelerator Key="S" Modifiers="Control" />
+            </MenuFlyoutItem.KeyboardAccelerators>
+          </MenuFlyoutItem>
+          <MenuFlyoutItem Text="Export" AccessKey="E" Command="{x:Bind Model.ExportProjectCommand}" />
+          <MenuFlyoutItem Text="Preview" AccessKey="P" Command="{x:Bind Model.PreviewIconPackCommand}" />
           <MenuFlyoutSeparator />
-          <MenuFlyoutItem Text="Close Project" Command="{x:Bind Model.CloseCommand}" />
+          <MenuFlyoutItem Text="Close" AccessKey="C" Command="{x:Bind Model.CloseCommand}" />
+          <MenuFlyoutSeparator />
+          <MenuFlyoutItem Text="Exit" AccessKey="X" Command="{x:Bind Model.ExitCommand}" />
         </MenuBarItem>
       </MenuBar>
       <TextBox PlaceholderText="Filter" VerticalAlignment="Center" Width="200"
                Text="{x:Bind Model.NameFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-      <ComboBox ItemsSource="{x:Bind Model.IconsSource.Variants}" SelectedItem="{x:Bind Model.VariantFilter, Mode=TwoWay}" VerticalAlignment="Center"/>
-      <CheckBox Content="With RTL Only" IsChecked="{x:Bind Model.WithRtlVersionsOnlyFilter, Mode=TwoWay}" HorizontalAlignment="Center"/>
+      <ComboBox ItemsSource="{x:Bind Model.VariantFilters}" SelectedItem="{x:Bind Model.VariantFilter, Mode=TwoWay}" VerticalAlignment="Center" />
+      <CheckBox Content="With RTL Only" IsChecked="{x:Bind Model.RtlVersionsOnlyFilter, Mode=TwoWay}" HorizontalAlignment="Center" />
+      <CheckBox Content="Included Only" IsChecked="{x:Bind Model.IncludedOnlyFilter, Mode=TwoWay}" HorizontalAlignment="Center" />
       <Grid Padding="10,3" Margin="0,3" CornerRadius="3" Background="#11FFFFFF" VerticalAlignment="Stretch">
-        <TextBlock Text="{x:Bind Model.ProjectName, Mode=OneWay}" VerticalAlignment="Center"/>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock Text="{x:Bind Model.ProjectName, Mode=OneWay}" />
+          <TextBlock Text="*" Visibility="{x:Bind Model.IsDirty, Mode=OneWay}" Foreground="Red" Margin="2,0,0,0" FontWeight="Bold" />
+        </StackPanel>
       </Grid>
     </StackPanel>
 
@@ -30,7 +41,7 @@
               SelectedItem="{x:Bind Model.SelectedIconGroup, Mode=TwoWay}" HorizontalAlignment="Center">
       <GridView.ItemContainerStyle>
         <Style TargetType="GridViewItem" BasedOn="{StaticResource DefaultGridViewItemStyle}">
-          <Setter Property="Margin" Value="0,0,8,4"/>
+          <Setter Property="Margin" Value="0,0,8,4" />
         </Style>
       </GridView.ItemContainerStyle>
       <GridView.ItemTemplate>
@@ -38,13 +49,13 @@
           <Grid Background="#111111">
             <Grid Background="#2235C759" Visibility="{x:Bind suxc:Visible.IfTrue(HasSelectedIcons), Mode=OneWay}">
               <Ellipse Width="8" Height="8" Fill="#35C759" StrokeThickness="0" Margin="4"
-                       HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                       HorizontalAlignment="Right" VerticalAlignment="Top" />
             </Grid>
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,4,14,4">
               <FontIcon Glyph="{x:Bind ActiveIconInfo.Glyph, Mode=OneWay}" FontSize="32" Width="32" Height="32"
                         FontFamily="{utu:AncestorBinding AncestorType=UserControl, Path=IconFontFamily}" />
               <TextBlock Text="{x:Bind Info.Name}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2"
-                         Width="110" FontSize="10" VerticalAlignment="Center"/>
+                         Width="110" FontSize="10" VerticalAlignment="Center" />
             </StackPanel>
           </Grid>
         </DataTemplate>
@@ -55,19 +66,19 @@
       <ContentControl.ContentTemplate>
         <DataTemplate x:DataType="vm:IconGroupModel">
           <StackPanel Padding="8" Spacing="8">
-            <TextBlock Text="{x:Bind Info.Name}" FontWeight="Bold" FontSize="16" TextWrapping="Wrap"/>
-            <TextBox Header="Export name" Text="{x:Bind ExportName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBlock Text="{x:Bind Info.Name}" FontWeight="Bold" FontSize="16" TextWrapping="Wrap" />
+            <TextBox Header="Export name" PlaceholderText="{x:Bind Info.Id}" Text="{x:Bind ExportName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             <ItemsRepeater ItemsSource="{x:Bind Icons}">
               <ItemsRepeater.ItemTemplate>
                 <DataTemplate x:DataType="vm:IconModel">
                   <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" Margin="0,0,0,10">
                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                       <FontIcon Glyph="{x:Bind Info.Glyph}" FontSize="28" Width="28" Height="28"
-                                FontFamily="{utu:AncestorBinding AncestorType=UserControl, Path=IconFontFamily}"/>
+                                FontFamily="{utu:AncestorBinding AncestorType=UserControl, Path=IconFontFamily}" />
                       <FontIcon Glyph="{x:Bind Info.RtlGlyph}" FontSize="28" Width="28" Height="28"
                                 FontFamily="{utu:AncestorBinding AncestorType=UserControl, Path=IconFontFamily}"
-                                Visibility="{x:Bind suxc:Visible.IfNotNull(Info.RtlGlyph)}"/>
-                      <TextBlock Text="{x:Bind Info.Variant}" VerticalAlignment="Center"/>
+                                Visibility="{x:Bind suxc:Visible.IfNotNull(Info.RtlGlyph)}" />
+                      <TextBlock Text="{x:Bind Info.Variant}" VerticalAlignment="Center" />
                     </StackPanel>
                   </CheckBox>
                 </DataTemplate>

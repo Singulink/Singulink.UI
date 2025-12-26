@@ -10,7 +10,7 @@ using Uno.Resizetizer;
 
 namespace IconPackBuilder;
 
-public sealed class AppWindow : Window
+public sealed class AppWindow : Window, IWindow
 {
     private readonly Navigator _navigator;
 
@@ -25,6 +25,7 @@ public sealed class AppWindow : Window
 
         var services = new ServiceCollection();
 
+        services.AddSingleton<IWindow>(this);
         services.AddSingleton<IconsSource>(SeagullIconsSource.Instance);
         services.AddSingleton<IFontSubsetter>(new PyFtSubsetter());
         services.AddSingleton<IExporter>(CSharpExporter.Instance);
@@ -55,6 +56,7 @@ public sealed class AppWindow : Window
 
             builder.MapRoutedView<StartRootModel, StartRoot>();
             builder.MapRoutedView<EditorRootModel, EditorRoot>();
+            builder.MapDialog<PreviewIconPackDialogModel, PreviewIconPackDialog>();
 
             builder.AddAllRoutes();
         });

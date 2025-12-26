@@ -11,6 +11,16 @@ public static class FilterExtensions
         return source.Where(item => MatchesFilter(valueSelector(item), filterParts));
     }
 
+    public static bool MatchesFilter(this string value, string filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return true;
+
+        string[] filterParts = filter.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        return MatchesFilter(value, filterParts);
+    }
+
     private static bool MatchesFilter(string value, string[] filterParts)
     {
         foreach (string filterPart in filterParts)
@@ -33,15 +43,5 @@ public static class FilterExtensions
         }
 
         return true;
-    }
-
-    public static bool MatchesFilter(this string value, string filter)
-    {
-        if (string.IsNullOrWhiteSpace(filter))
-            return true;
-
-        string[] filterParts = filter.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        return MatchesFilter(value, filterParts);
     }
 }

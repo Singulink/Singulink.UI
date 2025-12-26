@@ -39,11 +39,11 @@ public class CSharpExporter : IExporter
             if (icon.Icon.RtlCodePoint is int rtlCodePoint)
             {
                 string rtlCodePointLiteral = FormatCodePoint(rtlCodePoint);
-                sb.AppendLine(null, $"    public static readonly IconWithRtlGlyph {memberName} = new({codePointLiteral}, {rtlCodePointLiteral});");
+                sb.AppendLine(null, $"    public static IconWithRtlGlyph {memberName} {{ get; }} = new({codePointLiteral}, {rtlCodePointLiteral});");
             }
             else
             {
-                sb.AppendLine(null, $"    public static readonly IconGlyph {memberName} = new({codePointLiteral});");
+                sb.AppendLine(null, $"    public static IconGlyph {memberName} {{ get; }} = new({codePointLiteral});");
             }
         }
 
