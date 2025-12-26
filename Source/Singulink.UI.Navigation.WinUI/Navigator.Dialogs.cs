@@ -109,6 +109,9 @@ partial class Navigator : IDialogPresenter
 
         void OnPrimaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
+            if (args.Cancel)
+                return;
+
             args.Cancel = true;
 
             if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
@@ -122,6 +125,9 @@ partial class Navigator : IDialogPresenter
 
         void OnSecondaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
+            if (args.Cancel)
+                return;
+
             args.Cancel = true;
 
             if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
@@ -135,6 +141,9 @@ partial class Navigator : IDialogPresenter
 
         void OnCloseDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
+            if (args.Cancel)
+                return;
+
             args.Cancel = true;
 
             if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
