@@ -54,14 +54,14 @@ Designed for handling MVVM-based applications with complex deep-linked navigatio
 ✔️ Easy to use with or without a DI container  
 ✔️ Full integration with **Singulink.UI.Tasks** ([see below](#singulinkuitasks)) for simple and easy management of busy-state while long running operations are executing on pages or dialogs  
 
-The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. We plan to add more UI framework implementations soon (probably WPF and Avalonia initially).
+The base library is not tied to any particular UI framework but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. We may add support for additional UI frameworks in the future.
 
-Stay tuned, additional documentation and examples are also coming soon! You are welcome to have a look at the [Playground](https://github.com/Singulink/Singulink.UI/tree/main/Playground) project to get an idea of how it works for now.
+Stay tuned, additional documentation and examples are coming soon! You are welcome to check out the [Playground](https://github.com/Singulink/Singulink.UI/tree/main/Playground) and [Icon Pack Builder](https://github.com/Singulink/Singulink.UI/tree/main/IconPackBuilder) projects to get an idea of how it works for now.
 
-Some key parts of the Playground to check out are:
+Key parts of the projects:
 
-- [`Routes.cs`](https://github.com/Singulink/Singulink.UI/blob/main/Playground/Playground.ViewModels/Routes.cs): Contains the strongly-typed route and parameter definitions. This should be together with your view models so they can make compiler-checked navigation calls.
-- [`AppWindow.cs`](https://github.com/Singulink/Singulink.UI/blob/main/Playground/Playground/AppWindow.cs): The main app window where "view model to view" mappings are defined and the navigator is configured. Back button handling is also setup here.
+- `Routes.cs` in the `ViewModel` projects: Contains strongly-typed route and parameter definitions. Allows view models to make compile-time checked navigation calls.
+- `AppWindow.cs` in the main project: The main app window where "view model to view" mappings are defined and the navigator is configured.
 
 **Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
 
