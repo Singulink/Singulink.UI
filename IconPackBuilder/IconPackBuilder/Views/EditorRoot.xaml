@@ -5,23 +5,24 @@
   xmlns:local="using:IconPackBuilder.Views"
   xmlns:vm="using:IconPackBuilder.ViewModels"
   xmlns:utu="using:Uno.Toolkit.UI"
-  xmlns:suxc="using:Singulink.UI.Xaml.Converters">
+  xmlns:suxc="using:Singulink.UI.Xaml.Converters"
+  xmlns:fi="using:FluentIcons.WinUI.Markup">
 
   <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,280">
     <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6" Margin="10" HorizontalAlignment="Left">
       <MenuBar VerticalAlignment="Center">
         <MenuBarItem Title="File" AccessKey="F">
-          <MenuFlyoutItem Text="Save" AccessKey="S" Command="{x:Bind Model.SaveProjectCommand}">
+          <MenuFlyoutItem Text="Save" AccessKey="S" Command="{x:Bind Model.SaveProjectCommand}" Icon="{fi:SymbolIcon Symbol=Save}">
             <MenuFlyoutItem.KeyboardAccelerators>
               <KeyboardAccelerator Key="S" Modifiers="Control" />
             </MenuFlyoutItem.KeyboardAccelerators>
           </MenuFlyoutItem>
-          <MenuFlyoutItem Text="Export" AccessKey="E" Command="{x:Bind Model.ExportProjectCommand}" />
-          <MenuFlyoutItem Text="Preview" AccessKey="P" Command="{x:Bind Model.PreviewIconPackCommand}" />
+          <MenuFlyoutItem Text="Export" AccessKey="E" Command="{x:Bind Model.ExportProjectCommand}" Icon="{fi:SymbolIcon Symbol=ArrowSquareUpRight}" />
+          <MenuFlyoutItem Text="Preview" AccessKey="P" Command="{x:Bind Model.PreviewIconPackCommand}" Icon="{fi:SymbolIcon Symbol=Eye}" />
           <MenuFlyoutSeparator />
-          <MenuFlyoutItem Text="Close" AccessKey="C" Command="{x:Bind Model.CloseCommand}" />
+          <MenuFlyoutItem Text="Close" AccessKey="C" Command="{x:Bind Model.CloseCommand}" Icon="{fi:SymbolIcon Symbol=SignOut}" />
           <MenuFlyoutSeparator />
-          <MenuFlyoutItem Text="Exit" AccessKey="X" Command="{x:Bind Model.ExitCommand}" />
+          <MenuFlyoutItem Text="Exit" AccessKey="X" Command="{x:Bind Model.ExitCommand}" Icon="{fi:SymbolIcon Symbol=Dismiss}" />
         </MenuBarItem>
       </MenuBar>
       <TextBox PlaceholderText="Filter" VerticalAlignment="Center" Width="200"
