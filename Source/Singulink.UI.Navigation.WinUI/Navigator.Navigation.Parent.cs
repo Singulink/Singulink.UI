@@ -42,6 +42,6 @@ partial class Navigator
         if (parentIndex < 0)
             throw new NavigationRouteException($"Current route does not contain a parent view model of type '{parentViewModelType}'.");
 
-        return await NavigateNewAsync(routeParts[..(parentIndex + 1)], options);
+        return await NavigateNewAsyncCore(routeParts[..(parentIndex + 1)], options);
     }
 }

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net8.0-windows10.0.19041</TargetFrameworks>
 
-    <Version>5.1.1</Version>
+    <Version>5.2</Version>
     <PackageTags>WinUI; Uno Platform; Navigation; MVVM; Toolkit;</PackageTags>
     <Description>Strongly-typed AOT-friendly navigation framework with comprehensive deep-linking support.</Description>
   </PropertyGroup>

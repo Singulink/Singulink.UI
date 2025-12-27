@@ -18,7 +18,7 @@ internal sealed class ConcreteRoute : IConcreteRoute
     internal IReadOnlyList<Item> Items { get; }
 
     /// <inheritdoc cref="IConcreteRoute.Path"/>
-    public string Path => field ??= RoutingHelpers.GetPath(Items.Select(i => i.ConcreteRoutePart));
+    public string Path => field ??= Route.GetRoute(Items.Select(i => i.ConcreteRoutePart));
 
     internal ConcreteRoute(IReadOnlyList<Item> items, RouteOptions options)
     {

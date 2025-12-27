@@ -84,6 +84,11 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     public IReadOnlyList<IConcreteRoute> GetForwardStack();
 
     /// <summary>
+    /// Gets the current route parts up to the specified parent view model type.
+    /// </summary>
+    IEnumerable<IConcreteRoutePart> GetCurrentRoutePartsToParent(Type parentViewModelType);
+
+    /// <summary>
     /// Navigates back to the previous view.
     /// </summary>
     public Task<NavigationResult> GoBackAsync();

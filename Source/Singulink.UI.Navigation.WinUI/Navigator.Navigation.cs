@@ -35,7 +35,7 @@ partial class Navigator
 
         var routeOptions = anchor is not null ? new RouteOptions(anchor) : null;
 
-        return await NavigateNewAsync(routeItems, routeOptions);
+        return await NavigateNewAsyncCore(routeItems, routeOptions);
     }
 
     /// <inheritdoc cref="INavigator.NavigateAsync(IConcreteRootRoutePart, RouteOptions?)"/>
@@ -87,14 +87,14 @@ partial class Navigator
     private Task<NavigationResult> NavigateNewWithRouteCheckAsync(IReadOnlyList<IConcreteRoutePart> routeParts, RouteOptions? routeOptions)
     {
         EnsureRoutePartsResolveToExpectedRoute(routeParts);
-        return NavigateNewAsync(routeParts, routeOptions);
+        return NavigateNewAsyncCore(routeParts, routeOptions);
     }
 
-    private async Task<NavigationResult> NavigateNewAsync(IReadOnlyList<IConcreteRoutePart>? routeParts, RouteOptions? routeOptions)
+    private async Task<NavigationResult> NavigateNewAsyncCore(IReadOnlyList<IConcreteRoutePart>? routeParts, RouteOptions? routeOptions)
     {
         var currentRoute = CurrentRouteImpl;
         var routeItems = routeParts is not null ? BuildRouteItems(routeParts) : currentRoute?.Items ??
-            throw new InvalidOperationException("Cannot navigate to a partial route before the navigator has a route.");
+            throw new InvalidOperationException("Cannot perform partial routing operations before the navigator has a route.");
 
         var route = currentRoute is not null && routeItems.SequenceEqual(currentRoute.Items) && routeOptions == currentRoute.Options ?
             currentRoute : new ConcreteRoute(routeItems, routeOptions ?? RouteOptions.Empty);
@@ -381,7 +381,7 @@ partial class Navigator
 
     private void EnsureRoutePartsResolveToExpectedRoute(IReadOnlyList<IConcreteRoutePart> routeParts)
     {
-        string routeString = RoutingHelpers.GetPath(routeParts);
+        string routeString = Route.GetRoute(routeParts);
 
         if (!TryMatchRoute(routeString, out var foundRouteItems))
             throw new NavigationRouteException($"No route found for '{routeString}'.");

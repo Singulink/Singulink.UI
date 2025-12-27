@@ -77,6 +77,117 @@ public static class Route
         return new TupleRouteBuilder<T1, T2, T3, T4>(routeParts);
     }
 
+    /// <summary>
+    /// Gets the route string represented by the specified route parts.
+    /// </summary>
+    public static string GetRoute(IEnumerable<IConcreteRoutePart> routeParts, RouteOptions? routeOptions = null)
+    {
+        return string.Join("/", routeParts.Select(r => r.ToString()).Where(r => r.Length > 0)) + routeOptions;
+    }
+
+    /// <summary>
+    /// Gets the route string represented by the specified root route part.
+    /// </summary>
+    public static string GetRoute(IConcreteRootRoutePart rootRoutePart, RouteOptions? routeOptions = null)
+    {
+        return GetRoute([rootRoutePart], routeOptions);
+    }
+
+    /// <summary>
+    /// Gets the route string represented by the specified root and child route parts.
+    /// </summary>
+    public static string GetRoute<TRootViewModel>(
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
+        IConcreteChildRoutePart<TRootViewModel> childRoutePart,
+        RouteOptions? routeOptions = null)
+        where TRootViewModel : class
+    {
+        return GetRoute([rootRoutePart, childRoutePart], routeOptions);
+    }
+
+    /// <summary>
+    /// Gets the route string represented by the specified root and child route parts.
+    /// </summary>
+    public static string GetRoute<TRootViewModel, TChildViewModel1>(
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
+        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
+        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
+        RouteOptions? routeOptions = null)
+        where TRootViewModel : class
+        where TChildViewModel1 : class
+    {
+        return GetRoute([rootRoutePart, childRoutePart1, childRoutePart2], routeOptions);
+    }
+
+    /// <summary>
+    /// Gets the route string represented by the specified root and child route parts.
+    /// </summary>
+    public static string GetRoute<TRootViewModel, TChildViewModel1, TChildViewModel2>(
+        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
+        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
+        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
+        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
+        RouteOptions? routeOptions = null)
+        where TRootViewModel : class
+        where TChildViewModel1 : class
+        where TChildViewModel2 : class
+    {
+        return GetRoute([rootRoutePart, childRoutePart1, childRoutePart2, childRoutePart3], routeOptions);
+    }
+
+    /// <summary>
+    /// Gets the partial route that has the same path as the navigator's current route but with the specified options.
+    /// </summary>
+    public static string GetRoutePartial(INavigator navigator, RouteOptions routeOptions)
+    {
+        return navigator.CurrentRoute.Path + routeOptions;
+    }
+
+    /// <summary>
+    /// Gets the route string for the specified partial route. The current route must contain the specified parent view model type otherwise an <see
+    /// cref="InvalidOperationException"/> is thrown.
+    /// </summary>
+    public static string GetRoutePartial<TParentViewModel>(
+        INavigator navigator,
+        IConcreteChildRoutePart<TParentViewModel> childRoutePart,
+        RouteOptions? routeOptions = null)
+        where TParentViewModel : class
+    {
+        return GetRoute([..navigator.GetCurrentRoutePartsToParent(typeof(TParentViewModel)), childRoutePart]) + routeOptions;
+    }
+
+    /// <summary>
+    /// Gets the route string for the specified partial route. The current route must contain the specified parent view model type otherwise an <see
+    /// cref="InvalidOperationException"/> is thrown.
+    /// </summary>
+    public static string GetRoutePartial<TParentViewModel, TChildViewModel1>(
+        INavigator navigator,
+        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
+        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
+        RouteOptions? routeOptions = null)
+        where TParentViewModel : class
+        where TChildViewModel1 : class
+    {
+        return GetRoute([..navigator.GetCurrentRoutePartsToParent(typeof(TParentViewModel)), childRoutePart1, childRoutePart2]) + routeOptions;
+    }
+
+    /// <summary>
+    /// Gets the route string for the specified partial route. The current route must contain the specified parent view model type otherwise an <see
+    /// cref="InvalidOperationException"/> is thrown.
+    /// </summary>
+    public static string GetRoutePartial<TParentViewModel, TChildViewModel1, TChildViewModel2>(
+        INavigator navigator,
+        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
+        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
+        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
+        RouteOptions? routeOptions = null)
+        where TParentViewModel : class
+        where TChildViewModel1 : class
+        where TChildViewModel2 : class
+    {
+        return GetRoute([..navigator.GetCurrentRoutePartsToParent(typeof(TParentViewModel)), childRoutePart1, childRoutePart2, childRoutePart3]) + routeOptions;
+    }
+
     private static List<string> GetParamNamesFromLambda(string lambdaExpr, int expectedParamCount)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(expectedParamCount, 0);

@@ -1,5 +1,3 @@
-using Singulink.UI.Navigation.InternalServices;
-
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <content>
@@ -50,7 +48,7 @@ partial class Navigator
         if (current is null)
             return false;
 
-        string partial = RoutingHelpers.GetPath(routeParts);
+        string partial = Route.GetRoute(routeParts);
 
         if (!current.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
             return false;
