@@ -6,6 +6,8 @@
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Suppress not implemented in Uno warnings -->
+    <NoWarn>$(NoWarn);Uno0001;</NoWarn>
 
     <!-- Display name -->
     <ApplicationTitle>Singulink Icon Pack Builder</ApplicationTitle>
