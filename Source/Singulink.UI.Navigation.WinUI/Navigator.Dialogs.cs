@@ -1,4 +1,7 @@
+using System.ComponentModel;
+using Microsoft.UI.Xaml.Data;
 using Singulink.UI.Navigation.InternalServices;
+using Windows.Security.Cryptography.Core;
 
 namespace Singulink.UI.Navigation.WinUI;
 
@@ -105,7 +108,99 @@ partial class Navigator : IDialogPresenter
         dialog.CloseButtonClick += OnCloseDialogButtonClick;
         dialog.Closing += OnDialogClosing;
 
+        // Set up command-to-enabled syncing for primary and secondary buttons
+        ICommand? primaryCommand = null;
+        ICommand? secondaryCommand = null;
+        EventHandler? primaryCanExecuteChangedHandler = null;
+        EventHandler? secondaryCanExecuteChangedHandler = null;
+        BoolNotifier? primaryEnabledNotifier = null;
+        BoolNotifier? secondaryEnabledNotifier = null;
+
+        dialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandProperty, OnPrimaryButtonCommandChanged);
+        dialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandProperty, OnSecondaryButtonCommandChanged);
+        dialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandParameterProperty, OnPrimaryButtonCommandParameterChanged);
+        dialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandParameterProperty, OnSecondaryButtonCommandParameterChanged);
+
+        OnPrimaryButtonCommandChanged(dialog, ContentDialog.PrimaryButtonCommandProperty);
+        OnSecondaryButtonCommandChanged(dialog, ContentDialog.SecondaryButtonCommandProperty);
+
         return dialog;
+
+        void OnPrimaryButtonCommandChanged(DependencyObject sender, DependencyProperty dp)
+        {
+            var dialog = (ContentDialog)sender;
+
+            if (primaryCommand is not null && primaryCanExecuteChangedHandler is not null)
+                primaryCommand.CanExecuteChanged -= primaryCanExecuteChangedHandler;
+
+            primaryCommand = null;
+            primaryCanExecuteChangedHandler = null;
+            primaryEnabledNotifier = null;
+
+            if (dialog.PrimaryButtonCommand is { } newCommand && !IsPropertySetOrBound(dialog, ContentDialog.IsPrimaryButtonEnabledProperty))
+            {
+                primaryCommand = newCommand;
+                primaryEnabledNotifier = new BoolNotifier(newCommand.CanExecute(dialog.PrimaryButtonCommandParameter));
+                primaryCanExecuteChangedHandler = (_, _) => primaryEnabledNotifier.Value = newCommand.CanExecute(dialog.PrimaryButtonCommandParameter);
+                newCommand.CanExecuteChanged += primaryCanExecuteChangedHandler;
+
+                dialog.SetBinding(ContentDialog.IsPrimaryButtonEnabledProperty, new Binding
+                {
+                    Source = primaryEnabledNotifier,
+                    Path = new PropertyPath(nameof(BoolNotifier.Value)),
+                    Mode = BindingMode.OneWay,
+                });
+            }
+        }
+
+        void OnSecondaryButtonCommandChanged(DependencyObject sender, DependencyProperty dp)
+        {
+            var dialog = (ContentDialog)sender;
+
+            if (secondaryCommand is not null && secondaryCanExecuteChangedHandler is not null)
+                secondaryCommand.CanExecuteChanged -= secondaryCanExecuteChangedHandler;
+
+            secondaryCommand = null;
+            secondaryCanExecuteChangedHandler = null;
+            secondaryEnabledNotifier = null;
+
+            if (dialog.SecondaryButtonCommand is { } newCommand && !IsPropertySetOrBound(dialog, ContentDialog.IsSecondaryButtonEnabledProperty))
+            {
+                secondaryCommand = newCommand;
+                secondaryEnabledNotifier = new BoolNotifier(newCommand.CanExecute(dialog.SecondaryButtonCommandParameter));
+                secondaryCanExecuteChangedHandler = (_, _) => secondaryEnabledNotifier.Value = newCommand.CanExecute(dialog.SecondaryButtonCommandParameter);
+                newCommand.CanExecuteChanged += secondaryCanExecuteChangedHandler;
+
+                dialog.SetBinding(ContentDialog.IsSecondaryButtonEnabledProperty, new Binding
+                {
+                    Source = secondaryEnabledNotifier,
+                    Path = new PropertyPath(nameof(BoolNotifier.Value)),
+                    Mode = BindingMode.OneWay,
+                });
+            }
+        }
+
+        void OnPrimaryButtonCommandParameterChanged(DependencyObject sender, DependencyProperty dp)
+        {
+            var dialog = (ContentDialog)sender;
+
+            if (primaryEnabledNotifier is not null && dialog.PrimaryButtonCommand is { } command)
+                primaryEnabledNotifier.Value = command.CanExecute(dialog.PrimaryButtonCommandParameter);
+        }
+
+        void OnSecondaryButtonCommandParameterChanged(DependencyObject sender, DependencyProperty dp)
+        {
+            var dialog = (ContentDialog)sender;
+
+            if (secondaryEnabledNotifier is not null && dialog.SecondaryButtonCommand is { } command)
+                secondaryEnabledNotifier.Value = command.CanExecute(dialog.SecondaryButtonCommandParameter);
+        }
+
+        static bool IsPropertySetOrBound(DependencyObject obj, DependencyProperty dp)
+        {
+            object localValue = obj.ReadLocalValue(dp);
+            return localValue != DependencyProperty.UnsetValue;
+        }
 
         void OnPrimaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
@@ -117,9 +212,14 @@ partial class Navigator : IDialogPresenter
             if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
             {
                 if (dialogInfo.Dialog.PrimaryButtonCommand is { } command)
-                    command.Execute(dialogInfo.Dialog.PrimaryButtonCommandParameter);
+                {
+                    if (command.CanExecute(dialogInfo.Dialog.PrimaryButtonCommandParameter))
+                        command.Execute(dialogInfo.Dialog.PrimaryButtonCommandParameter);
+                }
                 else
+                {
                     CloseDialog(dialogInfo.Dialog);
+                }
             }
         }
 
@@ -133,9 +233,14 @@ partial class Navigator : IDialogPresenter
             if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
             {
                 if (dialogInfo.Dialog.SecondaryButtonCommand is { } command)
-                    command.Execute(dialogInfo.Dialog.SecondaryButtonCommandParameter);
+                {
+                    if (command.CanExecute(dialogInfo.Dialog.SecondaryButtonCommandParameter))
+                        command.Execute(dialogInfo.Dialog.SecondaryButtonCommandParameter);
+                }
                 else
+                {
                     CloseDialog(dialogInfo.Dialog);
+                }
             }
         }
 
@@ -149,9 +254,14 @@ partial class Navigator : IDialogPresenter
             if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
             {
                 if (dialogInfo.Dialog.CloseButtonCommand is { } command)
-                    command.Execute(dialogInfo.Dialog.CloseButtonCommandParameter);
+                {
+                    if (command.CanExecute(dialogInfo.Dialog.CloseButtonCommandParameter))
+                        command.Execute(dialogInfo.Dialog.CloseButtonCommandParameter);
+                }
                 else
+                {
                     CloseDialog(dialogInfo.Dialog);
+                }
             }
         }
 
@@ -172,6 +282,28 @@ partial class Navigator : IDialogPresenter
 
                     if (_dialogStack.TryPeek(out dialogInfo) && dialogInfo.Dialog == sender && !dismissibleVm.TaskRunner.IsBusy)
                         await dismissibleVm.TaskRunner.RunAsBusyAsync(dismissibleVm.OnDismissRequestedAsync());
+                }
+            }
+        }
+    }
+
+    private sealed partial class BoolNotifier(bool initialValue) : INotifyPropertyChanged
+    {
+        private static readonly PropertyChangedEventArgs ValueChangedEventArgs = new(nameof(Value));
+
+        private bool _value = initialValue;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public bool Value
+        {
+            get => _value;
+            set
+            {
+                if (_value != value)
+                {
+                    _value = value;
+                    PropertyChanged?.Invoke(this, ValueChangedEventArgs);
                 }
             }
         }
