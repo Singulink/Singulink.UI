@@ -5,7 +5,7 @@ namespace Singulink.UI.Navigation;
 /// <summary>
 /// Represents a root route part with no parameters.
 /// </summary>
-public class RootRoutePart<TViewModel> : RoutePart<TViewModel>, IConcreteRootRoutePart<TViewModel>
+public abstract class RootRoutePart<TViewModel> : RoutePart<TViewModel>, IConcreteRootRoutePart<TViewModel>
     where TViewModel : class
 {
     /// <inheritdoc/>
@@ -14,7 +14,13 @@ public class RootRoutePart<TViewModel> : RoutePart<TViewModel>, IConcreteRootRou
     /// <inheritdoc/>
     object? IConcreteRoutePart.Parameter => null;
 
-    internal RootRoutePart(RouteBuilder routeBuilder) : base(routeBuilder, null)
+    /// <inheritdoc/>
+    string IConcreteRoutePart.Path => RouteBuilder.GetPartPath();
+
+    /// <inheritdoc/>
+    RouteQuery IConcreteRoutePart.Query => RouteQuery.Empty;
+
+    private protected RootRoutePart(RouteBuilder routeBuilder) : base(routeBuilder, null)
     {
     }
 
@@ -23,7 +29,7 @@ public class RootRoutePart<TViewModel> : RoutePart<TViewModel>, IConcreteRootRou
     /// </summary>
     public override string ToString() => RouteBuilder.GetPartPath();
 
-    internal override bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out IConcreteRoutePart concreteRoute, out ReadOnlySpan<char> rest)
+    internal override bool TryMatch(ReadOnlySpan<char> routeString, RouteQuery query, [MaybeNullWhen(false)] out IConcreteRoutePart concreteRoute, out ReadOnlySpan<char> rest)
     {
         if (RouteBuilder.TryMatch(routeString, out rest))
         {
@@ -39,30 +45,60 @@ public class RootRoutePart<TViewModel> : RoutePart<TViewModel>, IConcreteRootRou
     bool IEquatable<IConcreteRoutePart>.Equals(IConcreteRoutePart? other) => other == this;
 }
 
+internal class DirectRootRoutePart<TViewModel> : RootRoutePart<TViewModel>
+    where TViewModel : class
+{
+    internal DirectRootRoutePart(RouteBuilder routeBuilder) : base(routeBuilder)
+    {
+    }
+}
+
 /// <summary>
 /// Represents a parameterized root route part.
 /// </summary>
-public class RootRoutePart<TViewModel, TParam> : RoutePart<TViewModel, TParam>
-    where TViewModel : class, IRoutedViewModel<TParam>
+public abstract class RootRoutePart<TViewModel, [DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam> : RoutePart
+    where TViewModel : class
     where TParam : notnull
 {
-    internal RootRoutePart(RouteBuilder<TParam> routeStringHandler) : base(routeStringHandler, null)
+    private protected RootRoutePart() : base(typeof(TViewModel), null)
     {
     }
 
     /// <summary>
-    /// Gets a concrete route using the specified parameter (or parameters tuple, if there are multiple parameters).
+    /// Gets a concrete route using the specified parameter.
     /// </summary>
-    public IConcreteRootRoutePart<TViewModel> ToConcrete(TParam parameter)
+    public abstract IConcreteRootRoutePart<TViewModel> ToConcrete(TParam parameter);
+}
+
+internal class DirectRootRoutePart<TViewModel, [DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam> : RootRoutePart<TViewModel, TParam>
+    where TViewModel : class, IRoutedViewModel<TParam>
+    where TParam : notnull
+{
+    internal RouteBuilder<TParam> RouteBuilder { get; }
+
+    internal DirectRootRoutePart(RouteBuilder<TParam> routeBuilder)
     {
-        return new Concrete(this, parameter);
+        RouteBuilder = routeBuilder;
     }
 
-    internal override bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out IConcreteRoutePart concreteRoute, out ReadOnlySpan<char> rest)
+    public override IConcreteRootRoutePart<TViewModel> ToConcrete(TParam parameter)
     {
-        if (RouteBuilder.TryMatch(routeString, out TParam parameter, out rest))
+        var values = RouteBuilder.Handler.ToRouteValues(parameter);
+        return ToConcrete(parameter, values);
+    }
+
+    internal IConcreteRootRoutePart<TViewModel> ToConcrete(TParam parameter, RouteValuesCollection values)
+    {
+        string path = RouteBuilder.BuildPath(values, consumeHoleEntries: true);
+        var query = values.ConsumeQuery();
+        return new Concrete(this, parameter, path, query);
+    }
+
+    internal override bool TryMatch(ReadOnlySpan<char> routeString, RouteQuery query, [MaybeNullWhen(false)] out IConcreteRoutePart concreteRoute, out ReadOnlySpan<char> rest)
+    {
+        if (RouteBuilder.TryMatch(routeString, query, out TParam parameter, out string? path, out rest))
         {
-            concreteRoute = new Concrete(this, parameter);
+            concreteRoute = new Concrete(this, parameter, path, query);
             return true;
         }
 
@@ -72,21 +108,27 @@ public class RootRoutePart<TViewModel, TParam> : RoutePart<TViewModel, TParam>
 
     private class Concrete : IParameterizedConcreteRoute<TViewModel, TParam>, IConcreteRootRoutePart<TViewModel>
     {
-        public RootRoutePart<TViewModel, TParam> RoutePart { get; }
+        public DirectRootRoutePart<TViewModel, TParam> RoutePart { get; }
 
         public TParam Parameter { get; }
+
+        public string Path { get; }
+
+        public RouteQuery Query { get; }
 
         RoutePart IConcreteRoutePart.RoutePart => RoutePart;
 
         object? IConcreteRoutePart.Parameter => Parameter;
 
-        public Concrete(RootRoutePart<TViewModel, TParam> routePart, TParam parameter)
+        public Concrete(DirectRootRoutePart<TViewModel, TParam> routePart, TParam parameter, string path, RouteQuery query)
         {
             RoutePart = routePart;
             Parameter = parameter;
+            Path = path;
+            Query = query;
         }
 
-        public override string ToString() => RoutePart.GetConcreteRouteString(Parameter);
+        public override string ToString() => Query.Count is 0 ? Path : $"{Path}?{Query}";
 
         bool IEquatable<IConcreteRoutePart>.Equals(IConcreteRoutePart? other)
         {

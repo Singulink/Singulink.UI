@@ -17,7 +17,17 @@ public interface IConcreteRoutePart : IEquatable<IConcreteRoutePart>
     public object? Parameter { get; }
 
     /// <summary>
-    /// Gets the path string for this concrete route part.
+    /// Gets the path string for this concrete route part (without any query string).
+    /// </summary>
+    public string Path { get; }
+
+    /// <summary>
+    /// Gets the query string parameters associated with this concrete route part. Always empty for non-leaf parts.
+    /// </summary>
+    public RouteQuery Query { get; }
+
+    /// <summary>
+    /// Returns the string representation of this concrete route part, including the path and query string (if any).
     /// </summary>
     public string ToString();
 }

@@ -51,19 +51,14 @@ Designed for handling MVVM-based applications with complex deep-linked navigatio
 ✔️ Compatible with all MVVM frameworks  
 ✔️ Single window or multi-window apps, nested child navigation views  
 ✔️ Intuitive, straightforward and foolproof content dialogs / message dialogs / nested dialogs  
-✔️ Easy to use with or without a DI container  
+✔️ Built-in comprehensive hierarchy aware DI, easy to use with or without an additional DI container for root services  
 ✔️ Full integration with **Singulink.UI.Tasks** ([see below](#singulinkuitasks)) for simple and easy management of busy-state while long running operations are executing on pages or dialogs  
 
 The base library is not tied to any particular UI framework but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer. We may add support for additional UI frameworks in the future.
 
-Stay tuned, additional documentation and examples are coming soon! You are welcome to check out the [Playground](https://github.com/Singulink/Singulink.UI/tree/main/Playground) and [Icon Pack Builder](https://github.com/Singulink/Singulink.UI/tree/main/IconPackBuilder) projects to get an idea of how it works for now.
+See the [Navigation Guides](https://www.singulink.com/Docs/Singulink.UI/articles/navigation-guides/getting-started.html) on the documentation site for a tour of the API and common usage patterns. You can also explore the [Playground](https://github.com/Singulink/Singulink.UI/tree/main/Playground) and [Icon Pack Builder](https://github.com/Singulink/Singulink.UI/tree/main/IconPackBuilder) projects for real-world examples.
 
-Key parts of the projects:
-
-- `Routes.cs` in the `ViewModel` projects: Contains strongly-typed route and parameter definitions. Allows view models to make compile-time checked navigation calls.
-- `AppWindow.cs` in the main project: The main app window where "view model to view" mappings are defined and the navigator is configured.
-
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
+**Supported Platforms**: .NET 10.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.5+
 
 ### Singulink.UI.Xaml.WinUI
 
@@ -84,14 +79,14 @@ Visibility="{x:Bind c:Visible.IfStringEqualsAny(Model.EnumValue, 'EnumName1', 'E
 Visibility="{x:Bind c:Visible.IfFocused(SomeOtherControl.FocusState)}"
 Visibility="{x:Bind c:Visible.IfFalse(Model.Hide)}"
 
-Opacity="{x:Bind c:Opaque.IfTrue(Model.ShowValue)}"}
+Opacity="{x:Bind c:Opaque.IfTrue(Model.ShowValue)}"
 
 Uri="{x:Bind c:Uri.Email(Model.EmailString)}"
 Uri="{x:Bind c:Uri.Phone(Model.PhoneString)}"
 Uri="{x:Bind c:Uri.Website(Model.WebsiteString)}"
 ```
 
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
+**Supported Platforms**: .NET 10.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.5+
 
 ### Singulink.UI.Tasks
 
@@ -145,7 +140,7 @@ public class YourViewModel(ITaskRunner taskRunner)
 
     await taskRunner.RunAsBusyAsync(async () =>
     {
-      await ApiClient.SaveAsync(Data));
+      await ApiClient.SaveAsync(Data);
     });
   }
 }

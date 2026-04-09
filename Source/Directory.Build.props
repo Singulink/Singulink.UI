@@ -10,6 +10,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IsPackable>true</IsPackable>
 
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <IsAotCompatible>true</IsAotCompatible>
     <CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

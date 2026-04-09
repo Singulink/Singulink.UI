@@ -20,7 +20,11 @@ public abstract class RoutePart
         ParentViewModelType = parentViewModelType;
     }
 
-    internal abstract bool TryMatch(ReadOnlySpan<char> routeString, [MaybeNullWhen(false)] out IConcreteRoutePart concreteRoute, out ReadOnlySpan<char> rest);
+    internal abstract bool TryMatch(ReadOnlySpan<char> routeString, RouteQuery query, [MaybeNullWhen(false)] out IConcreteRoutePart concreteRoute, out ReadOnlySpan<char> rest);
+
+    internal virtual IEnumerable<RoutePart> GetRegistrationParts() => [this];
+
+    internal virtual void ValidateAsParent() { }
 }
 
 /// <summary>
@@ -40,7 +44,7 @@ public abstract class RoutePart<TViewModel> : RoutePart
 /// <summary>
 /// Represents a parameterized route part.
 /// </summary>
-public abstract class RoutePart<TViewModel, TParam> : RoutePart
+public abstract class RoutePart<TViewModel, [DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam> : RoutePart
     where TViewModel : class, IRoutedViewModel<TParam>
     where TParam : notnull
 {
@@ -51,5 +55,5 @@ public abstract class RoutePart<TViewModel, TParam> : RoutePart
         RouteBuilder = routeBuilder;
     }
 
-    internal string GetConcreteRouteString(TParam parameter) => RouteBuilder.GetPartPath(parameter);
+    internal override void ValidateAsParent() => RouteBuilder.ValidateAsParent();
 }

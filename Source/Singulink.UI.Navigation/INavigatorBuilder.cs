@@ -45,7 +45,7 @@ public interface INavigatorBuilder
     /// <summary>
     /// Adds a route to the specified route part. Parent parts must be added before child parts.
     /// </summary>
-    public void AddRouteTo(RoutePart routePart);
+    public void AddRoute(RoutePart routePart);
 
     /// <summary>
     /// Configures navigation stack options.

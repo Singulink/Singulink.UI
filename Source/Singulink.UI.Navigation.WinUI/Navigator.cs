@@ -1,47 +1,28 @@
-using System.Collections.Frozen;
-using System.Collections.Immutable;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Singulink.UI.Tasks;
+using Windows.Foundation;
 using Windows.UI.Core;
 
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <inheritdoc cref="INavigator"/>
-public sealed partial class Navigator : INavigator
+public sealed partial class Navigator : NavigatorCore, IDialogPresenter
 {
-    private static readonly ConcreteRoute EmptyRoute = new([], RouteOptions.Empty);
-
     private readonly ViewNavigator _viewNavigator;
 
-    private readonly FrozenDictionary<Type, MappingInfo> _viewModelTypeToMappingInfo;
-    private readonly FrozenDictionary<Type, Func<ContentDialog>> _viewModelTypeToDialogActivator;
-    private readonly ImmutableArray<RoutePart> _routeParts;
-
-    private readonly IServiceProvider _rootServices;
-
-    private readonly int _maxStackSize;
-    private readonly int _maxBackStackCachedDepth;
-    private readonly int _maxForwardStackCachedDepth;
-
-    private readonly Stack<(ContentDialog Dialog, TaskCompletionSource Tcs)> _dialogStack = [];
-
-    private List<ConcreteRoute> _routeStack = [];
-    private int _currentRouteIndex = -1;
-
-    private bool _isNavigating;
-    private bool _isRedirecting;
-
-    private bool _blockNavigation;
-    private bool _blockDialogs;
+    private bool _isSystemNavigationHooked;
+    private bool _isWindowClosedHooked;
+#if WINDOWS
+    private TypedEventHandler<object, Microsoft.UI.Xaml.WindowActivatedEventArgs>? _windowActivatedHandler;
+#else
+    private WindowActivatedEventHandler? _windowActivatedHandler;
+#endif
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Navigator"/> class with the specified content control for displaying the active view and
     /// navigator build action.
     /// </summary>
-    /// <remarks>
-    /// If provided, the navigator will configure the specified host window to handle closed window events and system back requests.
-    /// </remarks>
     public Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)
         : this(new ContentControlNavigator(contentControl), buildAction) { }
 
@@ -49,160 +30,103 @@ public sealed partial class Navigator : INavigator
     /// Initializes a new instance of the <see cref="Navigator"/> class with the specified root view navigator and navigator build action.
     /// </summary>
     public Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)
+        : this(viewNavigator, CreateBuilder(buildAction))
+    {
+    }
+
+    private Navigator(ViewNavigator viewNavigator, NavigatorBuilder builder)
+        : base(viewNavigator, CreateTaskRunner(viewNavigator), builder)
     {
         _viewNavigator = viewNavigator;
         EnsureThreadAccess();
-        TaskRunner = new TaskRunner(busy => _viewNavigator.NavigationControl.IsEnabled = !busy);
 
-        var builder = new NavigatorBuilder();
-        buildAction(builder);
-        builder.Validate();
-
-        _routeParts = [.. builder.RouteParts];
-        _viewModelTypeToMappingInfo = builder.ViewModelTypeToMappingInfo.ToFrozenDictionary();
-
-        var vmTypeToDialogActivator = builder.ViewModelTypeToDialogActivator.AsEnumerable();
-
-        if (!builder.ViewModelTypeToDialogActivator.ContainsKey(typeof(MessageDialogViewModel)))
-            vmTypeToDialogActivator = vmTypeToDialogActivator.Append(new(typeof(MessageDialogViewModel), () => new MessageDialog()));
-
-        _viewModelTypeToDialogActivator = vmTypeToDialogActivator.ToFrozenDictionary();
-
-        _rootServices = builder.Services;
-
-        _maxStackSize = builder.MaxNavigationStacksSize + 1; // +1 to account for the current route
-        _maxBackStackCachedDepth = builder.MaxBackStackCachedDepth;
-        _maxForwardStackCachedDepth = builder.MaxForwardStackCachedDepth;
-    }
-
-    /// <inheritdoc cref="INavigator.CanGoBack"/>
-    public bool CanGoBack
-    {
-        get {
-            EnsureThreadAccess();
-            return !IsNavigating && !IsShowingDialog && HasBackHistory;
-        }
-    }
-
-    /// <inheritdoc cref="INavigator.CanGoForward"/>
-    public bool CanGoForward
-    {
-        get {
-            EnsureThreadAccess();
-            return !IsNavigating && !IsShowingDialog && HasForwardHistory;
-        }
-    }
-
-    /// <inheritdoc cref="INavigator.CanRefresh"/>
-    public bool CanRefresh
-    {
-        get {
-            EnsureThreadAccess();
-            return !IsNavigating && !IsShowingDialog && CurrentRouteImpl is not null;
-        }
-    }
-
-    /// <inheritdoc/>
-    public IConcreteRoute CurrentRoute
-    {
-        get {
-            EnsureThreadAccess();
-            return CurrentRouteImpl ?? EmptyRoute;
-        }
-    }
-
-    /// <inheritdoc cref="INavigator.HasBackHistory"/>
-    public bool HasBackHistory
-    {
-        get {
-            EnsureThreadAccess();
-            return _currentRouteIndex > 0;
-        }
-    }
-
-    /// <inheritdoc cref="INavigator.HasForwardHistory"/>
-    public bool HasForwardHistory
-    {
-        get {
-            EnsureThreadAccess();
-            return _currentRouteIndex < _routeStack.Count - 1;
-        }
-    }
-
-    /// <inheritdoc cref="INavigator.IsNavigating"/>
-    public bool IsNavigating
-    {
-        get {
-            EnsureThreadAccess();
-            return _isNavigating;
-        }
-    }
-
-    /// <inheritdoc cref="INavigator.IsShowingDialog"/>
-    public bool IsShowingDialog
-    {
-        get {
-            EnsureThreadAccess();
-            return _dialogStack.Count > 0;
-        }
-    }
-
-    /// <inheritdoc cref="INavigator.RootServices"/>
-    public IServiceProvider RootServices => _rootServices;
-
-    /// <inheritdoc cref="INavigator.TaskRunner"/>
-    public ITaskRunner TaskRunner { get; }
-
-    private ConcreteRoute? CurrentRouteImpl => _currentRouteIndex >= 0 ? _routeStack[_currentRouteIndex] : null;
-
-    /// <inheritdoc cref="INavigator.ClearHistory"/>
-    public async ValueTask ClearHistory()
-    {
-        EnsureThreadAccess();
-
-        if (_routeStack.Count is 0)
-            return;
-
-        var currentRoute = _routeStack[_currentRouteIndex];
-        var removedRoutes = _routeStack;
-
-        using (EnterNavigationGuard(blockDialogs: true))
-        {
-            using (new PropertyChangedNotifier(this))
+        _viewNavigator.NavigationControl.PointerPressed += (s, e) => {
+            if (!e.Handled && e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse)
             {
-                removedRoutes.RemoveAt(_currentRouteIndex);
-                _routeStack = [currentRoute];
-                _currentRouteIndex = 0;
+                if (e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties.IsXButton1Pressed ||
+                    e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties.IsXButton2Pressed)
+                {
+                    _viewNavigator.NavigationControl.CapturePointer(e.Pointer);
+                }
             }
+        };
 
-            await TrimRoutesAndCacheAsync(removedRoutes);
+        _viewNavigator.NavigationControl.PointerReleased += (s, e) => {
+            if (e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse)
+            {
+                if (e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties.IsXButton1Pressed)
+                    _ = HandleSystemBackRequest();
+                if (e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties.IsXButton2Pressed)
+                    _ = HandleSystemForwardRequest();
+            }
+        };
+    }
+
+    /// <summary>
+    /// Configures the navigator to handle the first window activation by triggering an initial navigation action. Must be called before the window is activated
+    /// for the initial navigation to work.
+    /// </summary>
+    /// <param name="window">The window to configure initial navigation for.</param>
+    /// <param name="navigationAction">The action to perform for initial navigation.</param>
+    /// <param name="fallbackAction">The action to perform if resolving the initial navigation fails. Can be used to show an error and/or navigate to a known
+    /// good fallback route. If not provided, no fallback action will be performed and exceptions will be propagated to the UI thread.</param>
+    /// <remarks>
+    /// This method simplifies the common scenario of triggering initial navigation when the window is first activated, while ensuring that initial navigation
+    /// is only triggered once and errors while attempting initial navigation can be handled gracefully.
+    /// </remarks>
+    public void HookWindowActivatedEvent(Window window, Func<Navigator, Task> navigationAction, Func<Navigator, NavigationRouteException, Task>? fallbackAction = null)
+    {
+        EnsureThreadAccess();
+
+        if (_windowActivatedHandler is not null)
+            throw new InvalidOperationException("Initial navigation has already been configured. Multiple calls to HookWindowActivatedEvent are not allowed.");
+
+        bool hasNavigated = false;
+
+        window.Activated += _windowActivatedHandler = OnWindowActivated;
+
+        async void OnWindowActivated(object sender, Microsoft.UI.Xaml.WindowActivatedEventArgs args)
+        {
+            var window = (Window)sender;
+
+#if WINDOWS
+            var deactivatedState = WindowActivationState.Deactivated;
+#else
+            var deactivatedState = CoreWindowActivationState.Deactivated;
+#endif
+
+            if (!hasNavigated && args.WindowActivationState != deactivatedState)
+            {
+                hasNavigated = true;
+                window.Activated -= _windowActivatedHandler;
+
+                if (!CurrentRoute.IsEmpty || IsNavigating)
+                    return;
+
+                try
+                {
+                    await navigationAction(this);
+                }
+                catch (NavigationRouteException ex) when (fallbackAction is not null)
+                {
+                    await fallbackAction(this, ex);
+                }
+            }
         }
     }
 
-    /// <inheritdoc cref="INavigator.GetBackStack"/>
-    public IReadOnlyList<IConcreteRoute> GetBackStack()
+#if __WASM__
+
+    /// <summary>
+    /// Gets the current browser route (path, query string, and fragment) without the scheme and host.
+    /// </summary>
+    public static string GetBrowserRoute()
     {
-        EnsureThreadAccess();
-
-        if (_currentRouteIndex <= 0)
-            return [];
-
-        var stack = _routeStack[.._currentRouteIndex];
-        stack.Reverse();
-
-        return stack;
+        var uri = new Uri(BrowserNavigationHelper.GetCurrentUrl());
+        return uri.PathAndQuery + uri.Fragment;
     }
 
-    /// <inheritdoc cref="INavigator.GetForwardStack"/>
-    public IReadOnlyList<IConcreteRoute> GetForwardStack()
-    {
-        EnsureThreadAccess();
-
-        if (_currentRouteIndex >= _routeStack.Count - 1)
-            return [];
-
-        return _routeStack[(_currentRouteIndex + 1)..];
-    }
+#endif
 
     /// <summary>
     /// Configures the navigator to handle system back/forward navigation requests on supported platforms.
@@ -211,7 +135,13 @@ public sealed partial class Navigator : INavigator
     {
         EnsureThreadAccess();
 
+        if (_isSystemNavigationHooked)
+            throw new InvalidOperationException("System navigation requests have already been hooked. Multiple calls to HookSystemNavigationRequests are not allowed.");
+
+        _isSystemNavigationHooked = true;
+
 #if !WINDOWS
+
         var navManager = SystemNavigationManager.GetForCurrentView();
 
         navManager.AppViewBackButtonVisibility = AppViewBackButtonVisibility.Visible;
@@ -226,16 +156,18 @@ public sealed partial class Navigator : INavigator
     /// Configures the navigator to handle window closed events to trigger navigator shutdown and prevent closing the window if
     /// navigation or busy task are in progress, dialogs are showing, or any view models are preventing navigating away from the current view.
     /// </summary>
-    /// <remarks>
-    /// See <see cref="TryShutDownAsync"/> for more information on navigator shutdown.
-    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown if window closed events have already been hooked.</exception>
     public void HookWindowClosedEvents(Window window)
     {
         EnsureThreadAccess();
 
+        if (_isWindowClosedHooked)
+            throw new InvalidOperationException("Window closed events have already been hooked. Multiple calls to HookWindowClosed are not allowed.");
+
+        _isWindowClosedHooked = true;
+
         bool isNavigatorShutdown = false;
 
-        window.Closed -= OnWindowClosed;
         window.Closed += OnWindowClosed;
 
         async void OnWindowClosed(object sender, WindowEventArgs args)
@@ -253,54 +185,15 @@ public sealed partial class Navigator : INavigator
         }
     }
 
-    /// <inheritdoc cref="INavigator.TryShutDownAsync"/>
-    public async Task<bool> TryShutDownAsync()
-    {
-        EnsureThreadAccess();
-
-        if (IsNavigating || IsShowingDialog || TaskRunner.IsBusy)
-            return false;
-
-        using var notifier = new PropertyChangedNotifier(this);
-
-        _isNavigating = true;
-
-        try
-        {
-            CloseLightDismissPopups();
-            notifier.Update();
-
-            var navigateAwayTask = NavigateAwayAsyncCore(NavigationType.New, numRouteItemsToKeep: 0, notifier, () => {
-                var removedRoutes = _routeStack.ToList();
-                _routeStack.Clear();
-                _currentRouteIndex = -1;
-
-                return removedRoutes;
-            });
-
-            if (!await TaskRunner.RunAsBusyAsync(navigateAwayTask))
-                return false;
-
-            PropertyChanged = null;
-            _blockDialogs = true;
-            _blockNavigation = true;
-
-            await TaskRunner.WaitForIdleAsync(false);
-            return true;
-        }
-        finally
-        {
-            _isNavigating = false;
-        }
-    }
-
-    private void EnsureThreadAccess()
+    /// <inheritdoc />
+    protected override void EnsureThreadAccess()
     {
         if (_viewNavigator.NavigationControl.DispatcherQueue?.HasThreadAccess is not true)
             throw new InvalidOperationException("Navigator can only be accessed from the UI thread.");
     }
 
-    private bool CloseLightDismissPopups()
+    /// <inheritdoc />
+    protected override bool CloseLightDismissPopups()
     {
         var xamlRoot = _viewNavigator.NavigationControl.XamlRoot;
         bool closedPopup = false;
@@ -319,62 +212,45 @@ public sealed partial class Navigator : INavigator
         return closedPopup;
     }
 
-    private async ValueTask TrimRoutesAndCacheAsync(List<ConcreteRoute>? removedRoutes)
+    /// <inheritdoc />
+    protected override void WireView(object view, IRoutedViewModelBase viewModel, out object? childViewNavigator)
     {
-        if (_routeStack.Count > _maxStackSize)
-        {
-            int trimCount = _routeStack.Count - _maxStackSize;
-            _routeStack.RemoveRange(0, trimCount);
-            _currentRouteIndex -= trimCount;
-        }
+        var frameworkElement = (FrameworkElement)view;
+        frameworkElement.DataContext = viewModel;
 
-        if (_routeStack.Count <= 1)
-            return;
-
-        var keepMaterialized = new HashSet<ConcreteRoute.Item>(_routeStack.Count * 3);
-
-        int cachedStartIndex = Math.Max(0, _currentRouteIndex - _maxBackStackCachedDepth);
-        int cachedEndIndex = Math.Min(_routeStack.Count - 1, _currentRouteIndex + _maxForwardStackCachedDepth);
-
-        // Keep all materialized components on route items that can be cached within the cached range
-
-        for (int j = cachedStartIndex; j <= cachedEndIndex; j++)
-        {
-            var route = _routeStack[j];
-
-            foreach (var item in route.Items)
+        frameworkElement.DataContextChanged += (s, e) => {
+            if (e.NewValue != viewModel)
             {
-                // Always keep views from the current route
-
-                if (item.IsMaterialized && (j == _currentRouteIndex || item.ViewModel.CanBeCached))
-                    keepMaterialized.Add(item);
+                s.DataContext = viewModel;
+                throw new InvalidOperationException("Navigator managed views cannot change their data context.");
             }
-        }
+        };
 
-        // Dispose all materialized items in routes that are not in the keepMaterialized set
-
-        var routes = _routeStack.AsEnumerable();
-
-        if (removedRoutes is not null)
-            routes = routes.Concat(removedRoutes);
-
-        foreach (var route in routes)
-        {
-            bool forceDisposeChildren = false;
-
-            foreach (var routeItem in route.Items)
-            {
-                if (routeItem.IsMaterialized && (forceDisposeChildren || !keepMaterialized.Contains(routeItem)))
-                {
-                    // If a disposed item has dependent children, we need to dispose its children as well since they may hold references to the disposed parent
-                    // or disposed services that the parent provided.
-
-                    if (routeItem.HasDependentChildren)
-                        forceDisposeChildren = true;
-
-                    await routeItem.DisposeMaterializedComponents();
-                }
-            }
-        }
+        childViewNavigator = (frameworkElement as IParentView)?.CreateChildViewNavigator();
     }
+
+    /// <inheritdoc />
+    protected override void SetActiveView(object viewNavigator, object? view)
+    {
+        var frameworkElement = (FrameworkElement?)view;
+        ((ViewNavigator)viewNavigator).SetActiveView(frameworkElement);
+    }
+
+#if __WASM__
+    /// <inheritdoc />
+    protected override void OnCurrentRouteChanged(NavigatorRoute route)
+    {
+        BrowserNavigationHelper.ReplaceState(null, string.Empty, "/" + route.ToString());
+    }
+#endif
+
+    private static NavigatorBuilder CreateBuilder(Action<NavigatorBuilder> buildAction)
+    {
+        var builder = new NavigatorBuilder();
+        buildAction(builder);
+        return builder;
+    }
+
+    private static TaskRunner CreateTaskRunner(ViewNavigator viewNavigator) =>
+        new(busy => viewNavigator.NavigationControl.IsEnabled = !busy);
 }

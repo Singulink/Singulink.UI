@@ -80,7 +80,7 @@ public class PyFtSubsetter : IFontSubsetter
                     throw new InvalidOperationException(message);
                 }
             }
-            catch (Exception ex) when (ex is not InvalidOperationException or FileNotFoundException or ArgumentException)
+            catch (Exception ex) when (ex is not (InvalidOperationException or FileNotFoundException or ArgumentException))
             {
                 throw new InvalidOperationException("Error while running pyftsubset: " + ex.Message, ex);
             }

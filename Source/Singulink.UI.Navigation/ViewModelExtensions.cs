@@ -40,7 +40,7 @@ public static class ViewModelExtensions
     extension<TParam>(IRoutedViewModel<TParam> viewModel) where TParam : notnull
     {
         /// <summary>
-        /// Gets the parameter (or parameters tuple, if there are multiple parameters) for the view model.
+        /// Gets the parameter for the view model.
         /// </summary>
         public TParam Parameter => MixinManager.TryGetParameter(viewModel, out var parameter) ? parameter :
             throw new InvalidOperationException("View model is not associated with a parameter.");

@@ -3,7 +3,7 @@ namespace Singulink.UI.Navigation.InternalServices;
 /// <summary>
 /// Empty service provider that always returns <see langword="null"/> for any service type.
 /// </summary>
-public sealed partial class EmptyServiceProvider : IServiceProvider
+internal sealed partial class EmptyServiceProvider : IServiceProvider
 {
     /// <summary>
     /// Gets the singleton instance of the <see cref="EmptyServiceProvider"/>.

@@ -1,0 +1,251 @@
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
+using Singulink.UI.Navigation.Utilities;
+
+namespace Singulink.UI.Navigation;
+
+/// <summary>
+/// Represents a two-phase, mutable, insertion-ordered collection of route parameter key-value pairs used to bridge URL generation and matching with
+/// <see cref="IRouteParamsModel{TSelf}"/> implementations.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The collection has two states:
+/// </para>
+/// <list type="bullet">
+///   <item><b>Building</b> (initial): <see cref="Add{T}(string, T)"/>, <see cref="Reserve(string)"/>, and <see cref="AddQuery(RouteQuery)"/> may be
+///   called. Each call to <see cref="Add{T}(string, T)"/> or <see cref="Reserve(string)"/> reserves the given key so that a subsequent
+///   <see cref="AddQuery(RouteQuery)"/> cannot overwrite a named parameter with a matching query entry; such a conflict throws.</item>
+///   <item><b>Consuming</b>: entered automatically on the first call to any consume or read member (<see cref="TryConsume{T}"/>,
+///   <see cref="ToRouteQuery"/>, enumerators, etc.). Further <see cref="Add{T}(string, T)"/>, <see cref="Reserve(string)"/>, and
+///   <see cref="AddQuery(RouteQuery)"/> calls throw.</item>
+/// </list>
+/// <para>
+/// Instances are not thread-safe.
+/// </para>
+/// </remarks>
+public sealed partial class RouteValuesCollection : IEnumerable<(string Key, string Value)>
+{
+    private readonly List<(string Key, string Value)> _entries;
+
+    /// <summary>
+    /// Tracks reserved keys while the collection is in the Building state. A <see langword="null"/> value indicates the collection has transitioned
+    /// to the Consuming state. Kept as a list since the expected number of reserved keys is small.
+    /// </summary>
+    private List<string>? _reservedKeys = [];
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RouteValuesCollection"/> class in the Building state.
+    /// </summary>
+    public RouteValuesCollection()
+    {
+        _entries = [];
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RouteValuesCollection"/> class in the Building state with the specified initial capacity.
+    /// </summary>
+    public RouteValuesCollection(int capacity)
+    {
+        _entries = new(capacity);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RouteValuesCollection"/> class already in the Consuming state, containing the specified path
+    /// parameters and the non-overriding entries from the specified query. If a query entry's key matches a path parameter's key, the query entry is
+    /// silently dropped so that path values always win.
+    /// </summary>
+    /// <remarks>
+    /// This constructor trusts that <paramref name="pathParams"/> does not contain duplicate keys.
+    /// </remarks>
+    internal RouteValuesCollection(List<(string Key, string Value)>? pathParams, RouteQuery queryParams)
+    {
+        _entries = new((pathParams?.Count ?? 0) + queryParams.Count);
+
+        if (pathParams is not null)
+            _entries.AddRange(pathParams);
+
+        foreach (var (key, value) in queryParams)
+        {
+            if (pathParams is not null)
+            {
+                foreach (var (pathKey, _) in pathParams)
+                {
+                    if (pathKey == key)
+                        continue;
+                }
+            }
+
+            _entries.Add((key, value));
+        }
+
+        // Collection is used for route matching only; it starts in the Consuming state.
+        _reservedKeys = null;
+    }
+
+    /// <summary>
+    /// Gets the number of entries currently in the collection.
+    /// </summary>
+    public int Count => _entries.Count;
+
+    /// <summary>
+    /// Adds a parameter entry and reserves the specified key so that a subsequent <see cref="AddQuery(RouteQuery)"/> cannot add a conflicting entry.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The collection is in the Consuming state, or the key has already been reserved.</exception>
+    public void Add<T>(string key, T value) where T : notnull, IParsable<T>
+    {
+        var reserved = EnsureBuilding();
+        ReserveCore(reserved, key);
+        _entries.Add((key, RouteValueConverter.Format(value)));
+    }
+
+    /// <summary>
+    /// Reserves the specified key without adding an entry, so that a subsequent <see cref="AddQuery(RouteQuery)"/> cannot add an entry with a
+    /// matching key. This is intended for optional named parameters whose current value is null.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The collection is in the Consuming state, or the key has already been reserved.</exception>
+    public void Reserve(string key)
+    {
+        var reserved = EnsureBuilding();
+        ReserveCore(reserved, key);
+    }
+
+    /// <summary>
+    /// Adds all entries from the specified <see cref="RouteQuery"/>. Throws if any entry's key has already been reserved by <see cref="Add{T}"/> or
+    /// <see cref="Reserve(string)"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The collection is in the Consuming state, or an entry's key is already reserved.</exception>
+    public void AddQuery(RouteQuery query)
+    {
+        var reserved = EnsureBuilding();
+
+        foreach (var (key, value) in query)
+        {
+            if (reserved.Contains(key))
+            {
+                throw new InvalidOperationException(
+                    $"Cannot add query entry '{key}': a named parameter with the same key has already been reserved on this collection. " +
+                    $"The Rest property must not contain keys that conflict with other named parameters on the route params model.");
+            }
+
+            _entries.Add((key, value));
+        }
+    }
+
+    /// <summary>
+    /// Tries to consume (parse and remove) the entry with the specified key. Returns <see langword="false"/> if the key is not found or parsing fails.
+    /// Transitions the collection to the Consuming state if it is not already.
+    /// </summary>
+    public bool TryConsume<T>(string key, [MaybeNullWhen(false)] out T value)
+        where T : notnull, IParsable<T>
+    {
+        BeginConsuming();
+
+        for (int i = 0; i < _entries.Count; i++)
+        {
+            if (_entries[i].Key == key)
+            {
+                string strValue = _entries[i].Value;
+                _entries.RemoveAt(i);
+
+                if (RouteValueConverter.TryParse(strValue, out value))
+                    return true;
+
+                value = default;
+                return false;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the remaining unconsumed entries as a <see cref="RouteQuery"/>. Transitions the collection to the Consuming state if it is not
+    /// already.
+    /// </summary>
+    public RouteQuery ToRouteQuery()
+    {
+        BeginConsuming();
+
+        if (_entries.Count is 0)
+            return RouteQuery.Empty;
+
+        return RouteQuery.FromEntries(_entries);
+    }
+
+    /// <summary>
+    /// Tries to get the string value for the specified key without consuming it. Transitions the collection to the Consuming state if it is not
+    /// already.
+    /// </summary>
+    internal bool TryGetValue(string key, [MaybeNullWhen(false)] out string value)
+    {
+        BeginConsuming();
+
+        foreach (var (k, v) in _entries)
+        {
+            if (k == key)
+            {
+                value = v;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Tries to consume (remove and return) the raw string entry with the specified key. Transitions the collection to the Consuming state if it is
+    /// not already.
+    /// </summary>
+    internal bool TryConsumeValue(string key, [MaybeNullWhen(false)] out string value)
+    {
+        BeginConsuming();
+
+        for (int i = 0; i < _entries.Count; i++)
+        {
+            if (_entries[i].Key == key)
+            {
+                value = _entries[i].Value;
+                _entries.RemoveAt(i);
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <inheritdoc/>
+    public IEnumerator<(string Key, string Value)> GetEnumerator()
+    {
+        BeginConsuming();
+        return ((IEnumerable<(string Key, string Value)>)_entries).GetEnumerator();
+    }
+
+    /// <inheritdoc/>
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <summary>
+    /// Ensures the collection is in the Building state and returns the reserved-keys list.
+    /// </summary>
+    private List<string> EnsureBuilding()
+    {
+        return _reservedKeys ?? throw new InvalidOperationException(
+            "The collection has already transitioned to the Consuming state; no further entries can be added.");
+    }
+
+    /// <summary>
+    /// Transitions the collection to the Consuming state if it is not already.
+    /// </summary>
+    private void BeginConsuming() => _reservedKeys = null;
+
+    private static void ReserveCore(List<string> reserved, string key)
+    {
+        if (reserved.Contains(key))
+            throw new InvalidOperationException($"A parameter with the key '{key}' has already been reserved on this collection.");
+
+        reserved.Add(key);
+    }
+}

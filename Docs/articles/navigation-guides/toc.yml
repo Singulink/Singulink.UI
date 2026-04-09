@@ -1,0 +1,18 @@
+- name: Getting Started
+  href: getting-started.md
+- name: Defining Routes
+  href: defining-routes.md
+- name: Routed View Models and Lifecycle
+  href: view-models.md
+- name: Navigating
+  href: navigating.md
+- name: Parent Views and Child Navigation
+  href: parent-views.md
+- name: Dialogs
+  href: dialogs.md
+- name: Guards and Redirects
+  href: guards-and-redirects.md
+- name: Dependency Injection
+  href: dependency-injection.md
+- name: WinUI / Uno Setup
+  href: winui-setup.md

@@ -1,112 +1,36 @@
 using System.ComponentModel;
 using Microsoft.UI.Xaml.Data;
-using Singulink.UI.Navigation.InternalServices;
-using Windows.Security.Cryptography.Core;
+using Singulink.UI.Tasks;
 
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <content>
-/// Provides dialog related implementations for the navigator.
+/// Provides framework-specific dialog hook implementations for the navigator.
 /// </content>
-partial class Navigator : IDialogPresenter
+partial class Navigator
 {
-    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync(IDialogViewModel)"/>
-    public async Task ShowDialogAsync(IDialogViewModel viewModel)
+    /// <inheritdoc/>
+    protected override void WireDialog(object dialog, IDialogViewModel viewModel, out ITaskRunner taskRunner)
     {
-        await ShowDialogAsync(null, viewModel);
-    }
+        var contentDialog = (ContentDialog)dialog;
 
-    /// <inheritdoc cref="IDialogPresenter.ShowDialogAsync{TResult}(IDialogViewModel{TResult})"/>
-    public async Task<TResult> ShowDialogAsync<TResult>(IDialogViewModel<TResult> viewModel)
-    {
-        await ShowDialogAsync(null, viewModel);
-        return viewModel.Result;
-    }
+        contentDialog.DataContext = viewModel;
+        contentDialog.XamlRoot = _viewNavigator.NavigationControl.XamlRoot ?? throw new InvalidOperationException("XamlRoot is not available");
 
-    internal async Task ShowDialogAsync(ContentDialog? requestingParentDialog, IDialogViewModel viewModel)
-    {
-        EnsureThreadAccess();
+        contentDialog.DataContextChanged += (s, e) => {
+            var contentDialog = (ContentDialog)s;
 
-        if (_blockDialogs)
-            throw new InvalidOperationException("Show dialog requested at an invalid time while showing dialogs is blocked.");
-
-        EnsureDialogIsTopDialog(requestingParentDialog);
-        CloseLightDismissPopups();
-
-        if (MixinManager.GetNavigator(viewModel) is not DialogNavigator dialogNavigator)
-            MixinManager.SetNavigator(viewModel, dialogNavigator = new DialogNavigator(this, CreateDialogFor(viewModel)));
-        else if (dialogNavigator.RootNavigator != this)
-            throw new InvalidOperationException("The dialog view model is associated with a different root navigator instance.");
-
-        var tcs = new TaskCompletionSource();
-
-        using (new PropertyChangedNotifier(this))
-        {
-            _dialogStack.Push((dialogNavigator.Dialog, tcs));
-
-            requestingParentDialog?.Hide();
-            _ = dialogNavigator.Dialog.ShowAsync();
-        }
-
-        dialogNavigator.TaskRunner.RunAsBusyAndForget(viewModel.OnDialogShownAsync());
-        await tcs.Task;
-
-        void EnsureDialogIsTopDialog(ContentDialog? requestingParentDialog)
-        {
-            _dialogStack.TryPeek(out var parentDialogInfo);
-            var parentDialog = parentDialogInfo.Dialog;
-
-            if (requestingParentDialog != parentDialog)
-            {
-                if (requestingParentDialog is null)
-                    throw new InvalidOperationException("Another dialog is currently showing. Child dialogs must be shown using the dialog navigator of the parent dialog.");
-                else
-                    throw new InvalidOperationException("Dialog cannot show a child dialog because it is not the currently top showing dialog.");
-            }
-        }
-    }
-
-    internal void CloseDialog(ContentDialog dialog)
-    {
-        EnsureThreadAccess();
-        CloseLightDismissPopups();
-
-        if (!_dialogStack.TryPeek(out var dialogInfo) || dialogInfo.Dialog != dialog)
-            throw new InvalidOperationException("Dialog is not currently the top showing dialog.");
-
-        using (new PropertyChangedNotifier(this))
-        {
-            _dialogStack.Pop();
-            dialog.Hide();
-        }
-
-        if (_dialogStack.TryPeek(out var parentDialogInfo))
-            _ = parentDialogInfo.Dialog.ShowAsync();
-
-        dialogInfo.Tcs.SetResult();
-    }
-
-    private ContentDialog CreateDialogFor(IDialogViewModel viewModel)
-    {
-        if (!_viewModelTypeToDialogActivator.TryGetValue(viewModel.GetType(), out var ctorFunc))
-            throw new KeyNotFoundException($"No dialog registered for view model of type '{viewModel.GetType()}'.");
-
-        var dialog = ctorFunc.Invoke();
-        dialog.DataContext = viewModel;
-        dialog.XamlRoot = _viewNavigator.NavigationControl.XamlRoot ?? throw new InvalidOperationException("XamlRoot is not available");
-
-        dialog.DataContextChanged += (_, e) => {
             if (e.NewValue != viewModel)
             {
-                dialog.DataContext = viewModel;
+                contentDialog.DataContext = viewModel;
                 throw new InvalidOperationException("Navigator managed views cannot change their data context.");
             }
         };
 
-        dialog.PrimaryButtonClick += OnPrimaryDialogButtonClick;
-        dialog.SecondaryButtonClick += OnSecondaryDialogButtonClick;
-        dialog.CloseButtonClick += OnCloseDialogButtonClick;
-        dialog.Closing += OnDialogClosing;
+        contentDialog.PrimaryButtonClick += OnPrimaryDialogButtonClick;
+        contentDialog.SecondaryButtonClick += OnSecondaryDialogButtonClick;
+        contentDialog.CloseButtonClick += OnCloseDialogButtonClick;
+        contentDialog.Closing += OnDialogClosing;
 
         // Set up command-to-enabled syncing for primary and secondary buttons
         ICommand? primaryCommand = null;
@@ -116,15 +40,16 @@ partial class Navigator : IDialogPresenter
         BoolNotifier? primaryEnabledNotifier = null;
         BoolNotifier? secondaryEnabledNotifier = null;
 
-        dialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandProperty, OnPrimaryButtonCommandChanged);
-        dialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandProperty, OnSecondaryButtonCommandChanged);
-        dialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandParameterProperty, OnPrimaryButtonCommandParameterChanged);
-        dialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandParameterProperty, OnSecondaryButtonCommandParameterChanged);
+        contentDialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandProperty, OnPrimaryButtonCommandChanged);
+        contentDialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandProperty, OnSecondaryButtonCommandChanged);
+        contentDialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandParameterProperty, OnPrimaryButtonCommandParameterChanged);
+        contentDialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandParameterProperty, OnSecondaryButtonCommandParameterChanged);
 
-        OnPrimaryButtonCommandChanged(dialog, ContentDialog.PrimaryButtonCommandProperty);
-        OnSecondaryButtonCommandChanged(dialog, ContentDialog.SecondaryButtonCommandProperty);
+        OnPrimaryButtonCommandChanged(contentDialog, ContentDialog.PrimaryButtonCommandProperty);
+        OnSecondaryButtonCommandChanged(contentDialog, ContentDialog.SecondaryButtonCommandProperty);
 
-        return dialog;
+        taskRunner = new TaskRunner(busy => contentDialog.IsEnabled = !busy);
+        return;
 
         void OnPrimaryButtonCommandChanged(DependencyObject sender, DependencyProperty dp)
         {
@@ -209,16 +134,16 @@ partial class Navigator : IDialogPresenter
 
             args.Cancel = true;
 
-            if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
+            if (TryGetTopDialog() is { } top && ReferenceEquals(top.Navigator.Dialog, sender))
             {
-                if (dialogInfo.Dialog.PrimaryButtonCommand is { } command)
+                if (sender.PrimaryButtonCommand is { } command)
                 {
-                    if (command.CanExecute(dialogInfo.Dialog.PrimaryButtonCommandParameter))
-                        command.Execute(dialogInfo.Dialog.PrimaryButtonCommandParameter);
+                    if (command.CanExecute(sender.PrimaryButtonCommandParameter))
+                        command.Execute(sender.PrimaryButtonCommandParameter);
                 }
                 else
                 {
-                    CloseDialog(dialogInfo.Dialog);
+                    top.Navigator.Close();
                 }
             }
         }
@@ -230,16 +155,16 @@ partial class Navigator : IDialogPresenter
 
             args.Cancel = true;
 
-            if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
+            if (TryGetTopDialog() is { } top && ReferenceEquals(top.Navigator.Dialog, sender))
             {
-                if (dialogInfo.Dialog.SecondaryButtonCommand is { } command)
+                if (sender.SecondaryButtonCommand is { } command)
                 {
-                    if (command.CanExecute(dialogInfo.Dialog.SecondaryButtonCommandParameter))
-                        command.Execute(dialogInfo.Dialog.SecondaryButtonCommandParameter);
+                    if (command.CanExecute(sender.SecondaryButtonCommandParameter))
+                        command.Execute(sender.SecondaryButtonCommandParameter);
                 }
                 else
                 {
-                    CloseDialog(dialogInfo.Dialog);
+                    top.Navigator.Close();
                 }
             }
         }
@@ -251,27 +176,27 @@ partial class Navigator : IDialogPresenter
 
             args.Cancel = true;
 
-            if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
+            if (TryGetTopDialog() is { } top && ReferenceEquals(top.Navigator.Dialog, sender))
             {
-                if (dialogInfo.Dialog.CloseButtonCommand is { } command)
+                if (sender.CloseButtonCommand is { } command)
                 {
-                    if (command.CanExecute(dialogInfo.Dialog.CloseButtonCommandParameter))
-                        command.Execute(dialogInfo.Dialog.CloseButtonCommandParameter);
+                    if (command.CanExecute(sender.CloseButtonCommandParameter))
+                        command.Execute(sender.CloseButtonCommandParameter);
                 }
                 else
                 {
-                    CloseDialog(dialogInfo.Dialog);
+                    top.Navigator.Close();
                 }
             }
         }
 
         async void OnDialogClosing(ContentDialog sender, ContentDialogClosingEventArgs args)
         {
-            if (_dialogStack.TryPeek(out var dialogInfo) && dialogInfo.Dialog == sender)
+            if (TryGetTopDialog() is { } top && ReferenceEquals(top.Navigator.Dialog, sender))
             {
                 args.Cancel = true;
 
-                if (sender.DataContext is IDismissibleDialogViewModel dismissibleVm)
+                if (top.ViewModel is IDismissibleDialogViewModel dismissibleVm)
                 {
                     // Yield to prevent reentrant Hide() calls if the dismissible view model calls Close() in OnDismissRequested
                     // otherwise the dialog will not hide.
@@ -280,12 +205,18 @@ partial class Navigator : IDialogPresenter
 
                     // Make sure we are still the top dialog and another event didn't close the dialog after the yield.
 
-                    if (_dialogStack.TryPeek(out dialogInfo) && dialogInfo.Dialog == sender && !dismissibleVm.TaskRunner.IsBusy)
-                        await dismissibleVm.TaskRunner.RunAsBusyAsync(dismissibleVm.OnDismissRequestedAsync());
+                    if (TryGetTopDialog() is { } top2 && ReferenceEquals(top2.Navigator.Dialog, sender) && !top2.Navigator.TaskRunner.IsBusy)
+                        await top2.Navigator.TaskRunner.RunAsBusyAsync(dismissibleVm.OnDismissRequestedAsync());
                 }
             }
         }
     }
+
+    /// <inheritdoc/>
+    protected override void StartShowingDialog(object dialog) => _ = ((ContentDialog)dialog).ShowAsync();
+
+    /// <inheritdoc/>
+    protected override void HideDialog(object dialog) => ((ContentDialog)dialog).Hide();
 
     private sealed partial class BoolNotifier(bool initialValue) : INotifyPropertyChanged
     {

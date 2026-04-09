@@ -1,5 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Singulink.UI.Navigation.InternalServices;
+using Singulink.UI.Navigation.Utilities;
 
 namespace Singulink.UI.Navigation;
 
@@ -9,88 +11,64 @@ namespace Singulink.UI.Navigation;
 public static class Route
 {
     /// <summary>
-    /// Builds a route with no parameters from the specified string.
+    /// Builds a route with no path parameters from the specified string.
     /// </summary>
     public static RouteBuilder Build(string route)
     {
         InterpolatedRouteHandler r = new(route.Length, 0);
         r.AppendLiteral(route);
-        var routeParts = r.Compile([]);
+        var routeParts = r.Compile(string.Empty, isParamsModel: false);
         return new RouteBuilder((string?)routeParts.SingleOrDefault());
     }
 
     /// <summary>
-    /// Builds a route with a single parameter from the specified route function that returns the interpolated route.
+    /// Builds a parameterized route from the specified route function that returns the interpolated route.
     /// </summary>
-    public static RouteBuilder<T> Build<T>(Func<T, InterpolatedRouteHandler> routeFunc, [CallerArgumentExpression(nameof(routeFunc))] string routeFuncExpr = "")
-        where T : notnull, IParsable<T>, IEquatable<T>
+    public static RouteBuilder<TParam> Build<[DynamicallyAccessedMembers(DAM.AllCtors)] TParam>(
+        Func<TParam, InterpolatedRouteHandler> routeFunc,
+        [CallerArgumentExpression(nameof(routeFunc))] string routeFuncExpr = "")
+        where TParam : notnull
     {
-        var paramNames = GetParamNamesFromLambda(routeFuncExpr, 1);
-        var stringHandler = routeFunc(default!);
-        var routeParts = stringHandler.Compile(paramNames);
+        TParam param;
 
-        return new SingleParamRouteBuilder<T>(routeParts);
+        if (typeof(TParam).IsValueType)
+            param = default!;
+        else if (typeof(TParam) == typeof(string))
+            param = (TParam)(object)string.Empty;
+        else
+            param = (TParam)RuntimeHelpers.GetUninitializedObject(typeof(TParam))!;
+
+        var stringHandler = routeFunc(param);
+        var routeParts = stringHandler.Compile(routeFuncExpr, RouteParamsHandler<TParam>.Instance.IsParamsModel);
+
+        return new RouteBuilder<TParam>(routeParts);
     }
 
     /// <summary>
-    /// Builds a route with two parameters from the specified route function that returns the interpolated route.
+    /// Creates a new route group builder for the specified parameter type.
     /// </summary>
-    public static RouteBuilder<(T1 Param1, T2 Param2)> Build<T1, T2>(Func<T1, T2, InterpolatedRouteHandler> routeFunc, [CallerArgumentExpression(nameof(routeFunc))] string routeFuncExpr = "")
-        where T1 : notnull, IParsable<T1>, IEquatable<T1>
-        where T2 : notnull, IParsable<T2>, IEquatable<T2>
+    public static RouteGroupBuilder<TParam> BuildGroup<[DynamicallyAccessedMembers(DAM.AllCtors)] TParam>()
+        where TParam : notnull
     {
-        var paramNames = GetParamNamesFromLambda(routeFuncExpr, 2);
-        var stringHandler = routeFunc(default!, default!);
-        var routeParts = stringHandler.Compile(paramNames);
-
-        return new TupleRouteBuilder<T1, T2>(routeParts);
+        return new RouteGroupBuilder<TParam>();
     }
 
     /// <summary>
-    /// Builds a route with three parameters from the specified route function that returns the interpolated route.
+    /// Gets the route string represented by the specified route parts, optionally including an anchor.
+    /// The query string is included for the leaf route part (if any).
     /// </summary>
-    public static RouteBuilder<(T1 Param1, T2 Param2, T3 Param3)> Build<T1, T2, T3>(Func<T1, T2, T3, InterpolatedRouteHandler> routeFunc, [CallerArgumentExpression(nameof(routeFunc))] string routeFuncExpr = "")
-        where T1 : notnull, IParsable<T1>, IEquatable<T1>
-        where T2 : notnull, IParsable<T2>, IEquatable<T2>
-        where T3 : notnull, IParsable<T3>, IEquatable<T3>
+    public static string GetRoute(IEnumerable<IConcreteRoutePart> routeParts, string? anchor = null)
     {
-        var paramNames = GetParamNamesFromLambda(routeFuncExpr, 3);
-        var stringHandler = routeFunc(default!, default!, default!);
-        var routeParts = stringHandler.Compile(paramNames);
-
-        return new TupleRouteBuilder<T1, T2, T3>(routeParts);
-    }
-
-    /// <summary>
-    /// Builds a route with four parameters from the specified route function that returns the interpolated route.
-    /// </summary>
-    public static RouteBuilder<(T1 Param1, T2 Param2, T3 Param3, T4 Param4)> Build<T1, T2, T3, T4>(Func<T1, T2, T3, T4, InterpolatedRouteHandler> routeFunc, [CallerArgumentExpression(nameof(routeFunc))] string routeFuncExpr = "")
-        where T1 : notnull, IParsable<T1>, IEquatable<T1>
-        where T2 : notnull, IParsable<T2>, IEquatable<T2>
-        where T3 : notnull, IParsable<T3>, IEquatable<T3>
-        where T4 : notnull, IParsable<T4>, IEquatable<T4>
-    {
-        var paramNames = GetParamNamesFromLambda(routeFuncExpr, 4);
-        var stringHandler = routeFunc(default!, default!, default!, default!);
-        var routeParts = stringHandler.Compile(paramNames);
-
-        return new TupleRouteBuilder<T1, T2, T3, T4>(routeParts);
-    }
-
-    /// <summary>
-    /// Gets the route string represented by the specified route parts.
-    /// </summary>
-    public static string GetRoute(IEnumerable<IConcreteRoutePart> routeParts, RouteOptions? routeOptions = null)
-    {
-        return string.Join("/", routeParts.Select(r => r.ToString()).Where(r => r.Length > 0)) + routeOptions;
+        string path = string.Join("/", routeParts.Select(r => r.ToString()).Where(r => r.Length > 0));
+        return anchor is null ? path : path + "#" + anchor;
     }
 
     /// <summary>
     /// Gets the route string represented by the specified root route part.
     /// </summary>
-    public static string GetRoute(IConcreteRootRoutePart rootRoutePart, RouteOptions? routeOptions = null)
+    public static string GetRoute(IConcreteRootRoutePart rootRoutePart, string? anchor = null)
     {
-        return GetRoute([rootRoutePart], routeOptions);
+        return GetRoute([rootRoutePart], anchor);
     }
 
     /// <summary>
@@ -99,10 +77,10 @@ public static class Route
     public static string GetRoute<TRootViewModel>(
         IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
         IConcreteChildRoutePart<TRootViewModel> childRoutePart,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TRootViewModel : class
     {
-        return GetRoute([rootRoutePart, childRoutePart], routeOptions);
+        return GetRoute([rootRoutePart, childRoutePart], anchor);
     }
 
     /// <summary>
@@ -112,11 +90,11 @@ public static class Route
         IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
         IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TRootViewModel : class
         where TChildViewModel1 : class
     {
-        return GetRoute([rootRoutePart, childRoutePart1, childRoutePart2], routeOptions);
+        return GetRoute([rootRoutePart, childRoutePart1, childRoutePart2], anchor);
     }
 
     /// <summary>
@@ -127,20 +105,20 @@ public static class Route
         IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
         IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TRootViewModel : class
         where TChildViewModel1 : class
         where TChildViewModel2 : class
     {
-        return GetRoute([rootRoutePart, childRoutePart1, childRoutePart2, childRoutePart3], routeOptions);
+        return GetRoute([rootRoutePart, childRoutePart1, childRoutePart2, childRoutePart3], anchor);
     }
 
     /// <summary>
-    /// Gets the partial route that has the same path as the navigator's current route but with the specified options.
+    /// Gets the partial route that has the same parts as the navigator's current route but with the specified anchor.
     /// </summary>
-    public static string GetRoutePartial(INavigator navigator, RouteOptions routeOptions)
+    public static string GetRoutePartial(INavigator navigator, string? anchor)
     {
-        return navigator.CurrentRoute.Path + routeOptions;
+        return GetRoute(navigator.CurrentRoute.Parts, anchor);
     }
 
     /// <summary>
@@ -150,10 +128,10 @@ public static class Route
     public static string GetRoutePartial<TParentViewModel>(
         INavigator navigator,
         IConcreteChildRoutePart<TParentViewModel> childRoutePart,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TParentViewModel : class
     {
-        return GetRoute([..navigator.GetCurrentRoutePartsToParent(typeof(TParentViewModel)), childRoutePart]) + routeOptions;
+        return GetRoute([..navigator.GetCurrentRoutePartsToParent(typeof(TParentViewModel)), childRoutePart], anchor);
     }
 
     /// <summary>
@@ -164,11 +142,11 @@ public static class Route
         INavigator navigator,
         IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TParentViewModel : class
         where TChildViewModel1 : class
     {
-        return GetRoute([..navigator.GetCurrentRoutePartsToParent(typeof(TParentViewModel)), childRoutePart1, childRoutePart2]) + routeOptions;
+        return GetRoute([..navigator.GetCurrentRoutePartsToParent(typeof(TParentViewModel)), childRoutePart1, childRoutePart2], anchor);
     }
 
     /// <summary>
@@ -180,109 +158,11 @@ public static class Route
         IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
         IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TParentViewModel : class
         where TChildViewModel1 : class
         where TChildViewModel2 : class
     {
-        return GetRoute([..navigator.GetCurrentRoutePartsToParent(typeof(TParentViewModel)), childRoutePart1, childRoutePart2, childRoutePart3]) + routeOptions;
-    }
-
-    private static List<string> GetParamNamesFromLambda(string lambdaExpr, int expectedParamCount)
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(expectedParamCount, 0);
-
-        int lambdaOpIndex = lambdaExpr.IndexOf("=>", StringComparison.Ordinal);
-
-        if (lambdaOpIndex < 0)
-            throw new ArgumentException($"No lambda operator in expression.", nameof(lambdaExpr));
-
-        ReadOnlySpan<char> paramsPart = lambdaExpr.AsSpan()[..lambdaOpIndex].Trim();
-
-        if (paramsPart.Length is 0)
-            throw new ArgumentException("Lambda expression does not contain a parameter section.", nameof(lambdaExpr));
-
-        if (paramsPart[0] is '(')
-        {
-            if (paramsPart[^1] is not ')')
-                throw new ArgumentException($"Unmatched opening brace for lambda parameters: '{paramsPart}'", nameof(lambdaExpr));
-
-            paramsPart = paramsPart[1..^1];
-        }
-
-        var paramNames = GetParamNames(paramsPart);
-
-        if (paramNames.Count != expectedParamCount)
-            throw new ArgumentException($"Expression did not contain {expectedParamCount} parameters in the parameter section: '{paramsPart}'");
-
-        return paramNames;
-    }
-
-    private static List<string> GetParamNames(ReadOnlySpan<char> paramList)
-    {
-        List<string> paramNames = [];
-
-        int genericDepth = 0;
-        int tupleDepth = 0;
-        int paramNameStartIndex = paramList.Length;
-        bool startedType = false;
-
-        for (int i = 0; i < paramList.Length; i++)
-        {
-            char c = paramList[i];
-
-            if (c is '<')
-            {
-                genericDepth++;
-            }
-            else if (c is '>')
-            {
-                genericDepth--;
-            }
-            else if (c is '(')
-            {
-                tupleDepth++;
-            }
-            else if (c is ')')
-            {
-                tupleDepth--;
-            }
-            else if (c is ' ')
-            {
-                if (genericDepth is 0 && tupleDepth is 0 && startedType)
-                {
-                    while (paramList[++i] is ' ' && i < paramList.Length)
-                    { }
-
-                    paramNameStartIndex = i;
-
-                    while (++i < paramList.Length && paramList[i] is not ',')
-                    { }
-
-                    var paramName = paramList[paramNameStartIndex..i].TrimEnd();
-
-                    if (paramName.Length > 0)
-                        paramNames.Add(paramName.ToString());
-
-                    paramNameStartIndex = paramList.Length;
-
-                    startedType = false;
-                }
-            }
-            else
-            {
-                startedType = true;
-            }
-        }
-
-        if (paramNameStartIndex < paramList.Length)
-        {
-            var paramName = paramList[paramNameStartIndex..].TrimEnd();
-
-            if (paramName.Length > 0)
-                paramNames.Add(paramName.ToString());
-        }
-
-        return paramNames;
+        return GetRoute([..navigator.GetCurrentRoutePartsToParent(typeof(TParentViewModel)), childRoutePart1, childRoutePart2, childRoutePart3], anchor);
     }
 }

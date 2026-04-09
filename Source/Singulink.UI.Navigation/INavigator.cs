@@ -33,7 +33,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// <summary>
     /// Gets information about the current route, including the path and options.
     /// </summary>
-    public IConcreteRoute CurrentRoute { get; }
+    public NavigatorRoute CurrentRoute { get; }
 
     /// <summary>
     /// Gets a value indicating whether the navigator has back history.
@@ -71,17 +71,17 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// <summary>
     /// Clears back and forward navigation history.
     /// </summary>
-    public ValueTask ClearHistory();
+    public ValueTask ClearHistoryAsync();
 
     /// <summary>
     /// Returns the routes that are in the back navigation stack, ordered from the most recent to the oldest. Does not include the current route.
     /// </summary>
-    public IReadOnlyList<IConcreteRoute> GetBackStack();
+    public IReadOnlyList<NavigatorRoute> GetBackStack();
 
     /// <summary>
     /// Returns a list of routes currently in the forward navigation stack. Does not include the current route.
     /// </summary>
-    public IReadOnlyList<IConcreteRoute> GetForwardStack();
+    public IReadOnlyList<NavigatorRoute> GetForwardStack();
 
     /// <summary>
     /// Gets the current route parts up to the specified parent view model type.
@@ -174,7 +174,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// <summary>
     /// Navigates to the specified route.
     /// </summary>
-    public Task<NavigationResult> NavigateAsync(IConcreteRootRoutePart rootRoutePart, RouteOptions? routeOptions = null);
+    public Task<NavigationResult> NavigateAsync(IConcreteRootRoutePart rootRoutePart, string? anchor = null);
 
     /// <summary>
     /// Navigates to the specified route.
@@ -182,7 +182,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     public Task<NavigationResult> NavigateAsync<TRootViewModel>(
         IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
         IConcreteChildRoutePart<TRootViewModel> childRoutePart,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TRootViewModel : class;
 
     /// <summary>
@@ -192,7 +192,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
         IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
         IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TRootViewModel : class
         where TChildViewModel1 : class;
 
@@ -204,7 +204,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
         IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
         IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TRootViewModel : class
         where TChildViewModel1 : class
         where TChildViewModel2 : class;
@@ -212,7 +212,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// <summary>
     /// Navigates to a partial route that has the same path as the current route but with the specified options.
     /// </summary>
-    public Task<NavigationResult> NavigatePartialAsync(RouteOptions routeOptions);
+    public Task<NavigationResult> NavigatePartialAsync(string? anchor);
 
     /// <summary>
     /// Navigates to the specified partial route. The current route must contain a view with the specified parent view model type otherwise an <see
@@ -220,7 +220,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// </summary>
     public Task<NavigationResult> NavigatePartialAsync<TParentViewModel>(
         IConcreteChildRoutePart<TParentViewModel> childRoutePart,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TParentViewModel : class;
 
     /// <summary>
@@ -230,7 +230,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     public Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TChildViewModel1>(
         IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TParentViewModel : class
         where TChildViewModel1 : class;
 
@@ -242,7 +242,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
         IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
         IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
         IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        RouteOptions? routeOptions = null)
+        string? anchor = null)
         where TParentViewModel : class
         where TChildViewModel1 : class
         where TChildViewModel2 : class;
@@ -250,13 +250,32 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// <summary>
     /// Navigates to the parent view in the current route that has the specified view model type.
     /// </summary>
-    public Task<NavigationResult> NavigateToParentAsync<TParentViewModel>(RouteOptions? options = null)
+    public Task<NavigationResult> NavigateToParentAsync<TParentViewModel>(string? anchor = null)
         where TParentViewModel : class;
 
     /// <summary>
     /// Refreshes the current route.
     /// </summary>
     public Task<NavigationResult> RefreshAsync();
+
+    /// <summary>
+    /// Updates the current route in-place without triggering any navigation lifecycle events. This is useful for updating the anchor or other options in
+    /// response to UI state changes (e.g. selected item in a list) without causing a full navigation.
+    /// </summary>
+    /// <param name="anchor">The new anchor to set on the current route, or <see langword="null"/> to clear the anchor.</param>
+    /// <exception cref="InvalidOperationException">The navigator does not have a current route or a navigation is currently in progress.</exception>
+    public void UpdateCurrentRoute(string? anchor);
+
+    /// <summary>
+    /// Updates the last route part of the current route in-place without triggering any navigation lifecycle events. The new route part must have a view model
+    /// type that matches the last route part of the current route. This is useful when a route changes in response to an action (e.g. a form submission that
+    /// creates a new entry and transitions from a "new-entry" to an "entry/{id}" route) without causing a full navigation.
+    /// </summary>
+    /// <param name="concreteRoutePart">The new concrete route part to replace the last route part of the current route.</param>
+    /// <param name="anchor">The new anchor to set on the current route, or <see langword="null"/> to clear the anchor.</param>
+    /// <exception cref="InvalidOperationException">The navigator does not have a current route or a navigation is currently in progress.</exception>
+    /// <exception cref="ArgumentException">The view model type of the specified route part does not match the last route part of the current route.</exception>
+    public void UpdateCurrentRoute(IConcreteRoutePart concreteRoutePart, string? anchor = null);
 
     /// <summary>
     /// Shuts down the navigator by releasing all views and view model resources. Returns <see langword="false"/> if shutdown, navigation or busy tasks are in

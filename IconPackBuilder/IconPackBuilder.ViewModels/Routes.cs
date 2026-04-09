@@ -12,7 +12,7 @@ public static class Routes
 
     public static void AddAllRoutes(this INavigatorBuilder builder)
     {
-        builder.AddRouteTo(StartRoot);
-        builder.AddRouteTo(EditorRoot);
+        builder.AddRoute(StartRoot);
+        builder.AddRoute(EditorRoot);
     }
 }

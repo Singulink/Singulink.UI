@@ -13,7 +13,13 @@ public abstract class RouteBuilderBase
 {
     private readonly ImmutableArray<object> _routeParts;
 
-    private protected RouteBuilderBase(IEnumerable<object> routeParts) => _routeParts = routeParts.ToImmutableArray();
+    internal IReadOnlyList<string> HoleNames { get; }
+
+    private protected RouteBuilderBase(IEnumerable<object> routeParts)
+    {
+        _routeParts = routeParts.ToImmutableArray();
+        HoleNames = [.. _routeParts.OfType<RouteHole>().Select(h => h.Name)];
+    }
 
     internal static ReadOnlySpan<char> PreProcessRouteString(ReadOnlySpan<char> route)
     {
@@ -32,90 +38,77 @@ public abstract class RouteBuilderBase
         return route;
     }
 
-    private protected void AddIfLiteral(ref int partIndex, StringBuilder sb)
+    /// <summary>
+    /// Builds the path string from the supplied route values. If <paramref name="consumeHoleEntries"/> is <see langword="true"/>,
+    /// hole entries are removed from the values so that the remaining entries can be treated as query parameters by the caller.
+    /// Otherwise, hole lookups are non-consuming (used when the values must remain intact for subsequent parameter object creation).
+    /// </summary>
+    internal string BuildPath(RouteValuesCollection values, bool consumeHoleEntries)
     {
-        if (partIndex < _routeParts.Length && _routeParts[partIndex] is string literal)
+        var sb = new StringBuilder();
+
+        foreach (object part in _routeParts)
         {
-            sb.Append(literal);
-            partIndex++;
-        }
-    }
-
-    private protected void AddIfLiteralThenAddHole<T>(ref int partIndex, T value, StringBuilder sb) where T : notnull
-    {
-        AddIfLiteral(ref partIndex, sb);
-
-        if (_routeParts[partIndex++] is not RouteHole hole || hole.HoleType != typeof(T))
-            throw new UnreachableException("Unexpected hole type.");
-
-        int preLength = sb.Length;
-        sb.Append(Uri.EscapeDataString(value.ToString() ?? string.Empty));
-
-        if (preLength == sb.Length)
-            throw new FormatException("Route parameter values cannot be empty.");
-    }
-
-    private protected bool MatchIfLiteral(ref int partIndex, ref ReadOnlySpan<char> remainingRoute)
-    {
-        if (partIndex < _routeParts.Length && _routeParts[partIndex] is string literal)
-        {
-            if (remainingRoute.StartsWith(literal, StringComparison.Ordinal))
+            if (part is string literal)
             {
-                remainingRoute = remainingRoute[literal.Length..];
-                partIndex++;
-                return true;
+                sb.Append(literal);
             }
+            else if (part is RouteHole hole)
+            {
+                bool found = consumeHoleEntries
+                    ? values.TryConsumeValue(hole.Name, out string? value)
+                    : values.TryGetValue(hole.Name, out value);
 
-            return false;
+                if (!found || value!.Length is 0)
+                    throw new FormatException($"Route parameter '{hole.Name}' value cannot be null or empty.");
+
+                sb.Append(Uri.EscapeDataString(value));
+            }
         }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Tries to match the route string, extracting path hole values into a list of (name, value) tuples.
+    /// </summary>
+    private protected bool TryMatchPath(ReadOnlySpan<char> route, out List<(string Key, string Value)>? pathParams, out ReadOnlySpan<char> rest)
+    {
+        rest = PreProcessRouteString(route);
+        int initialLength = rest.Length;
+        pathParams = null;
+
+        foreach (object part in _routeParts)
+        {
+            if (part is string literal)
+            {
+                if (!rest.StartsWith(literal, StringComparison.Ordinal))
+                    return false;
+
+                rest = rest[literal.Length..];
+            }
+            else if (part is RouteHole hole)
+            {
+                int holeLength = rest.IndexOf('/');
+
+                if (holeLength < 0)
+                    holeLength = rest.Length;
+
+                if (holeLength is 0)
+                    return false;
+
+                string value = Uri.UnescapeDataString(rest[..holeLength]);
+                (pathParams ??= []).Add((hole.Name, value));
+                rest = rest[holeLength..];
+            }
+        }
+
+        // After consuming the route parts, the remainder must be empty or begin at a segment boundary ('/').
+        // Otherwise a route like "a/{id}" matching against "a/123" with a child "b" route could allow a path
+        // ending in a non-boundary literal to bleed into a sibling/child match (e.g. parent "a" + child "b" matching "ab").
+        if (rest.Length < initialLength && rest.Length > 0 && rest[0] is not '/')
+            return false;
 
         return true;
-    }
-
-    private protected bool MatchIfLiteralThenMatchHole<T>(ref int partIndex, ref ReadOnlySpan<char> remainingRoute, [MaybeNullWhen(false)] out T value)
-        where T : IParsable<T>
-    {
-        if (!MatchIfLiteral(ref partIndex, ref remainingRoute))
-        {
-            value = default;
-            return false;
-        }
-
-        return MatchHole(ref partIndex, ref remainingRoute, out value);
-    }
-
-    private protected void EnsurePartIndexAtEnd(int partIndex)
-    {
-        if (partIndex != _routeParts.Length)
-            throw new UnreachableException("Unexpected ending route parts index.");
-    }
-
-    private bool MatchHole<T>(ref int partIndex, ref ReadOnlySpan<char> remainingRoute, [MaybeNullWhen(false)] out T value)
-        where T : IParsable<T>
-    {
-        if (_routeParts[partIndex] is not RouteHole hole || hole.HoleType != typeof(T))
-            throw new UnreachableException($"Unexpected hole type.");
-
-        int holeLength = remainingRoute.IndexOf('/');
-
-        if (holeLength < 0)
-            holeLength = remainingRoute.Length;
-
-        if (holeLength is 0)
-        {
-            value = default;
-            return false;
-        }
-
-        string unescapedHoleString = Uri.UnescapeDataString(remainingRoute[..holeLength].ToString());
-
-        if (T.TryParse(unescapedHoleString, CultureInfo.InvariantCulture, out value))
-        {
-            remainingRoute = remainingRoute[holeLength..];
-            partIndex++;
-            return true;
-        }
-
-        return false;
     }
 }

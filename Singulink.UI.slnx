@@ -17,7 +17,12 @@
     <Project Path="Source/Singulink.UI.Icons/Singulink.UI.Icons.csproj" />
     <Project Path="Source/Singulink.UI.Navigation.WinUI/Singulink.UI.Navigation.WinUI.csproj" />
     <Project Path="Source/Singulink.UI.Navigation/Singulink.UI.Navigation.csproj" />
+    <Project Path="Source/Singulink.UI.Navigation.Generators/Singulink.UI.Navigation.Generators.csproj" />
     <Project Path="Source/Singulink.UI.Tasks/Singulink.UI.Tasks.csproj" />
     <Project Path="Source/Singulink.UI.Xaml.WinUI/Singulink.UI.Xaml.WinUI.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Singulink.UI.Navigation.Generators.Tests/Singulink.UI.Navigation.Generators.Tests.csproj" />
+    <Project Path="Tests/Singulink.UI.Navigation.Tests/Singulink.UI.Navigation.Tests.csproj" />
   </Folder>
 </Solution>

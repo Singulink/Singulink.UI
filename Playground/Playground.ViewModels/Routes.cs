@@ -26,17 +26,20 @@ public static class Routes
         public static ChildRoutePart<MainViewModel, ParamsTestViewModel> ParamsTestChild { get; } =
             Route.Build("ParamsTest").Child<MainViewModel, ParamsTestViewModel>();
 
-        public static ChildRoutePart<MainViewModel, ShowParamsTestViewModel, (int IntValue, string StringValue)> ShowParamsTestChild { get; } =
-            Route.Build((int i, string s) => $"ParamsTest/{i}/{s}").Child<MainViewModel, ShowParamsTestViewModel>();
+        public static ChildRoutePart<MainViewModel, ShowParamsTestViewModel, ShowParamsTestViewModel.Params> ShowParamsTestChild { get; } =
+            Route.BuildGroup<ShowParamsTestViewModel.Params>()
+                .Add(p => $"ParamsTest/Show/{p.IntValue}")
+                .Add(p => $"ParamsTest/Show/{p.IntValue}/{p.StringValue}")
+                .Child<MainViewModel, ShowParamsTestViewModel>();
     }
 
     public static void AddAllRoutes(this INavigatorBuilder builder)
     {
-        builder.AddRouteTo(LoginRoot);
-        builder.AddRouteTo(MainRoot);
-        builder.AddRouteTo(Main.HomeChild);
-        builder.AddRouteTo(Main.DialogTestChild);
-        builder.AddRouteTo(Main.ParamsTestChild);
-        builder.AddRouteTo(Main.ShowParamsTestChild);
+        builder.AddRoute(LoginRoot);
+        builder.AddRoute(MainRoot);
+        builder.AddRoute(Main.HomeChild);
+        builder.AddRoute(Main.DialogTestChild);
+        builder.AddRoute(Main.ParamsTestChild);
+        builder.AddRoute(Main.ShowParamsTestChild);
     }
 }

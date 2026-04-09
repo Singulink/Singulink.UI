@@ -33,7 +33,7 @@ Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with int
 
 Here are some additonal links to get you started:
 
-- [API Documentation](api/index.md) - Browse the fully documented API here.
+- [API Documentation](api/index.html) - Browse the fully documented API here.
 - [Chat on Discord](https://discord.gg/EkQhJFsBu6) - Have questions or want to discuss the library? This is the place for all Singulink project discussions.
 - [Github Repo](https://github.com/Singulink/Singulink.UI) - File issues, contribute pull requests or check out the code for yourself!
 

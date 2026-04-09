@@ -4,13 +4,9 @@ using System.Runtime.CompilerServices;
 namespace Singulink.UI.Navigation.InternalServices;
 
 /// <summary>
-/// Provides methods for associating navigators and parameters with view models.
+/// Provides methods for associating navigators, services and parameters with view models.
 /// </summary>
-/// <remarks>
-/// This class is used internally by navigator implementations to associate navigators and parameters with view models, and can be used in view model tests to
-/// do the same.
-/// </remarks>
-public static class MixinManager
+internal static class MixinManager
 {
     private static readonly ConditionalWeakTable<IDialogViewModel, IDialogNavigator> _viewModelToDialogNavigatorTable = [];
     private static readonly ConditionalWeakTable<IRoutedViewModelBase, INavigator> _viewModelToNavigatorTable = [];

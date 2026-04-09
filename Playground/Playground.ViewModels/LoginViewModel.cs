@@ -14,7 +14,7 @@ public partial class LoginViewModel : ObservableObject, IRoutedViewModel
 
     public async Task OnNavigatedToAsync(NavigationArgs args)
     {
-        await this.Navigator.ClearHistory();
+        await this.Navigator.ClearHistoryAsync();
         await Task.Delay(500); // Simulate async loading
     }
 
@@ -28,6 +28,6 @@ public partial class LoginViewModel : ObservableObject, IRoutedViewModel
         // Navigate to the main view after successful login
 
         await this.Navigator.NavigateAsync(Routes.MainRoot);
-        await this.Navigator.ClearHistory();
+        await this.Navigator.ClearHistoryAsync();
     }
 }

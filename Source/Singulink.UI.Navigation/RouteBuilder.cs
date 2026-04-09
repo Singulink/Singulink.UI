@@ -1,10 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
+using Singulink.UI.Navigation.Utilities;
 
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Represents a builder used for constructing routes without parameters.
+/// Represents a builder used for constructing routes without path parameters.
 /// </summary>
 public class RouteBuilder
 {
@@ -18,7 +18,7 @@ public class RouteBuilder
     public RootRoutePart<TViewModel> Root<TViewModel>()
         where TViewModel : class, IRoutedViewModel
     {
-        return new RootRoutePart<TViewModel>(this);
+        return new DirectRootRoutePart<TViewModel>(this);
     }
 
     /// <summary>
@@ -26,13 +26,13 @@ public class RouteBuilder
     /// </summary>
     /// <exception cref="InvalidOperationException">Parent and child view models were the same type.</exception>
     public ChildRoutePart<TParentViewModel, TChildViewModel> Child<TParentViewModel, TChildViewModel>()
-        where TParentViewModel : class
+        where TParentViewModel : class, IRoutedViewModelBase
         where TChildViewModel : class, IRoutedViewModel
     {
         if (typeof(TParentViewModel) == typeof(TChildViewModel))
             throw new InvalidOperationException("Parent and child view models cannot be the same type.");
 
-        return new ChildRoutePart<TParentViewModel, TChildViewModel>(this);
+        return new DirectChildRoutePart<TParentViewModel, TChildViewModel>(this);
     }
 
     internal string GetPartPath() => _route;
@@ -45,16 +45,29 @@ public class RouteBuilder
             return false;
 
         rest = rest[_route.Length..];
+
+        // After consuming a literal, the remainder must be empty or begin at a segment boundary ('/').
+        // Otherwise "ab" would match a parent literal "a" followed by a child literal "b".
+        if (_route.Length > 0 && rest.Length > 0 && rest[0] is not '/')
+            return false;
+
         return true;
+    }
+
+    internal RouteBuilder<T> ToParameterized<[DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] T>() where T : notnull
+    {
+        return new RouteBuilder<T>([GetPartPath()]);
     }
 }
 
 /// <summary>
 /// Represents a builder used for constructing parameterized routes.
 /// </summary>
-public abstract class RouteBuilder<TParam> : RouteBuilderBase
+public class RouteBuilder<[DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam> : RouteBuilderBase
     where TParam : notnull
 {
+    private readonly RouteParamsHandler<TParam> _handler = RouteParamsHandler<TParam>.Instance;
+
     internal RouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
 
     /// <summary>
@@ -63,212 +76,101 @@ public abstract class RouteBuilder<TParam> : RouteBuilderBase
     public RootRoutePart<TViewModel, TParam> Root<TViewModel>()
         where TViewModel : class, IRoutedViewModel<TParam>
     {
-        return new RootRoutePart<TViewModel, TParam>(this);
+        return new DirectRootRoutePart<TViewModel, TParam>(this);
     }
 
     /// <summary>
     /// Creates a child route part for the specified parent and child view model type.
     /// </summary>
     public ChildRoutePart<TParentViewModel, TChildViewModel, TParam> Child<TParentViewModel, TChildViewModel>()
-        where TParentViewModel : class
+        where TParentViewModel : class, IRoutedViewModelBase
         where TChildViewModel : class, IRoutedViewModel<TParam>
     {
-        return new ChildRoutePart<TParentViewModel, TChildViewModel, TParam>(this);
+        return new DirectChildRoutePart<TParentViewModel, TChildViewModel, TParam>(this);
     }
 
-    internal abstract string GetPartPath(TParam parameter);
+    internal RouteParamsHandler<TParam> Handler => _handler;
 
-    internal abstract bool TryMatch(ReadOnlySpan<char> route, [MaybeNullWhen(false)] out TParam parameter, out ReadOnlySpan<char> rest);
-}
-
-internal class SingleParamRouteBuilder<T> : RouteBuilder<T>
-    where T : notnull, IParsable<T>, IEquatable<T>
-{
-    internal SingleParamRouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
-
-    internal override string GetPartPath(T parameter)
+    internal bool TryMatch(ReadOnlySpan<char> route, RouteQuery query, [MaybeNullWhen(false)] out TParam parameter, [MaybeNullWhen(false)] out string path, out ReadOnlySpan<char> rest)
     {
-        var sb = new StringBuilder();
-        int index = 0;
-
-        using (new InvariantCultureContext())
+        if (!TryMatchPath(route, out var pathParams, out rest))
         {
-            AddIfLiteralThenAddHole(ref index, parameter, sb);
-            AddIfLiteral(ref index, sb);
+            parameter = default;
+            path = null;
+            return false;
         }
 
-        EnsurePartIndexAtEnd(index);
-        return sb.ToString();
-    }
+        var values = new RouteValuesCollection(pathParams, query);
 
-    internal override bool TryMatch(ReadOnlySpan<char> route, [MaybeNullWhen(false)] out T parameter, out ReadOnlySpan<char> rest)
-    {
-        rest = PreProcessRouteString(route);
-        int index = 0;
+        // Build the path non-consuming so holes remain available for the handler to consume.
+        path = BuildPath(values, consumeHoleEntries: false);
 
-        using (new InvariantCultureContext())
+        if (!_handler.TryCreate(values, out parameter))
         {
-            if (!MatchIfLiteralThenMatchHole(ref index, ref rest, out parameter))
-                return false;
-
-            if (!MatchIfLiteral(ref index, ref rest))
-                return false;
+            parameter = default;
+            path = null;
+            return false;
         }
 
-        EnsurePartIndexAtEnd(index);
         return true;
     }
-}
 
-internal class TupleRouteBuilder<T1, T2> : RouteBuilder<(T1 Param1, T2 Param2)>
-    where T1 : notnull, IParsable<T1>, IEquatable<T1>
-    where T2 : notnull, IParsable<T2>, IEquatable<T2>
-{
-    internal TupleRouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
-
-    internal override string GetPartPath((T1 Param1, T2 Param2) p)
+    internal bool AreAllHolesSatisfied(RouteValuesCollection values)
     {
-        var sb = new StringBuilder();
-        int partIndex = 0;
-
-        using (new InvariantCultureContext())
+        foreach (string name in HoleNames)
         {
-            AddIfLiteralThenAddHole(ref partIndex, p.Param1, sb);
-            AddIfLiteralThenAddHole(ref partIndex, p.Param2, sb);
-            AddIfLiteral(ref partIndex, sb);
+            if (!values.TryGetValue(name, out _))
+                return false;
         }
 
-        EnsurePartIndexAtEnd(partIndex);
-        return sb.ToString();
+        return true;
     }
 
-    internal override bool TryMatch(ReadOnlySpan<char> route, out (T1 Param1, T2 Param2) p, out ReadOnlySpan<char> rest)
+    internal void ValidateAsParent()
     {
-        p = default;
-
-        rest = PreProcessRouteString(route);
-        int partIndex = 0;
-
-        using (new InvariantCultureContext())
+        foreach (string name in _handler.RequiredParameterNames)
         {
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param1!))
-                return false;
-
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param2!))
-                return false;
-
-            if (!MatchIfLiteral(ref partIndex, ref rest))
-                return false;
+            if (!HoleNames.Contains(name))
+            {
+                throw new InvalidOperationException(
+                    $"Required parameter '{name}' of type '{typeof(TParam)}' is not a path hole in the route. " +
+                    $"Parent routes with child routes must have all required parameters as path holes.");
+            }
         }
 
-        EnsurePartIndexAtEnd(partIndex);
-        return true;
+        if (_handler.ProvidesQueryAccess)
+        {
+            throw new InvalidOperationException(
+                $"Parameter type '{typeof(TParam)}' provides query string access and cannot be used for a view model with child routes. " +
+                $"Query string parameters are only available to leaf view models.");
+        }
     }
 }
 
-internal class TupleRouteBuilder<T1, T2, T3> : RouteBuilder<(T1 Param1, T2 Param2, T3 Param3)>
-    where T1 : notnull, IParsable<T1>, IEquatable<T1>
-    where T2 : notnull, IParsable<T2>, IEquatable<T2>
-    where T3 : notnull, IParsable<T3>, IEquatable<T3>
+/// <summary>
+/// Provides extension methods for <see cref="RouteBuilder"/>.
+/// </summary>
+public static class RouteBuilderExtensions
 {
-    internal TupleRouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
-
-    internal override string GetPartPath((T1 Param1, T2 Param2, T3 Param3) p)
+    /// <summary>
+    /// Converts the route builder to a parameterized route builder with the specified parameter type.
+    /// </summary>
+    public static RootRoutePart<TViewModel, TParam> Root<TViewModel, [DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam>(this RouteBuilder builder)
+        where TViewModel : class, IRoutedViewModel<TParam>
+        where TParam : notnull
     {
-        var sb = new StringBuilder();
-        int partIndex = 0;
-
-        using (new InvariantCultureContext())
-        {
-            AddIfLiteralThenAddHole(ref partIndex, p.Param1, sb);
-            AddIfLiteralThenAddHole(ref partIndex, p.Param2, sb);
-            AddIfLiteralThenAddHole(ref partIndex, p.Param3, sb);
-            AddIfLiteral(ref partIndex, sb);
-        }
-
-        EnsurePartIndexAtEnd(partIndex);
-        return sb.ToString();
+        return builder.ToParameterized<TParam>().Root<TViewModel>();
     }
 
-    internal override bool TryMatch(ReadOnlySpan<char> route, out (T1 Param1, T2 Param2, T3 Param3) p, out ReadOnlySpan<char> rest)
+    /// <summary>
+    /// Converts the route builder to a parameterized route builder with the specified parameter type and creates a child route part for the specified parent and child view model type.
+    /// </summary>
+    public static ChildRoutePart<TParentViewModel, TChildViewModel, TParam> Child<TParentViewModel, TChildViewModel, [DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam>(
+        this RouteBuilder builder)
+        where TParentViewModel : class, IRoutedViewModelBase
+        where TChildViewModel : class, IRoutedViewModel<TParam>
+        where TParam : notnull
     {
-        p = default;
-
-        rest = PreProcessRouteString(route);
-        int partIndex = 0;
-
-        using (new InvariantCultureContext())
-        {
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param1!))
-                return false;
-
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param2!))
-                return false;
-
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param3!))
-                return false;
-
-            if (!MatchIfLiteral(ref partIndex, ref rest))
-                return false;
-        }
-
-        EnsurePartIndexAtEnd(partIndex);
-        return true;
-    }
-}
-
-internal class TupleRouteBuilder<T1, T2, T3, T4> : RouteBuilder<(T1 Param1, T2 Param2, T3 Param3, T4 Param4)>
-    where T1 : notnull, IParsable<T1>, IEquatable<T1>
-    where T2 : notnull, IParsable<T2>, IEquatable<T2>
-    where T3 : notnull, IParsable<T3>, IEquatable<T3>
-    where T4 : notnull, IParsable<T4>, IEquatable<T4>
-{
-    internal TupleRouteBuilder(IEnumerable<object> routeParts) : base(routeParts) { }
-
-    internal override string GetPartPath((T1 Param1, T2 Param2, T3 Param3, T4 Param4) p)
-    {
-        var sb = new StringBuilder();
-        int partIndex = 0;
-
-        using (new InvariantCultureContext())
-        {
-            AddIfLiteralThenAddHole(ref partIndex, p.Param1, sb);
-            AddIfLiteralThenAddHole(ref partIndex, p.Param2, sb);
-            AddIfLiteralThenAddHole(ref partIndex, p.Param3, sb);
-            AddIfLiteralThenAddHole(ref partIndex, p.Param4, sb);
-            AddIfLiteral(ref partIndex, sb);
-        }
-
-        EnsurePartIndexAtEnd(partIndex);
-        return sb.ToString();
-    }
-
-    internal override bool TryMatch(ReadOnlySpan<char> route, [MaybeNullWhen(false)] out (T1 Param1, T2 Param2, T3 Param3, T4 Param4) p, out ReadOnlySpan<char> rest)
-    {
-        p = default;
-
-        rest = PreProcessRouteString(route);
-        int partIndex = 0;
-
-        using (new InvariantCultureContext())
-        {
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param1!))
-                return false;
-
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param2!))
-                return false;
-
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param3!))
-                return false;
-
-            if (!MatchIfLiteralThenMatchHole(ref partIndex, ref rest, out p.Param4!))
-                return false;
-
-            if (!MatchIfLiteral(ref partIndex, ref rest))
-                return false;
-        }
-
-        EnsurePartIndexAtEnd(partIndex);
-        return true;
+        return builder.ToParameterized<TParam>().Child<TParentViewModel, TChildViewModel>();
     }
 }

@@ -2,7 +2,7 @@
   "metadata": [
     {
       "properties": {
-          "TargetFramework": "net8.0"
+          "TargetFramework": "net10.0"
       },
       "src": [
         {
@@ -46,6 +46,13 @@
         "files": [
           "toc.yml",
           "*.md"
+        ]
+      },
+      {
+        "files": [
+          "articles/**.md",
+          "articles/**/toc.yml",
+          "articles/toc.yml"
         ]
       }
     ],
