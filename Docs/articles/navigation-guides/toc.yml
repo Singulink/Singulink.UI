@@ -14,5 +14,7 @@
   href: guards-and-redirects.md
 - name: Dependency Injection
   href: dependency-injection.md
+- name: TaskRunner
+  href: task-runner.md
 - name: WinUI / Uno Setup
   href: winui-setup.md

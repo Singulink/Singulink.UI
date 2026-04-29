@@ -69,6 +69,8 @@ Child services are resolved **ancestor-first**: when a descendant view model is 
 
 In addition to services registered via `SetChildService`, an ancestor view model that **directly implements an interface** also satisfies that interface as a dependency for its descendants. For example, if a parent view hosts a breadcrumb trail and its view model implements `IBreadcrumbConfig`, child view models can take `IBreadcrumbConfig` as a constructor parameter and the navigator will inject the ancestor view model itself — no `SetChildService` call required.
 
+A parent view model can also act as a full container for its descendants by implementing `IServiceProvider`. When a child view model is being constructed and the navigator can't satisfy a dependency from `SetChildService` registrations or directly-implemented interfaces, it walks up the route hierarchy and calls `GetService(Type)` on any ancestor view model that implements `IServiceProvider`. This lets a parent integrate an arbitrary DI container (e.g. a per-document scope) into the resolution chain before falling back to `builder.Services`.
+
 Guidelines:
 
 - Call `SetChildService` from `OnNavigatedToAsync` or `OnRouteNavigatedAsync` **before** any child activation. By the time a child view model is being constructed, the ancestor's `OnNavigatedToAsync` has already completed.
@@ -91,7 +93,7 @@ public interface IDocumentPresenter
 Step 2 — register an implementation from the parent view onto its parent view model:
 
 ```csharp
-public sealed partial class RepoPage : Page, IParentView, IDocumentPresenter
+public sealed partial class RepoPage : UserControl, IParentView, IDocumentPresenter
 {
     public RepoViewModel Model => (RepoViewModel)DataContext;
 

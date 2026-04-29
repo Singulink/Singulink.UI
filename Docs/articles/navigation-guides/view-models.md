@@ -38,7 +38,7 @@ public partial class HomePageViewModel(IUserService userService)
     }
 
     [ObservableProperty]
-    private User? _currentUser;
+    public partial User? CurrentUser { get; private set; }
 }
 ```
 
@@ -58,7 +58,7 @@ public partial class DocumentPageViewModel(IDocumentService documents)
     }
 
     [ObservableProperty]
-    private Document? _document;
+    public Document? Document { get; private set; }
 }
 ```
 
@@ -69,7 +69,7 @@ public partial class EditEntryViewModel(IEntryService entries)
     : ObservableObject, IRoutedViewModel<EditEntryParams>
 {
     public long EntryId => this.Parameter.EntryId;
-    public Guid? RevisionId => this.Parameter.RevisionId.HasValue ? this.Parameter.RevisionId.Value : null;
+    public Guid? RevisionId => this.Parameter.RevisionId;
 
     public Task OnNavigatedToAsync(NavigationArgs args) { ... }
 }
@@ -82,19 +82,35 @@ See [Defining Routes](defining-routes.md) for how parameter types are declared o
 Routed view models do not store the navigator directly — it is exposed through extension members:
 
 ```csharp
-public async Task OnNavigatedToAsync(NavigationArgs args)
+[RelayCommand]
+private async Task ReloadAsync()
 {
-    await this.Navigator.ShowMessageDialogAsync("Loaded");
+    await this.Navigator.ShowMessageDialogAsync("Reloading...");
 
-    this.TaskRunner.RunAsBusyAndForget(async () => {
+    await this.TaskRunner.RunAsBusyAsync(async () => {
         await SomeLongRunningOperationAsync();
     });
 }
 ```
 
-`this.Navigator` returns the `INavigator` associated with the view model; `this.TaskRunner` returns its task runner. The extension properties can be accessed anytime, including in the view model's constructor, if desired.
+`this.Navigator` returns the `INavigator` associated with the view model; `this.TaskRunner` returns its task runner. The extension properties can be accessed anytime, including in the view model's constructor, if needed.
 
-The `TaskRunner` integrates with busy-state on the navigator so the UI automatically disables while long-running tasks are in flight. See [Singulink.UI.Tasks](https://github.com/Singulink/Singulink.UI) for details.
+The `TaskRunner` integrates with busy-state on the navigator so the UI automatically disables while long-running tasks are in flight. See the [TaskRunner guide](task-runner.md) for details and patterns.
+
+> [!IMPORTANT]
+> Lifecycle methods like `OnNavigatedToAsync`, `OnRouteNavigatedAsync`, etc., are themselves run as busy tasks on the `TaskRunner` — the UI is already disabled for the duration of the returned task and child view models won't begin activating until it completes. As a result, `RunAsBusyAndForget` is rarely useful from inside a lifecycle method (the navigation event itself is already busy). Use `this.TaskRunner.RunAndForget(...)` from a lifecycle method when you want to "break out" of the busy navigation event and let work continue in the background without keeping the UI busy or blocking cascading child navigations:
+>
+> ```csharp
+> public Task OnNavigatedToAsync(NavigationArgs args)
+> {
+>     this.TaskRunner.RunAndForget(async () => {
+>         await PrefetchDataAsync();
+>     });
+>
+>     return Task.CompletedTask;
+> }
+> ```
+
 
 ## Lifecycle Methods
 

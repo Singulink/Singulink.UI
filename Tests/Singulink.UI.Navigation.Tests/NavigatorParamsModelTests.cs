@@ -114,7 +114,7 @@ public partial class NavigatorParamsModelTests
 
             public string? StringValue { get; init; }
 
-            public RouteQuery Rest { get; init; } = RouteQuery.Empty;
+            public RouteQuery Rest { get; init; }
         }
 
         public int IntValue => this.Parameter.IntValue;

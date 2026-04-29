@@ -26,7 +26,7 @@ internal static class RouteValueConverter
             return value.ToString() ?? string.Empty;
     }
 
-    public static bool TryParse<T>(string s, [MaybeNullWhen(false)] out T value) where T : notnull, IParsable<T>
+    public static bool TryParse<T>(string s, [NotNullWhen(true)] out T? value) where T : IParsable<T>
     {
         if (typeof(T) == typeof(DateTime))
         {

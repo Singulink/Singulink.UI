@@ -116,7 +116,7 @@ public partial class DocumentViewModel : ObservableObject, IRoutedViewModel<Docu
 ```
 
 > [!NOTE]
-> `this.Parameter` is available immediately — you can read it from the view model's constructor if desired, not only after navigation lifecycle events fire.
+> `this.Parameter` can be accessed any time, even in the view model's constructor - you do not need to wait until a navigation event fires.
 
 ### Raw Query String
 
@@ -175,9 +175,150 @@ public static ChildRoutePart<MainViewModel, DocumentViewModel, OptionalPathParam
         .Child<MainViewModel, DocumentViewModel>();
 ```
 
-View model parameter types are constrained to `notnull` — both for AOT safety and because reference-type nullability (`T?` on a class) cannot be observed at runtime. `OptionalPathParam<T>` is a `Nullable<>`-style wrapper that works for value types and reference types alike while satisfying the `notnull` constraint. Call `AsNullable()` on the parameter to convert it to a plain nullable value when that is more convenient to work with.
+View model parameter types are constrained to `notnull` — both for technical AOT safety reasons and because reference-type nullability (`T?` on a class) cannot be observed at runtime. `OptionalPathParam<T>` is a `Nullable<>`-style wrapper that works for value types and reference types alike while satisfying the `notnull` constraint. Call `AsNullable()` on the parameter to convert it to a plain nullable value when that is more convenient to work with.
 
 This wrapper is only needed for single-parsable parameters. Params models simply use nullable property types — see [Params Models](#params-models) above.
+
+## Working with Query Strings
+
+Query strings are represented by the `RouteQuery` type — an immutable, insertion-ordered, key/value collection of strongly-typed parameters. Three patterns use it:
+
+- A view model whose parameter type is `RouteQuery` directly — for arbitrary query parameters with no fixed structure.
+- A params model with a single `RouteQuery` property — for view models that need both fixed properties and arbitrary leftover query values.
+- Manually-constructed query strings passed to `ToConcrete(...)` for navigation.
+
+Recall from [Query String and Leaf View Models](#query-string-and-leaf-view-models) that query strings are only available on leaf view models — view models with registered children must satisfy all required parameters from path holes.
+
+### Reading Values from a `RouteQuery`
+
+`RouteQuery` parses values lazily — values are stored as strings and converted to your requested type on access using invariant-culture formatting (the same formatting used for path parameters):
+
+```csharp
+public Task OnNavigatedToAsync(NavigationArgs args)
+{
+    if (this.Parameter.TryGetValue("q", out string? term))
+    {
+        // Found and parsed.
+    }
+
+    if (this.Parameter.TryGetValue("page", out int page))
+    {
+        CurrentPage = page;
+    }
+
+    // Throws KeyNotFoundException if missing, FormatException if not parsable as int:
+    int requiredId = this.Parameter.GetValue<int>("id");
+
+    // Check existence without parsing:
+    if (this.Parameter.ContainsKey("debug"))
+    {
+        // ...
+    }
+
+    return Task.CompletedTask;
+}
+```
+
+`TryGetValue<T>` has an overload that distinguishes a missing key from a parse failure via an `out bool foundKey`, and another that throws on parse errors instead of returning `false` — useful when you want missing values to be tolerated but malformed values to be loud.
+
+`RouteQuery` is enumerable (yielding `(string Key, string Value)` tuples) and exposes `Count`, supporting iteration over all entries.
+
+### Building a `RouteQuery`
+
+For static / known-at-compile-time query parameters, use the `RouteQuery` constructor directly:
+
+```csharp
+var query = new RouteQuery(("q", "hello"), ("page", "2"));
+```
+
+Note that the constructor takes pre-formatted string values. For strongly-typed building, use `RouteQueryBuilder`:
+
+```csharp
+var query = new RouteQueryBuilder()
+    .Add("q", "hello")        // string
+    .Add("page", 2)           // int — formatted with invariant culture
+    .Add("since", DateOnly.FromDateTime(DateTime.UtcNow))
+    .ToQuery();
+```
+
+`RouteQueryBuilder` provides `Add` (throws on duplicate key), `Set` (overwrites), `Remove`, `ContainsKey`, and `TryGetValue<T>`. To start a builder from an existing query, call `existingQuery.ToBuilder()`.
+
+### Navigating with a Query
+
+When the view model's parameter type is `RouteQuery`, pass the query directly to `ToConcrete`:
+
+```csharp
+public static RootRoutePart<SearchViewModel, RouteQuery> SearchRoot { get; } =
+    Route.Build("/search").Root<SearchViewModel, RouteQuery>();
+
+// Navigate:
+var query = new RouteQueryBuilder().Add("q", "hello").Add("page", 2).ToQuery();
+await this.Navigator.NavigateAsync(Routes.SearchRoot.ToConcrete(query));
+// URL: /search?q=hello&page=2
+```
+
+When the parameter is a params model, place the `RouteQuery` on a property:
+
+```csharp
+[RouteParamsModel]
+public partial record SearchParams
+{
+    public required string Term { get; init; }
+    public RouteQuery Filters { get; init; }
+}
+
+await this.Navigator.NavigateAsync(Routes.SearchRoot.ToConcrete(new SearchParams
+{
+    Term = "hello",
+    Filters = new RouteQueryBuilder().Add("category", "books").Add("inStock", true).ToQuery(),
+}));
+```
+
+The `RouteQuery` property captures any query string values that don't match another property in the model — see [Params Models](#params-models) for the full rules.
+
+## Lists of Values
+
+`ValueList<T>` lets you use a list of parsable values anywhere a single parsable type is expected — as a path parameter, a query parameter, or a property in a params model. It implements `IParsable<T>` and `IEquatable<T>`, so it satisfies the constraints required by route parameters and `RouteQuery` accessors.
+
+```csharp
+[RouteParamsModel]
+public partial record FilterParams
+{
+    public ValueList<long> Ids { get; init; }
+    public ValueList<string>? Tags { get; init; }
+}
+```
+
+Because `ValueList<T>` participates in standard parsing, it works in path holes too:
+
+```csharp
+public static RootRoutePart<BatchViewModel, ValueList<long>> BatchRoot { get; } =
+    Route.Build((ValueList<long> ids) => $"batch/{ids}").Root<BatchViewModel>();
+```
+
+The string format is URI-safe and round-trippable:
+
+- **Tilde-separated** (e.g. `~1~2~3`) — used when no value contains a tilde.
+- **Length-prefixed** (e.g. `5~hello5~world`) — used when any value contains a tilde, or as a safe fallback.
+
+The format is a serialization detail; you typically don't construct or parse it manually. Build a `ValueList<T>` from items:
+
+```csharp
+ValueList<long> ids = new(1L, 2L, 3L);
+ValueList<string> tags = ImmutableArray.Create("a", "b");      // implicit conversion
+ValueList<long> fromList = new(someEnumerable);
+```
+
+`ValueList<T>` implements `IReadOnlyList<T>` and provides implicit conversions from `ImmutableArray<T>` / to `ImmutableArray<T>`, `ReadOnlySpan<T>`, and `ReadOnlyMemory<T>` (no copying), plus `AsSpan()`, `AsMemory()`, and `ToArray()` helpers.
+
+Reading a `ValueList<T>` from a `RouteQuery` works just like any other parsable type:
+
+```csharp
+if (this.Parameter.TryGetValue("ids", out ValueList<long> ids))
+{
+    foreach (long id in ids) { ... }
+}
+```
 
 ## Route Groups
 
@@ -214,7 +355,6 @@ using Singulink.UI.Navigation;
 
 namespace MyApp.ViewModels;
 
-[Bindable(true)]
 public static class Routes
 {
     public static RootRoutePart<LoginViewModel> LoginRoot { get; } =
@@ -263,13 +403,9 @@ XAML `{x:Bind}` can traverse **static property → instance property** chains li
         CommandParameter="{x:Bind vm:Routes.Repo.HomePage}" />
 ```
 
-### Why `[Bindable(true)]`?
-
-On Uno Platform, the `[Bindable]` attribute ensures the class is discoverable by the runtime data binding engine. It is harmless on pure WinUI and recommended any time a class (or its properties) is referenced from XAML data bindings.
-
 ## Registering Routes
 
-Every route must be registered with the navigator builder via `AddRoute`. Child routes must be added after their parent has been added. The `AddAllRoutes` extension convention shown above keeps the registration order in one place and is called from the navigator build action:
+Every route must be registered with the navigator builder via `AddRoute`. Parent routes must be added before their children. The `AddAllRoutes` extension convention shown above keeps the registration order in one place and is called from the navigator build action:
 
 ```csharp
 _navigator = new Navigator(rootContent, builder => {

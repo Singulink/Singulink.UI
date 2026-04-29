@@ -96,10 +96,13 @@ Use `ViewNavigator.Create(...)` to build a `ViewNavigator` around various XAML c
 
 ## Mapping Views and Dialogs
 
-- `builder.MapRoutedView<TViewModel, TView>()` — maps a routed view model to a `Page` (or other `FrameworkElement`). Parent view types must implement `IParentView` — see [Parent Views and Child Navigation](parent-views.md).
+- `builder.MapRoutedView<TViewModel, TView>()` — maps a routed view model to a view (typically a `UserControl`). Parent view types must implement `IParentView` — see [Parent Views and Child Navigation](parent-views.md).
 - `builder.MapDialog<TDialogViewModel, TDialog>()` — maps a dialog view model to a `ContentDialog`. See [Dialogs](dialogs.md).
 
 Both calls validate their arguments: if `TView` doesn't have a parameterless constructor, or if a view model used as a parent doesn't have an `IParentView` view type, the builder throws at startup (before the first navigation happens).
+
+> [!IMPORTANT]
+> Use `UserControl` (not `Page`) as the base type for views mapped via `MapRoutedView`. The framework hosts views inside a `ContentControl` (or another `ViewNavigator` host), not inside a `Frame`, so `Page`-specific navigation events (`OnNavigatedTo`, `OnNavigatedFrom`) never fire. `UserControl` is the recommended base type for routed views; the framework's own `IRoutedViewModel` lifecycle methods replace anything you'd otherwise hook on `Page`.
 
 ## Hooking System Events
 

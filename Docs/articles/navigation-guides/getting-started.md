@@ -139,6 +139,7 @@ Learn more about each area of the framework:
 - [Dialogs](dialogs.md) — Showing dialogs and returning results.
 - [Navigation Guards and Redirects](guards-and-redirects.md) — Canceling and redirecting navigations.
 - [Dependency Injection and Shared State](dependency-injection.md) — Wiring up services and sharing state between view models.
+- [TaskRunner](task-runner.md) — Managing busy state, fire-and-forget tasks, and UI-thread dispatch.
 - [WinUI / Uno Setup](winui-setup.md) — Platform-specific setup, deep linking, and browser URL integration.
 
 You can also check out the [Playground](https://github.com/Singulink/Singulink.UI/tree/main/Playground) project for a runnable sample that exercises most of the framework.

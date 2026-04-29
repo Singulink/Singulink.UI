@@ -69,7 +69,7 @@ private async Task ShowHomeAsync()
 
 The generic parameters describe the parent view model the child is registered under; the navigator verifies at runtime that the current route actually contains that parent. If it doesn't, an `InvalidOperationException` is thrown.
 
-A parameter-less overload `NavigatePartialAsync(string? anchor)` updates only the anchor on the current route.
+A parameter-less overload `NavigatePartialAsync(string? anchor)` updates only the anchor on the current route. This fires the usual `OnRouteNavigating` / `OnRouteNavigated` lifecycle events, so view models that react to route changes (e.g. to update a highlighted item or scroll position) will see the new anchor. If you only want to reflect an anchor change in the URL without firing any lifecycle events, use [`UpdateCurrentRoute(anchor)`](#anchor-only-update) instead — the two methods are otherwise equivalent.
 
 ## Back, Forward, Refresh
 
@@ -173,7 +173,7 @@ Sometimes you need to reflect a change in URL state without performing a navigat
 this.Navigator.UpdateCurrentRoute(anchor: "section-2");
 ```
 
-Useful for reacting to UI state like the currently-selected item in a scrollable list.
+Useful for reacting to UI state like the currently-selected item in a scrollable list. Unlike [`NavigatePartialAsync(anchor)`](#partial-navigation), this method does **not** fire any `OnRouteNavigating` / `OnRouteNavigated` lifecycle events — it simply updates the URL in place. That's the only difference between the two; choose `UpdateCurrentRoute` when the anchor change is purely cosmetic and shouldn't be observed by view models, and `NavigatePartialAsync` when it should.
 
 ### Replacing the leaf route part
 

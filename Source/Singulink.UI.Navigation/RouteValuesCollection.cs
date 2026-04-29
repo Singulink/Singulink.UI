@@ -149,8 +149,8 @@ public sealed partial class RouteValuesCollection : IEnumerable<(string Key, str
     /// fails. Transitions the collection to the Consuming state if it is not already.
     /// </summary>
     /// <exception cref="InvalidOperationException">The collection is in the Done state.</exception>
-    public bool TryConsume<T>(string key, [MaybeNullWhen(false)] out T value)
-        where T : notnull, IParsable<T>
+    public bool TryConsume<T>(string key, [NotNullWhen(true)] out T? value)
+        where T : IParsable<T>
     {
         EnsureNotDone();
         BeginConsuming();

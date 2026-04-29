@@ -4,7 +4,6 @@ using IconPackBuilder.IconSources;
 using IconPackBuilder.Services;
 using IconPackBuilder.ViewModels;
 using IconPackBuilder.Views;
-using Singulink.UI.Navigation;
 using Singulink.UI.Navigation.WinUI;
 using Uno.Resizetizer;
 
@@ -38,27 +37,17 @@ public sealed class AppWindow : Window, IWindow
 
         Content = rootNav;
 
-        _navigator = CreateNavigator(rootNav, services.BuildServiceProvider());
-        _navigator.HookWindowClosedEvents(this);
+        _navigator = new(rootNav, ConfigureNavigator);
+        _navigator.HookWindowActivatedEvent(this, n => n.NavigateAsync(Routes.StartRoot));
         _navigator.HookSystemNavigationRequests();
+        _navigator.HookWindowClosedEvents(this);
     }
 
-    public async void BeginNavigation()
+    private static void ConfigureNavigator(NavigatorBuilder builder)
     {
-        if (_navigator.CurrentRoute.Parts.Count is 0 && !_navigator.IsNavigating)
-            await _navigator.NavigateAsync(Routes.StartRoot);
-    }
-
-    private static Navigator CreateNavigator(ContentControl rootNav, IServiceProvider services)
-    {
-        return new Navigator(ViewNavigator.Create(rootNav), builder => {
-            builder.Services = services;
-
-            builder.MapRoutedView<StartRootModel, StartRoot>();
-            builder.MapRoutedView<EditorRootModel, EditorRoot>();
-            builder.MapDialog<PreviewIconPackDialogModel, PreviewIconPackDialog>();
-
-            builder.AddAllRoutes();
-        });
+        builder.MapRoutedView<StartRootModel, StartRoot>();
+        builder.MapRoutedView<EditorRootModel, EditorRoot>();
+        builder.MapDialog<PreviewIconPackDialogModel, PreviewIconPackDialog>();
+        builder.AddAllRoutes();
     }
 }

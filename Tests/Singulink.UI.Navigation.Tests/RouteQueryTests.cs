@@ -103,10 +103,74 @@ public class RouteQueryTests
     }
 
     [TestMethod]
-    public void TryGetValue_BadFormat_Throws()
+    public void TryGetValue_BadFormat_ReturnsFalse()
     {
         var q = new RouteQuery(("id", "abc"));
-        Should.Throw<FormatException>(() => q.TryGetValue<int>("id", out _));
+        q.TryGetValue<int>("id", out int value).ShouldBeFalse();
+        value.ShouldBe(0);
+    }
+
+    [TestMethod]
+    public void TryGetValue_BadFormat_ThrowParseError_Throws()
+    {
+        var q = new RouteQuery(("id", "abc"));
+        Should.Throw<FormatException>(() => q.TryGetValue<int>("id", throwOnParseError: true, out _));
+    }
+
+    [TestMethod]
+    public void TryGetValue_BadFormat_NoThrowParseError_ReturnsFalse()
+    {
+        var q = new RouteQuery(("id", "abc"));
+        q.TryGetValue<int>("id", throwOnParseError: false, out int value).ShouldBeFalse();
+        value.ShouldBe(0);
+    }
+
+    [TestMethod]
+    public void TryGetValue_FoundKey_BadFormat_ReturnsFalseWithFoundKeyTrue()
+    {
+        var q = new RouteQuery(("id", "abc"));
+        q.TryGetValue<int>("id", out bool foundKey, out int value).ShouldBeFalse();
+        foundKey.ShouldBeTrue();
+        value.ShouldBe(0);
+    }
+
+    [TestMethod]
+    public void TryGetValue_FoundKey_MissingKey_ReturnsFalseWithFoundKeyFalse()
+    {
+        var q = new RouteQuery(("a", "1"));
+        q.TryGetValue<int>("missing", out bool foundKey, out int value).ShouldBeFalse();
+        foundKey.ShouldBeFalse();
+        value.ShouldBe(0);
+    }
+
+    [TestMethod]
+    public void TryGetValue_FoundKey_GoodValue_ReturnsTrue()
+    {
+        var q = new RouteQuery(("id", "42"));
+        q.TryGetValue<int>("id", out bool foundKey, out int value).ShouldBeTrue();
+        foundKey.ShouldBeTrue();
+        value.ShouldBe(42);
+    }
+
+    [TestMethod]
+    public void GetValue_GoodValue_ReturnsValue()
+    {
+        var q = new RouteQuery(("id", "42"));
+        q.GetValue<int>("id").ShouldBe(42);
+    }
+
+    [TestMethod]
+    public void GetValue_MissingKey_Throws()
+    {
+        var q = new RouteQuery(("a", "1"));
+        Should.Throw<KeyNotFoundException>(() => q.GetValue<int>("missing"));
+    }
+
+    [TestMethod]
+    public void GetValue_BadFormat_Throws()
+    {
+        var q = new RouteQuery(("id", "abc"));
+        Should.Throw<FormatException>(() => q.GetValue<int>("id"));
     }
 
     [TestMethod]

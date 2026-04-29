@@ -6,7 +6,6 @@ using Playground.Views;
 using Playground.Views.DialogTest;
 using Playground.Views.Home;
 using Playground.Views.ParamsTest;
-using Singulink.UI.Navigation;
 using Singulink.UI.Navigation.WinUI;
 using Uno.Resizetizer;
 
@@ -31,31 +30,24 @@ public class AppWindow : Window
 
         Content = rootNav;
 
-        _navigator = CreateNavigator(rootNav);
-        _navigator.HookWindowClosedEvents(this);
+        _navigator = new(rootNav, ConfigureNavigator);
+        _navigator.HookWindowActivatedEvent(this, n => n.NavigateAsync(Routes.LoginRoot));
         _navigator.HookSystemNavigationRequests();
+        _navigator.HookWindowClosedEvents(this);
     }
 
-    public async void BeginNavigation()
+    private static void ConfigureNavigator(NavigatorBuilder builder)
     {
-        if (_navigator.CurrentRoute.Parts.Count is 0)
-            await _navigator.NavigateAsync(Routes.LoginRoot);
-    }
+        builder.MapRoutedView<LoginViewModel, LoginRoot>();
+        builder.MapRoutedView<MainViewModel, MainRoot>();
+        builder.MapRoutedView<HomeViewModel, HomePage>();
+        builder.MapRoutedView<DialogTestViewModel, DialogTestPage>();
+        builder.MapRoutedView<ParamsTestViewModel, ParamsTestPage>();
+        builder.MapRoutedView<ShowParamsTestViewModel, ShowParamsTestPage>();
 
-    private static Navigator CreateNavigator(ContentControl rootNav)
-    {
-        return new Navigator(ViewNavigator.Create(rootNav), builder => {
-            builder.MapRoutedView<LoginViewModel, LoginRoot>();
-            builder.MapRoutedView<MainViewModel, MainRoot>();
-            builder.MapRoutedView<HomeViewModel, HomePage>();
-            builder.MapRoutedView<DialogTestViewModel, DialogTestPage>();
-            builder.MapRoutedView<ParamsTestViewModel, ParamsTestPage>();
-            builder.MapRoutedView<ShowParamsTestViewModel, ShowParamsTestPage>();
+        builder.MapDialog<DismissibleDialogViewModel, DismissibleDialog>();
 
-            builder.MapDialog<DismissibleDialogViewModel, DismissibleDialog>();
-
-            builder.ConfigureNavigationStacks(maxSize: 10, maxBackCachedDepth: 3, maxForwardCachedDepth: 3);
-            builder.AddAllRoutes();
-        });
+        builder.ConfigureNavigationStacks(maxSize: 10, maxBackCachedDepth: 3, maxForwardCachedDepth: 3);
+        builder.AddAllRoutes();
     }
 }

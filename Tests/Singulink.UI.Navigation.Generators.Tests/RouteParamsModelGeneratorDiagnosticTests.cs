@@ -162,8 +162,8 @@ public partial class RouteParamsModelGeneratorDiagnosticTests
             [RouteParamsModel]
             public partial record Model
             {
-                public RouteQuery First { get; init; } = RouteQuery.Empty;
-                public RouteQuery Second { get; init; } = RouteQuery.Empty;
+                public RouteQuery First { get; init; }
+                public RouteQuery Second { get; init; }
             }
             """);
 
@@ -197,7 +197,7 @@ public partial class RouteParamsModelGeneratorDiagnosticTests
             {
                 public required string Name { get; init; }
                 public System.Guid? Tag { get; init; }
-                public RouteQuery Rest { get; init; } = RouteQuery.Empty;
+                public RouteQuery Rest { get; init; }
             }
             """);
 

@@ -7,6 +7,7 @@
       "src": [
         {
           "files": [
+            "Singulink.UI.Icons/Singulink.UI.Icons.csproj",
             "Singulink.UI.Navigation/Singulink.UI.Navigation.csproj",
             "Singulink.UI.Navigation.WinUI/Singulink.UI.Navigation.WinUI.csproj",
             "Singulink.UI.Tasks/Singulink.UI.Tasks.csproj",

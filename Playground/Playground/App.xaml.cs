@@ -26,7 +26,6 @@ public partial class App : Application
 
         _mainWindow ??= new AppWindow();
         _mainWindow.Activate();
-        _mainWindow.BeginNavigation();
     }
 
     public static void InitializeLogging()

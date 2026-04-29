@@ -102,8 +102,46 @@ public readonly partial struct RouteQuery : IEquatable<RouteQuery>, IEnumerable<
     /// <param name="key">The query parameter key.</param>
     /// <param name="value">When this method returns, contains the parsed value if the key was found and parsing succeeded.</param>
     /// <returns><see langword="true"/> if the key was found and the value was successfully parsed; otherwise <see langword="false"/>.</returns>
-    /// <exception cref="FormatException">Thrown if the key is found but parsing fails.</exception>
-    public bool TryGetValue<T>(string key, [MaybeNullWhen(false)] out T value) where T : IParsable<T>
+    public bool TryGetValue<T>(string key, [NotNullWhen(true)] out T? value) where T : IParsable<T>
+    {
+        return TryGetValue(key, false, out value);
+    }
+
+    /// <summary>
+    /// Attempts to get the value associated with the specified key, parsed as the specified type using invariant culture formatting, with control over whether
+    /// parsing errors should be treated as missing keys.
+    /// </summary>
+    /// <typeparam name="T">The type to parse the value as, which must implement <see cref="IParsable{TSelf}"/>.</typeparam>
+    /// <param name="key">The query parameter key.</param>
+    /// <param name="throwOnParseError">If <see langword="true"/>, a <see cref="FormatException"/> is thrown when parsing fails; otherwise, parsing errors are treated as missing keys.</param>
+    /// <param name="value">When this method returns, contains the parsed value if the key was found and parsing succeeded.</param>
+    /// <returns><see langword="true"/> if the key was found and the value was successfully parsed; otherwise <see langword="false"/>.</returns>
+    public bool TryGetValue<T>(string key, bool throwOnParseError, [NotNullWhen(true)] out T? value) where T : IParsable<T>
+    {
+        if (!TryGetValue(key, out bool foundKey, out value))
+        {
+            if (!foundKey)
+                return false;
+
+            if (throwOnParseError)
+                throw new FormatException($"Query parameter with key '{key}' was found but could not be parsed as type '{typeof(T)}'.");
+
+            value = default;
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to get the value associated with the specified key, parsed as the specified type using invariant culture formatting.
+    /// </summary>
+    /// <typeparam name="T">The type to parse the value as, which must implement <see cref="IParsable{TSelf}"/>.</typeparam>
+    /// <param name="key">The query parameter key.</param>
+    /// <param name="foundKey">When this method returns, indicates whether the key was found.</param>
+    /// <param name="value">When this method returns, contains the parsed value if the key was found and parsing succeeded.</param>
+    /// <returns><see langword="true"/> if the key was found and the value was successfully parsed; otherwise <see langword="false"/>.</returns>
+    public bool TryGetValue<T>(string key, out bool foundKey, [NotNullWhen(true)] out T? value) where T : IParsable<T>
     {
         var entries = Entries;
         int index = FindIndexByKey(entries.AsSpan(), key);
@@ -111,15 +149,35 @@ public readonly partial struct RouteQuery : IEquatable<RouteQuery>, IEnumerable<
         if (index < 0)
         {
             value = default;
+            foundKey = false;
             return false;
         }
 
         string stringValue = entries[index].Value;
+        foundKey = true;
 
-        if (!RouteValueConverter.TryParse(stringValue, out value))
-            throw new FormatException($"Failed to parse query parameter '{key}' with value '{stringValue}' as type '{typeof(T)}'.");
+        return RouteValueConverter.TryParse(stringValue, out value);
+    }
 
-        return true;
+    /// <summary>
+    /// Gets the value associated with the specified key, parsed as the specified type using invariant culture formatting.
+    /// </summary>
+    /// <typeparam name="T">The type to parse the value as, which must implement <see cref="IParsable{TSelf}"/>.</typeparam>
+    /// <param name="key">The query parameter key.</param>
+    /// <returns>The parsed value associated with the specified key.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown if the key was not found.</exception>
+    /// <exception cref="FormatException">Thrown if the key is found but parsing fails.</exception>
+    public T GetValue<T>(string key) where T : notnull, IParsable<T>
+    {
+        if (!TryGetValue(key, out bool foundKey, out T value))
+        {
+            if (!foundKey)
+                throw new KeyNotFoundException($"Query parameter with key '{key}' was not found.");
+
+            throw new FormatException($"Query parameter with key '{key}' was found but could not be parsed as type '{typeof(T)}'.");
+        }
+
+        return value;
     }
 
     /// <summary>

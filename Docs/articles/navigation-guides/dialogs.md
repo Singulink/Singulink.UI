@@ -29,6 +29,81 @@ There are four dialog interfaces you can implement:
 
 All of them inherit `OnDialogShownAsync()` from the base interface — override it to perform initialization when the dialog appears.
 
+## Wiring Up Dialog Buttons
+
+`ContentDialog` exposes three built-in buttons — **primary**, **secondary**, and **close** — but its default behavior is awkward to drive from a view model: clicking a button auto-closes the dialog, command `CanExecute` doesn't sync to the button's enabled state, and intercepting a click usually means hooking a code-behind event handler.
+
+This library improves on that significantly so you can drive dialogs entirely with commands and almost never need event handlers:
+
+- **Primary and secondary buttons should be wired to commands.** The command's `CanExecute` is automatically synchronized with the button's `IsEnabled` state — no extra binding required, and no `IsPrimaryButtonEnabled` / `IsSecondaryButtonEnabled` setup needed.
+- **Primary and secondary buttons do not auto-close the dialog.** Clicking them invokes the command; closing the dialog is the command's responsibility (call `this.Navigator.Close()` from the view model).
+- **The close button auto-closes the dialog when clicked**, as long as you simply provide a `CloseButtonText` value. You don't need to wire a command for the typical "X / Cancel" behavior.
+- **You can wire a command to the close button to intercept the click.** When a command is set, the dialog will not auto-close — the command must call `this.Navigator.Close()`. This is useful for confirming dismissal (e.g. "Discard changes?").
+- **The close button cannot be disabled.** `ContentDialog` does not expose a `CloseButtonEnabled` property, so the button always appears enabled in the UI even when its command's `CanExecute` returns `false`. Setting `CanExecute = false` will still prevent the command from running on click, but for the cleanest user experience it's better not to provide a `CanExecute` implementation for close button commands. To prevent the user from closing the dialog at certain times, hide the close button by setting `CloseButtonText` to an empty string.
+- **Existing event handlers still work.** If you wire a `Click` event handler in addition to a command, you can set `args.Cancel = true` in the handler to suppress the command invocation for that click.
+
+### Example: A Confirmation Dialog
+
+View model:
+
+```csharp
+public partial class ConfirmDeleteDialogViewModel(string itemName)
+    : ObservableObject, IDialogViewModel<bool>
+{
+    public string ItemName => itemName;
+    public bool Confirmed { get; private set; }
+    bool IDialogViewModel<bool>.Result => Confirmed;
+
+    [ObservableProperty]
+    public partial bool ConfirmationChecked { get; set; }
+
+    [RelayCommand(CanExecute = nameof(CanDelete))]
+    private void Delete()
+    {
+        Confirmed = true;
+        this.Navigator.Close();
+    }
+
+    private bool CanDelete() => ConfirmationChecked;
+
+    partial void OnConfirmationCheckedChanged(bool value) => DeleteCommand.NotifyCanExecuteChanged();
+}
+```
+
+XAML — note no event handlers, no `IsPrimaryButtonEnabled`, no manual `Hide()` calls:
+
+```xml
+<ContentDialog x:Class="MyApp.Dialogs.ConfirmDeleteDialog"
+               xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:vm="using:MyApp.ViewModels"
+               Title="Delete Item"
+               PrimaryButtonText="Delete"
+               PrimaryButtonCommand="{x:Bind Model.DeleteCommand}"
+               CloseButtonText="Cancel">
+    <ContentDialog.Resources>
+        <vm:ConfirmDeleteDialogViewModel x:Key="DesignVM" />
+    </ContentDialog.Resources>
+
+    <StackPanel Spacing="12">
+        <TextBlock Text="{x:Bind Model.ItemName}" />
+        <CheckBox Content="I understand this cannot be undone."
+                  IsChecked="{x:Bind Model.ConfirmationChecked, Mode=TwoWay}" />
+    </StackPanel>
+</ContentDialog>
+```
+
+```csharp
+public sealed partial class ConfirmDeleteDialog : ContentDialog
+{
+    public ConfirmDeleteDialogViewModel Model => (ConfirmDeleteDialogViewModel)DataContext;
+
+    public ConfirmDeleteDialog() => InitializeComponent();
+}
+```
+
+The primary button stays disabled until the checkbox is checked (because `DeleteCommand.CanExecute` is false), clicking it runs the command which sets the result and closes the dialog, and clicking "Cancel" closes the dialog with `Confirmed = false`. No code-behind event handlers are involved.
+
 ## Simple Dialog (no result)
 
 ```csharp
@@ -53,6 +128,9 @@ await this.Navigator.ShowDialogAsync(new InfoDialogViewModel("Saved."));
 
 `this.Navigator` on a dialog view model returns an `IDialogNavigator` — it exposes `Close()`, a `TaskRunner`, and `ShowDialogAsync` for nesting additional dialogs (see below).
 
+> [!IMPORTANT]
+> Unlike routed view models (which the navigator constructs), **dialog view models are instantiated by your code** and only get wired up to a navigator immediately before `OnDialogShownAsync` fires. This means `this.Navigator` and `this.TaskRunner` are **not available in the dialog view model's constructor** — attempting to access them there will throw. Defer any work that needs them to `OnDialogShownAsync` or to a command/method that runs after the dialog is shown.
+
 ## Dialog with a Result
 
 Implement `IDialogViewModel<TResult>` and expose a `Result` property:
@@ -61,7 +139,7 @@ Implement `IDialogViewModel<TResult>` and expose a `Result` property:
 public partial class PickNumberDialogViewModel : ObservableObject, IDialogViewModel<int?>
 {
     [ObservableProperty]
-    private int? _selectedNumber;
+    public int? SelectedNumber { get; private set; }
 
     int? IDialogViewModel<int?>.Result => SelectedNumber;
 

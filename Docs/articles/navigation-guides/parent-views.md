@@ -14,7 +14,7 @@ using Singulink.UI.Navigation.WinUI;
 
 namespace MyApp.Client.Views;
 
-public sealed partial class RepoPage : Page, IParentView
+public sealed partial class RepoPage : UserControl, IParentView
 {
     public RepoViewModel Model => (RepoViewModel)DataContext;
 
@@ -33,7 +33,7 @@ The builder validates at startup that any view model registered as a parent has 
 A parent view's XAML typically reserves a named container for child content, alongside any parent-level chrome (navigation bars, headers, etc.):
 
 ```xml
-<Page
+<UserControl
     x:Class="MyApp.Client.Views.RepoPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -63,7 +63,7 @@ A parent view's XAML typically reserves a named container for child content, alo
                         HorizontalContentAlignment="Stretch"
                         VerticalContentAlignment="Stretch" />
     </Grid>
-</Page>
+</UserControl>
 ```
 
 The child host is typically a `ContentControl` with stretched content alignment, but any control that `ViewNavigator.Create` accepts works.

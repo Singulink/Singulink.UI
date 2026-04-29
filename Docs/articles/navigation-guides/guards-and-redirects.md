@@ -90,6 +90,6 @@ var navigator = new Navigator(MainContent, ConfigureNavigator);
 navigator.HookWindowClosedEvents(this);   // 'this' is the Window
 ```
 
-When the user closes the window, the navigator intercepts the close event, runs `TryShutDownAsync()` (which calls guards on each active view model), and only actually closes the window if all guards allow. This provides unsaved-changes prompts on window close without any extra code in your view models.
+When the user closes the window, the navigator intercepts the close event, runs `TryShutDownAsync()` (which calls guards on each active view model), and only actually closes the window if all guards allow. This provides unsaved-changes prompts on window close without any extra manaul wiring.
 
 </div>

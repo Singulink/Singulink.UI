@@ -26,8 +26,7 @@ internal abstract class RouteParamsHandler
     public abstract bool ProvidesQueryAccess { get; }
 }
 
-internal abstract class RouteParamsHandler<[DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] T> : RouteParamsHandler
-    where T : notnull
+internal abstract class RouteParamsHandler<[DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] T> : RouteParamsHandler where T : notnull
 {
     private static readonly RouteParamsHandler<T>? _instance = Create();
 
@@ -95,29 +94,36 @@ internal abstract class RouteParamsHandler<[DynamicallyAccessedMembers(DAM.Publi
         }
     }
 
-#pragma warning disable IL2090
-    // DAM.Interfaces is not needed, IRouteParamsModel<T> is preserved with AOT-safe typeof(ParamsModelHandler<>).MakeGenericType()
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The generic parameter of the source method or type does not have matching annotations.",
+        Justification = "DAM.Interfaces is not needed, IRouteParamsModel<T> is preserved with AOT-safe typeof(ParamsModelHandler<>).MakeGenericType()")]
     private static bool IsParamsModelType() => typeof(T).GetInterfaces().Any(i =>
         i.IsGenericType &&
         i.GetGenericTypeDefinition() == typeof(IRouteParamsModel<>) &&
         i.GetGenericArguments()[0] == typeof(T));
 
-    // DAM.Interfaces is not needed, ISingleRouteParam<T> is preserved with AOT-safe typeof(SingleParamHandler<>).MakeGenericType()
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The generic parameter of the source method or type does not have matching annotations.",
+        Justification = "DAM.Interfaces is not needed, ISingleRouteParam<T> is preserved with AOT-safe typeof(SingleParamHandler<>).MakeGenericType()")]
     private static bool IsSingleParamType() => typeof(T).GetInterfaces().Any(i =>
         i.IsGenericType &&
         i.GetGenericTypeDefinition() == typeof(ISingleRouteParam<>) &&
         i.GetGenericArguments()[0] == typeof(T));
 
-    // DAM.Interfaces is not needed, IParsable<T> is preserved with AOT-safe typeof(ParsableParamHandler<>).MakeGenericType()
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The generic parameter of the source method or type does not have matching annotations.",
+        Justification = "DAM.Interfaces is not needed, IParsable<T> is preserved with AOT-safe typeof(ParsableParamHandler<>).MakeGenericType()")]
     private static bool IsParsableType() => typeof(T).GetInterfaces().Any(i =>
         i.IsGenericType &&
         i.GetGenericTypeDefinition() == typeof(IParsable<>) &&
         i.GetGenericArguments()[0] == typeof(T));
-#pragma warning restore IL2090
 }
 
 file sealed class ParsableParamHandler<[DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] T>
-    : RouteParamsHandler<T> where T : notnull, IParsable<T>
+    : RouteParamsHandler<T> where T : IParsable<T>
 {
     public override bool IsParamsModel => false;
 
@@ -125,7 +131,7 @@ file sealed class ParsableParamHandler<[DynamicallyAccessedMembers(DAM.PublicDef
 
     public override bool ProvidesQueryAccess => false;
 
-    public override bool TryCreate(RouteValuesCollection values, [MaybeNullWhen(false)] out T value)
+    public override bool TryCreate(RouteValuesCollection values, [NotNullWhen(true)] out T? value)
     {
         return values.TryConsume(SingleParamKey, out value);
     }
