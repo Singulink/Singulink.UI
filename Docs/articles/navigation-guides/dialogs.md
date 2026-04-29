@@ -22,10 +22,10 @@ There are four dialog interfaces you can implement:
 
 | Interface | Use case |
 |---|---|
-| `IDialogViewModel` | Dialogs that don't return a result. |
-| `IDialogViewModel<TResult>` | Dialogs that produce a typed result (e.g. the picked item). |
-| `IDismissibleDialogViewModel` | Dialogs that handle escape-key / system-back dismissal. |
-| `IDismissibleDialogViewModel<TResult>` | Combination of the above two. |
+| **IDialogViewModel** | Dialogs that don't return a result. |
+| **IDialogViewModel\<TResult\>** | Dialogs that produce a typed result (e.g. the picked item). |
+| **IDismissibleDialogViewModel** | Dialogs that handle escape-key / system-back dismissal. |
+| **IDismissibleDialogViewModel\<TResult\>** | Combination of the above two. |
 
 All of them inherit `OnDialogShownAsync()` from the base interface — override it to perform initialization when the dialog appears.
 

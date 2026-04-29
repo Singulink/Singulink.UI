@@ -165,7 +165,7 @@ When a view model's parameter is a single parsable type (rather than a params mo
 ```csharp
 public partial class DocumentViewModel : ObservableObject, IRoutedViewModel<OptionalPathParam<long>>
 {
-    public long? DocumentId => this.Parameter.AsNullable();
+    public long? DocumentId => this.Parameter.ToNullable();
 }
 
 public static ChildRoutePart<MainViewModel, DocumentViewModel, OptionalPathParam<long>> DocumentChild { get; } =
@@ -175,7 +175,7 @@ public static ChildRoutePart<MainViewModel, DocumentViewModel, OptionalPathParam
         .Child<MainViewModel, DocumentViewModel>();
 ```
 
-View model parameter types are constrained to `notnull` — both for technical AOT safety reasons and because reference-type nullability (`T?` on a class) cannot be observed at runtime. `OptionalPathParam<T>` is a `Nullable<>`-style wrapper that works for value types and reference types alike while satisfying the `notnull` constraint. Call `AsNullable()` on the parameter to convert it to a plain nullable value when that is more convenient to work with.
+View model parameter types are constrained to `notnull` — both for technical AOT safety reasons and because reference-type nullability (`T?` on a class) cannot be observed at runtime. `OptionalPathParam<T>` is a `Nullable<>`-style wrapper that works for value types and reference types alike while satisfying the `notnull` constraint. Call `ToNullable()` on the parameter to convert it to a plain nullable value when that is more convenient to work with.
 
 This wrapper is only needed for single-parsable parameters. Params models simply use nullable property types — see [Params Models](#params-models) above.
 
@@ -189,7 +189,7 @@ Query strings are represented by the `RouteQuery` type — an immutable, inserti
 
 Recall from [Query String and Leaf View Models](#query-string-and-leaf-view-models) that query strings are only available on leaf view models — view models with registered children must satisfy all required parameters from path holes.
 
-### Reading Values from a `RouteQuery`
+### Reading Values from a RouteQuery
 
 `RouteQuery` parses values lazily — values are stored as strings and converted to your requested type on access using invariant-culture formatting (the same formatting used for path parameters):
 
@@ -223,7 +223,7 @@ public Task OnNavigatedToAsync(NavigationArgs args)
 
 `RouteQuery` is enumerable (yielding `(string Key, string Value)` tuples) and exposes `Count`, supporting iteration over all entries.
 
-### Building a `RouteQuery`
+### Building a RouteQuery
 
 For static / known-at-compile-time query parameters, use the `RouteQuery` constructor directly:
 
@@ -393,15 +393,17 @@ public static class Routes
 }
 ```
 
-### Why a nested instance class (`RepoRoutes`)?
+### Why a nested instance class (RepoRoutes)?
 
-XAML `{x:Bind}` can traverse **static property → instance property** chains like `Routes.Repo.HomePage`, but it cannot traverse static properties on a static nested type (`Routes.Repo.HomePage` only works if `Repo` is a static property that returns an instance of `RepoRoutes`, not if `Repo` is a nested static class). Exposing child routes as instance properties on a small nested class lets XAML bind to them directly:
+XAML `{x:Bind}` can traverse **static property → instance property** chains like `Routes.Repo.HomePage`, but a limitation of the WinUI XAML dialect is that it cannot traverse static properties on a static nested type (`Routes.Repo.HomePage` only works if `Repo` is a static property that returns an instance of `RepoRoutes`, not if `Repo` is a nested static class). Exposing child routes as instance properties on a small nested class lets XAML bind to them directly:
 
 ```xml
 <Button Content="Home"
         Command="{x:Bind Model.NavigateToCommand}"
         CommandParameter="{x:Bind vm:Routes.Repo.HomePage}" />
 ```
+
+Flattening the class structure with a different naming convention (e.g. `Routes.RepoHomePage`, `Routes.RepoSettingsPage`, etc) also works, or if you don't need to `{x:Bind}` directly to routes then you can use normal nested static classes.
 
 ## Registering Routes
 

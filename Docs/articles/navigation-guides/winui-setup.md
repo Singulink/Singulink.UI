@@ -108,15 +108,15 @@ Both calls validate their arguments: if `TView` doesn't have a parameterless con
 
 Three optional hooks integrate the navigator with OS-level and window lifetime behaviors:
 
-### `HookSystemNavigationRequests()`
+### HookSystemNavigationRequests()
 
 Subscribes to `SystemNavigationManager.BackRequested` on platforms that provide it (Uno mobile, WASM), translating system back gestures into `HandleSystemBackRequest` calls on the navigator. On Windows it's a no-op since Windows does not expose a system back button.
 
-### `HookWindowClosedEvents(Window window)`
+### HookWindowClosedEvents(Window window)
 
 Intercepts the window close event and runs `TryShutDownAsync()` before letting the window actually close. This gives active view models a chance to cancel (e.g. unsaved changes prompts). See [Guards and Redirects](guards-and-redirects.md) for more detail.
 
-### `HookWindowActivatedEvent(Window, initialNavigationAction, fallbackAction)`
+### HookWindowActivatedEvent(Window, initialNavigationAction, fallbackAction)
 
 Defers initial navigation until the window is first activated, which is the correct point in the WinUI / Uno lifecycle to navigate (the XAML root is fully ready and dispatcher work runs reliably). The hook also ensures the initial navigation runs only once and routes any `NavigationRouteException` thrown by the initial action into the supplied fallback action — useful for showing an error message and falling back to a known-good route when a deep link can't be resolved.
 

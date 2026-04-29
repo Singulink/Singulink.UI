@@ -77,7 +77,7 @@ public partial class EditEntryViewModel(IEntryService entries)
 
 See [Defining Routes](defining-routes.md) for how parameter types are declared on the route side.
 
-## The `this.Navigator` and `this.TaskRunner` Accessors
+## The this.Navigator and this.TaskRunner Accessors
 
 Routed view models do not store the navigator directly — it is exposed through extension members:
 
@@ -97,7 +97,7 @@ private async Task ReloadAsync()
 
 The `TaskRunner` integrates with busy-state on the navigator so the UI automatically disables while long-running tasks are in flight. See the [TaskRunner guide](task-runner.md) for details and patterns.
 
-> [!IMPORTANT]
+> [!TIP]
 > Lifecycle methods like `OnNavigatedToAsync`, `OnRouteNavigatedAsync`, etc., are themselves run as busy tasks on the `TaskRunner` — the UI is already disabled for the duration of the returned task and child view models won't begin activating until it completes. As a result, `RunAsBusyAndForget` is rarely useful from inside a lifecycle method (the navigation event itself is already busy). Use `this.TaskRunner.RunAndForget(...)` from a lifecycle method when you want to "break out" of the busy navigation event and let work continue in the background without keeping the UI busy or blocking cascading child navigations:
 >
 > ```csharp
@@ -116,7 +116,7 @@ The `TaskRunner` integrates with busy-state on the navigator so the UI automatic
 
 The navigator drives view models through a well-defined set of lifecycle methods. Understanding when each fires is the key to writing correct navigation logic.
 
-### `OnNavigatedToAsync(NavigationArgs args)`
+### OnNavigatedToAsync(NavigationArgs args)
 
 Called when the view model **first becomes active** in the current route. Use this hook to load initial state, subscribe to events, or perform one-time setup.
 
@@ -127,7 +127,7 @@ Called when the view model **first becomes active** in the current route. Use th
 - Can show dialogs, provided they are closed before the task completes **or** `args.HasChildNavigation` is `false` (see below).
 - Can request a redirect by setting `args.Redirect` — see [Navigation Guards and Redirects](guards-and-redirects.md).
 
-### `OnRouteNavigatedAsync(NavigationArgs args)`
+### OnRouteNavigatedAsync(NavigationArgs args)
 
 Called **every time the current route changes while this view model remains active**. In particular:
 
@@ -150,7 +150,7 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel
 
 Leaf view models (with no children) typically only use `OnNavigatedToAsync` since the two events always coincide for them.
 
-### `OnNavigatingAwayAsync(NavigatingArgs args)`
+### OnNavigatingAwayAsync(NavigatingArgs args)
 
 Called **before** the view model is navigated away from, allowing it to cancel the pending navigation. This is where you prompt the user about unsaved changes:
 
@@ -179,11 +179,11 @@ public async Task OnNavigatingAwayAsync(NavigatingArgs args)
 
 Set `args.Cancel = true` to abort the navigation. The method is allowed to `await` asynchronous work including dialogs.
 
-### `OnRouteNavigatingAsync(NavigatingArgs args)`
+### OnRouteNavigatingAsync(NavigatingArgs args)
 
 Called when the current route is about to change **but this view model will remain active** in the new route (e.g. a parent view model whose children are being swapped). Rarely needed; use it only when you need to guard a route change that doesn't actually unmount the view model.
 
-### `OnNavigatedAwayAsync()`
+### OnNavigatedAwayAsync()
 
 Called when the view model is navigated away from (after any `OnNavigatingAwayAsync` has completed and the navigation was not cancelled). Use this hook to dispose resources, cancel outstanding work, and unhook events:
 
@@ -221,7 +221,7 @@ OnRouteNavigatingAsync   (parent, if navigation needs to be guarded)
 OnRouteNavigatedAsync    (parent, after child successfully swaps)
 ```
 
-## Caching and `CanBeCached`
+## Caching and CanBeCached
 
 By default, view model instances are cached when navigated away from so returning to them later is instant and preserves state. If a view model consumes significant memory or should always be recreated fresh, override `CanBeCached`:
 

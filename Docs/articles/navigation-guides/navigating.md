@@ -40,20 +40,7 @@ The navigator also accepts raw URL strings. This is how deep links from browsers
 await _navigator.NavigateAsync("/r/my-repo/document/42");
 ```
 
-If the URL is malformed or doesn't match any registered route, a `NavigationRouteException` is thrown. Use try/catch around initial-navigation calls to fall back to a safe route:
-
-```csharp
-try
-{
-    await _navigator.NavigateAsync(initialRoute);
-}
-catch (NavigationRouteException ex)
-{
-    await _navigator.ShowMessageDialogAsync(
-        $"Could not navigate to '{initialRoute}': {ex.Message}", "Navigation Error");
-    await _navigator.NavigateAsync("/");
-}
-```
+If the URL is malformed or doesn't match any registered route, a `NavigationRouteException` is thrown. Use try/catch around string-based navigation calls to react appropriately to malformed URLs.
 
 ## Partial Navigation
 
@@ -67,9 +54,9 @@ private async Task ShowHomeAsync()
 }
 ```
 
-The generic parameters describe the parent view model the child is registered under; the navigator verifies at runtime that the current route actually contains that parent. If it doesn't, an `InvalidOperationException` is thrown.
+The route's generic parameters describe the parent view model the child is registered under; the navigator verifies at runtime that the current route actually contains that parent. If it doesn't, an `InvalidOperationException` is thrown.
 
-A parameter-less overload `NavigatePartialAsync(string? anchor)` updates only the anchor on the current route. This fires the usual `OnRouteNavigating` / `OnRouteNavigated` lifecycle events, so view models that react to route changes (e.g. to update a highlighted item or scroll position) will see the new anchor. If you only want to reflect an anchor change in the URL without firing any lifecycle events, use [`UpdateCurrentRoute(anchor)`](#anchor-only-update) instead — the two methods are otherwise equivalent.
+The `NavigatePartialAsync(string? anchor)` overload updates only the anchor on the current route. This fires the usual `OnRouteNavigating` / `OnRouteNavigated` lifecycle events, so view models that react to route changes (e.g. to update a highlighted item or scroll position) will see the new anchor. If you only want to reflect an anchor change in the URL without firing any lifecycle events, use [`UpdateCurrentRoute(anchor)`](#anchor-only-update) instead — the two methods are otherwise equivalent.
 
 ## Back, Forward, Refresh
 
@@ -178,7 +165,7 @@ Useful for reacting to UI state like the currently-selected item in a scrollable
 ### Replacing the leaf route part
 
 ```csharp
-// After the server assigns an ID to a newly-created entry, update the URL from
+// After the server assigns an ID to a newly-saved entry, update the URL from
 // /entries/new to /entries/{id} without re-navigating the view model.
 this.Navigator.UpdateCurrentRoute(
     Routes.Repo.EntryPage.ToConcrete(newEntryId));

@@ -27,7 +27,7 @@ This means you usually don't need to think about busy state during navigation â€
 
 ## Common Patterns
 
-### Run a Busy Task from a `[RelayCommand]`
+### Run a Busy Task from a [RelayCommand]
 
 The most common use case: a command that performs async work which should disable the UI while it runs.
 
