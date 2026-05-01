@@ -24,6 +24,20 @@ public static class Route
     /// <summary>
     /// Builds a parameterized route from the specified route function that returns the interpolated route.
     /// </summary>
+    public static RouteBuilder<TParam> Build<[DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam>(
+        string route)
+        where TParam : notnull
+    {
+        InterpolatedRouteHandler r = new(route.Length, 0);
+        r.AppendLiteral(route);
+        var routeParts = r.Compile(string.Empty, isParamsModel: false);
+
+        return new RouteBuilder<TParam>(routeParts);
+    }
+
+    /// <summary>
+    /// Builds a parameterized route from the specified route function that returns the interpolated route.
+    /// </summary>
     public static RouteBuilder<TParam> Build<[DynamicallyAccessedMembers(DAM.AllCtors)] TParam>(
         Func<TParam, InterpolatedRouteHandler> routeFunc,
         [CallerArgumentExpression(nameof(routeFunc))] string routeFuncExpr = "")

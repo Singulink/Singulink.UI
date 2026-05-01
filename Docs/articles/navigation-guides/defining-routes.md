@@ -2,14 +2,16 @@
 
 # Defining Routes
 
+### Overview
+
 Routes describe the hierarchy of your application as a tree of strongly-typed route parts. Each route part maps to a view model, and together they form the URL structure of your app.
 
 ## Route Parts
 
 There are two kinds of route parts:
 
-- **Root route parts** — Top-level routes without a parent (e.g. `/login`, `/`, `/r/{repoId}`).
-- **Child route parts** — Routes that appear under a specific parent view model (e.g. `home` under a repository root).
+- **Root route parts**: top-level routes without a parent (e.g. `/login`, `/`, `/r/{repoId}`).
+- **Child route parts**: routes that appear under a specific parent view model (e.g. `home` under a repository root).
 
 Root and child routes are built with the `Route.Build(...)` fluent API:
 
@@ -29,13 +31,13 @@ The generic arguments make these strongly typed: a `ChildRoutePart<MainViewModel
 
 A view model can accept a single **parameter** which is populated from the URL. The parameter type can be one of three things:
 
-1. **A [params model](#params-models)** — A record annotated with `[RouteParamsModel]`, letting you pack multiple path and query values into one strongly-typed object.
-2. **A single parsable type** — Any type that implements `IParsable<T>` and `IEquatable<T>` (e.g. `int`, `long`, `Guid`, `string`).
-3. **`RouteQuery`** — If you only want a raw query string (e.g. arbitrary filter parameters), pass `RouteQuery` directly.
+1. **A [params model](#params-models)**: a record annotated with `[RouteParamsModel]`, letting you pack multiple path and query values into one strongly-typed object.
+2. **A single parsable type**: any type that implements `IParsable<T>` and `IEquatable<T>` (e.g. `int`, `long`, `Guid`, `string`).
+3. **`RouteQuery`**: if you only want a raw query string (e.g. arbitrary filter parameters), pass `RouteQuery` directly.
 
-### Single Parsable Parameter
+#### Single Parameter
 
-The simplest case — a single value parsed from the path:
+The simplest case is a single value parsed from the path:
 
 ```csharp
 public static RootRoutePart<RepoViewModel, string> RepoRoot { get; } =
@@ -45,7 +47,7 @@ public static ChildRoutePart<RepoViewModel, DocumentViewModel, long> DocumentChi
     Route.Build((long documentId) => $"document/{documentId}").Child<RepoViewModel, DocumentViewModel>();
 ```
 
-The lambda describes the URL template using string interpolation — the parameters in the lambda are placeholders substituted into the path. At runtime, URL segments are parsed into the declared type.
+The lambda describes the URL template using string interpolation; the parameters in the lambda are placeholders substituted into the path. At runtime, URL segments are parsed into the declared type.
 
 The corresponding view model declares `IRoutedViewModel<T>`:
 
@@ -58,7 +60,7 @@ public partial class DocumentViewModel : ObservableObject, IRoutedViewModel<long
 }
 ```
 
-### Params Models
+#### Params Models
 
 When a route has multiple parameters or combines path and query values, use a **params model**:
 
@@ -85,9 +87,9 @@ The `[RouteParamsModel]` source generator implements `IRouteParamsModel<Document
 - Nullable properties correspond to values that may or may not be present. They can be populated from query string values (on [leaf view models](#query-string-and-leaf-view-models)) or from path holes in a [route group](#route-groups) where some patterns fill the hole and others omit it.
 - At most one `RouteQuery` property is allowed. It is optional, can be named anything (`Query`, `Rest`, `Extras`, ...), and captures any query string values that don't match another property in the model.
 
-#### Query String and Leaf View Models
+##### Query String and Leaf View Models
 
-Both required and optional params model properties can be populated from either path holes or query string values when a URL is matched. However, **only leaf-level view models** — those with no child routes registered under them — receive query string values. The query string is consumed entirely by the deepest (leaf) view model in the route hierarchy.
+Both required and optional params model properties can be populated from either path holes or query string values when a URL is matched. However, **only leaf-level view models** (those with no child routes registered under them) receive query string values. The query string is consumed entirely by the deepest (leaf) view model in the route hierarchy.
 
 This means that any view model with registered children must satisfy all its required properties through path holes alone. Optional properties on non-leaf view models can only be provided via additional patterns in a [route group](#route-groups) that place the value in a path hole. The navigator validates these constraints at build time and throws an exception if:
 
@@ -118,16 +120,16 @@ public partial class DocumentViewModel : ObservableObject, IRoutedViewModel<Docu
 > [!NOTE]
 > `this.Parameter` can be accessed any time, even in the view model's constructor - you do not need to wait until a navigation event fires.
 
-### Raw Query String
+#### Raw Query String
 
 If your view model just needs arbitrary query parameters without a fixed structure, use `RouteQuery` directly as the parameter type. The parameter is not referenced in the path, so pass the route template as a plain string.
 
 > [!NOTE]
-> `RouteQuery` — whether used directly as a parameter type or as a property in a params model — is only available for [leaf view models](#query-string-and-leaf-view-models) (those with no child routes registered).
+> `RouteQuery` (whether used directly as a parameter type or as a property in a params model) is only available for [leaf view models](#query-string-and-leaf-view-models) (those with no child routes registered).
 
 ```csharp
 public static ChildRoutePart<MainViewModel, SearchViewModel, RouteQuery> SearchChild { get; } =
-    Route.Build("search").Child<MainViewModel, SearchViewModel>();
+    Route.Build<RouteQuery>("search").Child<MainViewModel, SearchViewModel>();
 ```
 
 ```csharp
@@ -145,12 +147,14 @@ public partial class SearchViewModel : ObservableObject, IRoutedViewModel<RouteQ
 }
 ```
 
-### Routes Without Path Parameters
+#### Routes Without Path Parameters
 
-Any time the view model's parameter type is not represented in the path — no parameter at all, a `RouteQuery`, or a params model whose only properties are query values or nullable path holes that no current pattern fills — pass the template as a plain string to `Route.Build(...)` or `Route.BuildGroup<T>().Add(...)` instead of using a lambda:
+Any time the view model's parameter type is not represented in the path (no parameter at all, a `RouteQuery`, or a params model whose only properties are query values or nullable path holes that no current pattern fills), pass the template as a plain string to `Route.Build(...)` or `Route.BuildGroup<T>().Add(...)` instead of using a lambda:
 
 ```csharp
 Route.Build("/settings").Root<SettingsViewModel>();
+
+Route.Build<QueryString>("search").Child<MainViewModel, SearchViewModel>();
 
 Route.BuildGroup<DocumentParams>()
     .Add("document")
@@ -158,7 +162,7 @@ Route.BuildGroup<DocumentParams>()
     .Child<RepoViewModel, DocumentViewModel>();
 ```
 
-### Optional Single-Parsable Parameters
+#### Optional Single Parameters
 
 When a view model's parameter is a single parsable type (rather than a params model) and it participates in a [route group](#route-groups) where some patterns supply the value in the path and others don't, wrap the type in `OptionalPathParam<T>`:
 
@@ -175,23 +179,23 @@ public static ChildRoutePart<MainViewModel, DocumentViewModel, OptionalPathParam
         .Child<MainViewModel, DocumentViewModel>();
 ```
 
-View model parameter types are constrained to `notnull` — both for technical AOT safety reasons and because reference-type nullability (`T?` on a class) cannot be observed at runtime. `OptionalPathParam<T>` is a `Nullable<>`-style wrapper that works for value types and reference types alike while satisfying the `notnull` constraint. Call `ToNullable()` on the parameter to convert it to a plain nullable value when that is more convenient to work with.
+View model parameter types are constrained to `notnull`, both for technical AOT safety reasons and because reference-type nullability (`T?` on a class) cannot be observed at runtime. `OptionalPathParam<T>` is a `Nullable<>`-style wrapper that works for value types and reference types alike while satisfying the `notnull` constraint and maintaining AOT compatible parsing. Call `ToNullable()` on the parameter to convert it to a plain nullable value when that is more convenient to work with.
 
-This wrapper is only needed for single-parsable parameters. Params models simply use nullable property types — see [Params Models](#params-models) above.
+This wrapper is only needed for single-parsable parameters. Params models simply use nullable property types (see [Params Models](#params-models) above).
 
 ## Working with Query Strings
 
-Query strings are represented by the `RouteQuery` type — an immutable, insertion-ordered, key/value collection of strongly-typed parameters. Three patterns use it:
+Query strings are represented by the `RouteQuery` type, an immutable, insertion-ordered, key/value collection of strongly-typed parameters. Three patterns use it:
 
-- A view model whose parameter type is `RouteQuery` directly — for arbitrary query parameters with no fixed structure.
-- A params model with a single `RouteQuery` property — for view models that need both fixed properties and arbitrary leftover query values.
+- A view model whose parameter type is `RouteQuery` directly, for arbitrary query parameters with no fixed structure.
+- A params model with a single `RouteQuery` property, for view models that need both fixed properties and arbitrary leftover query values.
 - Manually-constructed query strings passed to `ToConcrete(...)` for navigation.
 
-Recall from [Query String and Leaf View Models](#query-string-and-leaf-view-models) that query strings are only available on leaf view models — view models with registered children must satisfy all required parameters from path holes.
+Recall from [Query String and Leaf View Models](#query-string-and-leaf-view-models) that query strings are only available on leaf view models; view models with registered children must satisfy all required parameters from path holes.
 
-### Reading Values from a RouteQuery
+#### Reading Values from a RouteQuery
 
-`RouteQuery` parses values lazily — values are stored as strings and converted to your requested type on access using invariant-culture formatting (the same formatting used for path parameters):
+`RouteQuery` parses values lazily; values are stored as strings and converted to your requested type on access using invariant-culture formatting (the same formatting used for path parameters):
 
 ```csharp
 public Task OnNavigatedToAsync(NavigationArgs args)
@@ -219,11 +223,11 @@ public Task OnNavigatedToAsync(NavigationArgs args)
 }
 ```
 
-`TryGetValue<T>` has an overload that distinguishes a missing key from a parse failure via an `out bool foundKey`, and another that throws on parse errors instead of returning `false` — useful when you want missing values to be tolerated but malformed values to be loud.
+`TryGetValue<T>` has an overload that distinguishes a missing key from a parse failure via an `out bool foundKey`, and another that throws on parse errors instead of returning `false`. The latter is useful when you want missing values to be tolerated but malformed values to be loud.
 
 `RouteQuery` is enumerable (yielding `(string Key, string Value)` tuples) and exposes `Count`, supporting iteration over all entries.
 
-### Building a RouteQuery
+#### Building a RouteQuery
 
 For static / known-at-compile-time query parameters, use the `RouteQuery` constructor directly:
 
@@ -236,14 +240,14 @@ Note that the constructor takes pre-formatted string values. For strongly-typed 
 ```csharp
 var query = new RouteQueryBuilder()
     .Add("q", "hello")        // string
-    .Add("page", 2)           // int — formatted with invariant culture
+    .Add("page", 2)           // int, formatted with invariant culture
     .Add("since", DateOnly.FromDateTime(DateTime.UtcNow))
     .ToQuery();
 ```
 
 `RouteQueryBuilder` provides `Add` (throws on duplicate key), `Set` (overwrites), `Remove`, `ContainsKey`, and `TryGetValue<T>`. To start a builder from an existing query, call `existingQuery.ToBuilder()`.
 
-### Navigating with a Query
+#### Navigating with a Query
 
 When the view model's parameter type is `RouteQuery`, pass the query directly to `ToConcrete`:
 
@@ -274,11 +278,11 @@ await this.Navigator.NavigateAsync(Routes.SearchRoot.ToConcrete(new SearchParams
 }));
 ```
 
-The `RouteQuery` property captures any query string values that don't match another property in the model — see [Params Models](#params-models) for the full rules.
+The `RouteQuery` property captures any query string values that don't match another property in the model. See [Params Models](#params-models) for the full rules.
 
-## Lists of Values
+### Lists of Values
 
-`ValueList<T>` lets you use a list of parsable values anywhere a single parsable type is expected — as a path parameter, a query parameter, or a property in a params model. It implements `IParsable<T>` and `IEquatable<T>`, so it satisfies the constraints required by route parameters and `RouteQuery` accessors.
+`ValueList<T>` lets you use a list of parsable values anywhere a single parsable type is expected, whether as a path parameter, a query parameter, or a property in a params model. It implements `IParsable<T>` and `IEquatable<T>`, so it satisfies the constraints required by route parameters and `RouteQuery` accessors.
 
 ```csharp
 [RouteParamsModel]
@@ -298,8 +302,8 @@ public static RootRoutePart<BatchViewModel, ValueList<long>> BatchRoot { get; } 
 
 The string format is URI-safe and round-trippable:
 
-- **Tilde-separated** (e.g. `~1~2~3`) — used when no value contains a tilde.
-- **Length-prefixed** (e.g. `5~hello5~world`) — used when any value contains a tilde, or as a safe fallback.
+- **Tilde-separated** (e.g. `~1~2~3`): used when no value contains a tilde.
+- **Length-prefixed** (e.g. `5~hello5~world`): used when any value contains a tilde, or as a safe fallback.
 
 The format is a serialization detail; you typically don't construct or parse it manually. Build a `ValueList<T>` from items:
 
@@ -393,7 +397,7 @@ public static class Routes
 }
 ```
 
-### Why a nested instance class (RepoRoutes)?
+##### Why a nested instance class (RepoRoutes)?
 
 XAML `{x:Bind}` can traverse **static property → instance property** chains like `Routes.Repo.HomePage`, but a limitation of the WinUI XAML dialect is that it cannot traverse static properties on a static nested type (`Routes.Repo.HomePage` only works if `Repo` is a static property that returns an instance of `RepoRoutes`, not if `Repo` is a nested static class). Exposing child routes as instance properties on a small nested class lets XAML bind to them directly:
 

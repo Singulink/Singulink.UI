@@ -2,6 +2,8 @@
 
 # Guards and Redirects
 
+### Overview
+
 Routed view models can veto navigations away from them, or redirect navigations to them. This guide covers the guard and redirect APIs and shows common patterns like confirm-on-unsaved-changes and default-child redirects.
 
 ## Cancelling a Navigation
@@ -25,9 +27,9 @@ public override async Task OnNavigatingAwayAsync(NavigatingArgs args)
 ```
 
 - `OnNavigatingAwayAsync` fires only when **this** view model is being unmounted (its route part is changing).
-- `OnRouteNavigatingAsync` fires for **any** navigation involving the current route — including sibling child swaps. Use it on parent view models to guard the whole subtree.
+- `OnRouteNavigatingAsync` fires for **any** navigation involving the current route, including sibling child swaps. Use it on parent view models to guard the whole subtree.
 
-`NavigatingArgs.NavigationType` indicates whether the navigation is a `Normal`, `Back`, `Forward` or `Refresh` operation — use this to allow back/forward to bypass the guard if appropriate:
+`NavigatingArgs.NavigationType` indicates whether the navigation is a `Normal`, `Back`, `Forward` or `Refresh` operation. Use this to allow back/forward to bypass the guard if appropriate:
 
 ```csharp
 if (args.NavigationType == NavigationType.Normal && HasUnsavedChanges)
@@ -72,7 +74,7 @@ public override Task OnRouteNavigatedAsync(NavigationArgs args)
     // Only redirect when the navigation stops at this parent (no child specified).
     if (!args.HasChildNavigation)
     {
-        args.Redirect = Redirect.NavigatePartial<RepoViewModel>(Routes.Repo.HomePage);
+        args.Redirect = Redirect.NavigatePartial(Routes.Repo.HomePage);
     }
 
     return Task.CompletedTask;

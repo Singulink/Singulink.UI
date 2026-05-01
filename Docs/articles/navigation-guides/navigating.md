@@ -2,6 +2,8 @@
 
 # Navigating
 
+### Overview
+
 The navigator is accessed from routed view models through `this.Navigator` and from the host (window or top-level control) directly as the `Navigator` instance. This guide covers the navigation APIs you'll use day-to-day.
 
 ## Navigating to a Concrete Route
@@ -18,7 +20,7 @@ Parameterized routes require a concrete instance created via `ToConcrete`:
 await this.Navigator.NavigateAsync(Routes.RepoRoot.ToConcrete("my-repo"));
 ```
 
-You can compose root + child routes in a single call — the overloads match up to four levels deep:
+You can compose root + child routes in a single call. The overloads match up to four levels deep:
 
 ```csharp
 await this.Navigator.NavigateAsync(
@@ -56,7 +58,7 @@ private async Task ShowHomeAsync()
 
 The route's generic parameters describe the parent view model the child is registered under; the navigator verifies at runtime that the current route actually contains that parent. If it doesn't, an `InvalidOperationException` is thrown.
 
-The `NavigatePartialAsync(string? anchor)` overload updates only the anchor on the current route. This fires the usual `OnRouteNavigating` / `OnRouteNavigated` lifecycle events, so view models that react to route changes (e.g. to update a highlighted item or scroll position) will see the new anchor. If you only want to reflect an anchor change in the URL without firing any lifecycle events, use [`UpdateCurrentRoute(anchor)`](#anchor-only-update) instead — the two methods are otherwise equivalent.
+The `NavigatePartialAsync(string? anchor)` overload updates only the anchor on the current route. This fires the usual `OnRouteNavigating` / `OnRouteNavigated` lifecycle events, so view models that react to route changes (e.g. to update a highlighted item or scroll position) will see the new anchor. If you only want to reflect an anchor change in the URL without firing any lifecycle events, use [`UpdateCurrentRoute(anchor)`](#anchor-only-update) instead; the two methods are otherwise equivalent.
 
 ## Back, Forward, Refresh
 
@@ -87,8 +89,8 @@ To check whether there is any back / forward history regardless of current navig
 
 Navigation methods return a `NavigationResult`:
 
-- `NavigationResult.Success` — The navigation completed successfully.
-- `NavigationResult.Cancelled` — The navigation was cancelled (e.g. by a view model's `OnNavigatingAwayAsync` setting `args.Cancel = true`).
+- `NavigationResult.Success`: the navigation completed successfully.
+- `NavigationResult.Cancelled`: the navigation was cancelled (e.g. by a view model's `OnNavigatingAwayAsync` setting `args.Cancel = true`).
 
 Callers rarely need to inspect this directly; it's useful when chaining navigations or when the caller needs to know whether a guard prevented a navigation.
 
@@ -129,7 +131,7 @@ bool inRepoHome = this.Navigator.CurrentPathStartsWith(
     Routes.Repo.HomePage);
 ```
 
-`CurrentPathStartsWith` only checks path equivalence; it does not require the current VM or view instances to match — useful for highlighting navigation items regardless of how the route was reached.
+`CurrentPathStartsWith` only checks path equivalence; it does not require the current VM or view instances to match. This is useful for highlighting navigation items regardless of how the route was reached.
 
 `GetCurrentRoutePartsToParent(Type parentViewModelType)` enumerates route parts up to a specific ancestor, which is handy when constructing breadcrumbs:
 
@@ -148,21 +150,21 @@ IReadOnlyList<NavigatorRoute> forwardStack = this.Navigator.GetForwardStack();
 await this.Navigator.ClearHistoryAsync();
 ```
 
-The returned stacks **do not include the current route** and are ordered most-recent-first. Stack sizes and caching depth are configured on the navigator builder — see [WinUI / Uno Setup](winui-setup.md).
+The returned stacks **do not include the current route** and are ordered most-recent-first. Stack sizes and caching depth are configured on the navigator builder (see [WinUI / Uno Setup](winui-setup.md)).
 
 ## Updating the Current Route In-Place
 
 Sometimes you need to reflect a change in URL state without performing a navigation. Two overloads support this:
 
-### Anchor-only update
+#### Anchor-only update
 
 ```csharp
 this.Navigator.UpdateCurrentRoute(anchor: "section-2");
 ```
 
-Useful for reacting to UI state like the currently-selected item in a scrollable list. Unlike [`NavigatePartialAsync(anchor)`](#partial-navigation), this method does **not** fire any `OnRouteNavigating` / `OnRouteNavigated` lifecycle events — it simply updates the URL in place. That's the only difference between the two; choose `UpdateCurrentRoute` when the anchor change is purely cosmetic and shouldn't be observed by view models, and `NavigatePartialAsync` when it should.
+Useful for reacting to UI state like the currently-selected item in a scrollable list. Unlike [`NavigatePartialAsync(anchor)`](#partial-navigation), this method does **not** fire any `OnRouteNavigating` / `OnRouteNavigated` lifecycle events; it simply updates the URL in place. That's the only difference between the two; choose `UpdateCurrentRoute` when the anchor change is purely cosmetic and shouldn't be observed by view models, and `NavigatePartialAsync` when it should.
 
-### Replacing the leaf route part
+#### Replacing the leaf route part
 
 ```csharp
 // After the server assigns an ID to a newly-saved entry, update the URL from
@@ -171,18 +173,18 @@ this.Navigator.UpdateCurrentRoute(
     Routes.Repo.EntryPage.ToConcrete(newEntryId));
 ```
 
-The new leaf route part must map to the same view model type as the current leaf, otherwise an `ArgumentException` is thrown. No lifecycle methods fire — the view model and view remain mounted while the URL updates.
+The new leaf route part must map to the same view model type as the current leaf, otherwise an `ArgumentException` is thrown. No lifecycle methods fire; the view model and view remain mounted while the URL updates.
 
 ## System Back / Forward Handling
 
-On platforms where the OS or browser provides back / forward gestures (Android, iOS, WASM, some desktops), hook them via the WinUI navigator's `HookSystemNavigationRequests` method — see [WinUI / Uno Setup](winui-setup.md). Under the hood these dispatch to:
+On platforms where the OS or browser provides back / forward gestures (Android, iOS, WASM, some desktops), hook them via the WinUI navigator's `HookSystemNavigationRequests` method (see [WinUI / Uno Setup](winui-setup.md)). Under the hood these dispatch to:
 
 ```csharp
 bool handled = _navigator.HandleSystemBackRequest();
 bool handled = _navigator.HandleSystemForwardRequest();
 ```
 
-A back request returns `true` if any of the following happened: a dialog was dismissed, a light-dismiss popup was closed, a navigation is in progress, or a back navigation was initiated. This mirrors the convention expected by the OS — returning `false` allows the OS to take its default action (e.g. closing the app).
+A back request returns `true` if any of the following happened: a dialog was dismissed, a light-dismiss popup was closed, a navigation is in progress, or a back navigation was initiated. This mirrors the convention expected by the OS: returning `false` allows the OS to take its default action (e.g. closing the app).
 
 ## Graceful Shutdown
 

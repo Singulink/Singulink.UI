@@ -2,7 +2,9 @@
 
 # Parent Views and Child Navigation
 
-A parent route doesn't just "contain" its children conceptually — in WinUI/Uno it **hosts** them. The parent view stays mounted while child routes swap in and out of a child content host. This guide shows how to set up parent views correctly.
+### Overview
+
+A parent route doesn't just "contain" its children conceptually; in WinUI/Uno it **hosts** them. The parent view stays mounted while child routes swap in and out of a child content host. This guide shows how to set up parent views correctly.
 
 ## The IParentView Interface
 
@@ -24,7 +26,7 @@ public sealed partial class RepoPage : UserControl, IParentView
 }
 ```
 
-`CreateChildViewNavigator` returns a `ViewNavigator` built around a content control where the child view will be hosted. The navigator calls this method once per materialization of the parent view — typically the first time the parent is navigated to.
+`CreateChildViewNavigator` returns a `ViewNavigator` built around a content control where the child view will be hosted. The navigator calls this method once per materialization of the parent view, typically the first time the parent is navigated to.
 
 The builder validates at startup that any view model registered as a parent has a view type implementing `IParentView`, so you cannot forget to implement it.
 
@@ -77,11 +79,11 @@ When a child route is navigated to, the navigator:
 3. Materializes the child view and view model.
 4. Sets the child view as the active view inside the parent's child navigator.
 
-When navigating between sibling child routes under the same parent, only step 3 and 4 happen — the parent view stays mounted and receives `OnRouteNavigatedAsync` notifications (see [Routed View Models and Lifecycle](view-models.md)).
+When navigating between sibling child routes under the same parent, only step 3 and 4 happen; the parent view stays mounted and receives `OnRouteNavigatedAsync` notifications (see [Routed View Models and Lifecycle](view-models.md)).
 
 ## Multi-Level Parents
 
-The same pattern composes recursively. A child view can itself be a parent by implementing `IParentView`. Its `CreateChildViewNavigator` returns a view navigator for its own grandchild content host. There is no depth limit — each level participates in the same materialize-once-and-swap-children lifecycle.
+The same pattern composes recursively. A child view can itself be a parent by implementing `IParentView`. Its `CreateChildViewNavigator` returns a view navigator for its own grandchild content host. There is no depth limit; each level participates in the same materialize-once-and-swap-children lifecycle.
 
 ## Navigation Commands from the Parent
 

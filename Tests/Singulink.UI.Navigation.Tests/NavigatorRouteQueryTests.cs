@@ -155,7 +155,7 @@ public partial class NavigatorRouteQueryTests
 
     private static (TestNavigator Nav, RootRoutePart<SearchVm, RouteQuery> Route) BuildNavWithQueryRoute()
     {
-        var route = Route.Build("/search").Root<SearchVm, RouteQuery>();
+        var route = Route.Build<RouteQuery>("/search").Root<SearchVm>();
         var nav = new TestNavigator(b =>
         {
             b.MapRoutedView<SearchVm, FakeView>();

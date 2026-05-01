@@ -2,20 +2,20 @@
 
 # Getting Started
 
-## Overview
+### Overview
 
 **Singulink.UI.Navigation** is a navigation framework for MVVM applications with an emphasis on maintainability, compile-time safety, testability, and full deep-linking support. It is designed for applications with hierarchical, route-based navigation where URLs map to a tree of view models and views.
 
-## Packages
+### Packages
 
 The framework is split into two NuGet packages:
 
-- **Singulink.UI.Navigation** — The UI framework-agnostic core. Reference this from your view model project.
-- **Singulink.UI.Navigation.WinUI** — The WinUI/Uno implementation. Reference this from your client (UI) project.
+- **Singulink.UI.Navigation**: the UI framework-agnostic core. Reference this from your view model project.
+- **Singulink.UI.Navigation.WinUI**: the WinUI/Uno implementation. Reference this from your client (UI) project.
 
 This separation means view models never directly depend on WinUI types, which keeps view models fully testable without any UI framework dependencies.
 
-## Recommended Project Layout
+### Recommended Project Layout
 
 A typical solution has at least two projects:
 
@@ -28,7 +28,7 @@ The view model project defines routes and view models. The client project define
 
 ## Minimal Example
 
-### 1. Define a view model
+#### 1. Define a view model
 
 In `MyApp.ViewModels`:
 
@@ -48,7 +48,7 @@ public partial class HomeViewModel : ObservableObject, IRoutedViewModel
 }
 ```
 
-### 2. Define the routes
+#### 2. Define the routes
 
 In `MyApp.ViewModels/Routes.cs`:
 
@@ -71,7 +71,7 @@ public static class Routes
 }
 ```
 
-### 3. Create the view
+#### 3. Create the view
 
 In `MyApp.Client/Views/HomePage.xaml.cs`:
 
@@ -89,7 +89,7 @@ public sealed partial class HomePage : UserControl
 }
 ```
 
-### 4. Configure the navigator and start navigating
+#### 4. Configure the navigator and start navigating
 
 In the main application window:
 
@@ -134,15 +134,15 @@ That's the complete loop: routes define structure, view models define behavior, 
 
 Learn more about each area of the framework:
 
-- [Defining Routes](defining-routes.md) — Route hierarchy, parameters, query strings, and the `Routes` class pattern.
-- [Routed View Models and Lifecycle](view-models.md) — `IRoutedViewModel`, parameters, and lifecycle methods.
-- [Navigating](navigating.md) — Navigating between routes, history, and system back integration.
-- [Parent Views and Child Navigation](parent-views.md) — Hosting child views inside parent views.
-- [Dialogs](dialogs.md) — Showing dialogs and returning results.
-- [Navigation Guards and Redirects](guards-and-redirects.md) — Canceling and redirecting navigations.
-- [Dependency Injection and Shared State](dependency-injection.md) — Wiring up services and sharing state between view models.
-- [TaskRunner](task-runner.md) — Managing busy state, fire-and-forget tasks, and UI-thread dispatch.
-- [WinUI / Uno Setup](winui-setup.md) — Platform-specific setup, deep linking, and browser URL integration.
+- [Defining Routes](defining-routes.md): route hierarchy, parameters, query strings, and the `Routes` class pattern.
+- [Routed View Models and Lifecycle](view-models.md): `IRoutedViewModel`, parameters, and lifecycle methods.
+- [Navigating](navigating.md): navigating between routes, history, and system back integration.
+- [Parent Views and Child Navigation](parent-views.md): hosting child views inside parent views.
+- [Dialogs](dialogs.md): showing dialogs and returning results.
+- [Navigation Guards and Redirects](guards-and-redirects.md): canceling and redirecting navigations.
+- [Dependency Injection and Shared State](dependency-injection.md): wiring up services and sharing state between view models.
+- [TaskRunner](task-runner.md): managing busy state, fire-and-forget tasks, and UI-thread dispatch.
+- [WinUI / Uno Setup](winui-setup.md): platform-specific setup, deep linking, and browser URL integration.
 
 You can also check out the [Playground](https://github.com/Singulink/Singulink.UI/tree/main/Playground) project for a runnable sample that exercises most of the framework.
 

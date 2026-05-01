@@ -2,11 +2,13 @@
 
 # WinUI / Uno Setup
 
+### Overview
+
 This guide covers the host-side configuration needed to wire a `Navigator` into a WinUI or Uno Platform application.
 
 ## Installing the Packages
 
-Add the `Singulink.UI.Navigation.WinUI` package to your client project. It brings in `Singulink.UI.Navigation` transitively — view-model projects only need the core package.
+Add the `Singulink.UI.Navigation.WinUI` package to your client project. It brings in `Singulink.UI.Navigation` transitively, so view-model projects only need the core package.
 
 ```xml
 <!-- In your client project (WinUI / Uno app): -->
@@ -18,7 +20,7 @@ Add the `Singulink.UI.Navigation.WinUI` package to your client project. It bring
 
 ## Creating the Navigator
 
-The typical place to create the navigator is in the constructor of your main window (or any other window that hosts navigable content). Provide a root `ContentControl` — or a custom `ViewNavigator` — and a configuration action:
+The typical place to create the navigator is in the constructor of your main window (or any other window that hosts navigable content). Provide a root `ContentControl` (or a custom `ViewNavigator`) and a configuration action:
 
 ```csharp
 using Microsoft.UI.Xaml;
@@ -85,19 +87,19 @@ public sealed partial class MainWindow : Window
 </Window>
 ```
 
-## Navigator Constructor Overloads
+#### Navigator Constructor Overloads
 
 There are two `Navigator` constructors:
 
-- `Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)` — convenience overload that creates a `ViewNavigator` for the given content control.
-- `Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)` — accepts a pre-built `ViewNavigator` for custom scenarios (e.g. using a non-`ContentControl` host).
+- `Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)`: convenience overload that creates a `ViewNavigator` for the given content control.
+- `Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)`: accepts a pre-built `ViewNavigator` for custom scenarios (e.g. using a non-`ContentControl` host).
 
 Use `ViewNavigator.Create(...)` to build a `ViewNavigator` around various XAML controls supported by the framework.
 
 ## Mapping Views and Dialogs
 
-- `builder.MapRoutedView<TViewModel, TView>()` — maps a routed view model to a view (typically a `UserControl`). Parent view types must implement `IParentView` — see [Parent Views and Child Navigation](parent-views.md).
-- `builder.MapDialog<TDialogViewModel, TDialog>()` — maps a dialog view model to a `ContentDialog`. See [Dialogs](dialogs.md).
+- `builder.MapRoutedView<TViewModel, TView>()`: maps a routed view model to a view (typically a `UserControl`). Parent view types must implement `IParentView` (see [Parent Views and Child Navigation](parent-views.md)).
+- `builder.MapDialog<TDialogViewModel, TDialog>()`: maps a dialog view model to a `ContentDialog`. See [Dialogs](dialogs.md).
 
 Both calls validate their arguments: if `TView` doesn't have a parameterless constructor, or if a view model used as a parent doesn't have an `IParentView` view type, the builder throws at startup (before the first navigation happens).
 
@@ -108,25 +110,25 @@ Both calls validate their arguments: if `TView` doesn't have a parameterless con
 
 Three optional hooks integrate the navigator with OS-level and window lifetime behaviors:
 
-### HookSystemNavigationRequests()
+#### HookSystemNavigationRequests()
 
 Subscribes to `SystemNavigationManager.BackRequested` on platforms that provide it (Uno mobile, WASM), translating system back gestures into `HandleSystemBackRequest` calls on the navigator. On Windows it's a no-op since Windows does not expose a system back button.
 
-### HookWindowClosedEvents(Window window)
+#### HookWindowClosedEvents(Window window)
 
 Intercepts the window close event and runs `TryShutDownAsync()` before letting the window actually close. This gives active view models a chance to cancel (e.g. unsaved changes prompts). See [Guards and Redirects](guards-and-redirects.md) for more detail.
 
-### HookWindowActivatedEvent(Window, initialNavigationAction, fallbackAction)
+#### HookWindowActivatedEvent(Window, initialNavigationAction, fallbackAction)
 
-Defers initial navigation until the window is first activated, which is the correct point in the WinUI / Uno lifecycle to navigate (the XAML root is fully ready and dispatcher work runs reliably). The hook also ensures the initial navigation runs only once and routes any `NavigationRouteException` thrown by the initial action into the supplied fallback action — useful for showing an error message and falling back to a known-good route when a deep link can't be resolved.
+Defers initial navigation until the window is first activated, which is the correct point in the WinUI / Uno lifecycle to navigate (the XAML root is fully ready and dispatcher work runs reliably). The hook also ensures the initial navigation runs only once and routes any `NavigationRouteException` thrown by the initial action into the supplied fallback action. This is useful for showing an error message and falling back to a known-good route when a deep link can't be resolved.
 
 Must be called **before** the window is activated. Trying to navigate from the window constructor or via `_ = SomeAsync()` fire-and-forget is unreliable; use this hook instead.
 
 Most applications want all three hooks enabled in their main window.
 
-## Mouse Back / Forward Buttons
+#### Mouse Back / Forward Buttons
 
-XButton1 / XButton2 (the thumb buttons on most mice) are handled automatically by the navigator — no configuration is needed. Pressing them dispatches to `HandleSystemBackRequest` / `HandleSystemForwardRequest` respectively.
+XButton1 / XButton2 (the thumb buttons on most mice) are handled automatically by the navigator; no configuration is needed. Pressing them dispatches to `HandleSystemBackRequest` / `HandleSystemForwardRequest` respectively.
 
 ## WebAssembly / Browser Deep Links
 
@@ -138,7 +140,7 @@ On WASM, browsers deep-link to specific routes by setting the URL before the app
 #endif
 ```
 
-Then pass it to `NavigateAsync` as the application's initial navigation. The navigator keeps the browser URL synchronized with `CurrentRoute` automatically thereafter — back / forward browser buttons, shareable URLs, and bookmarks all work out of the box.
+Then pass it to `NavigateAsync` as the application's initial navigation. The navigator keeps the browser URL synchronized with `CurrentRoute` automatically thereafter, so back / forward browser buttons, shareable URLs, and bookmarks all work out of the box.
 
 ## Tuning Caching
 

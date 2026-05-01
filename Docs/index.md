@@ -2,7 +2,7 @@
 
 # Singulink UI Toolkit
 
-## Overview
+### Overview
 
 **UI Toolkit** provides a variety of complimentary MVVM and XAML-based components that help streamline complex UI development scenarios. It is currently focused on WinUI and Uno-based applications but some components are UI framework-agnostic. Details of each component are provided below.
 
@@ -10,17 +10,23 @@ This package is part of our **Singulink Libraries** collection. Visit https://gi
 
 ## Components
 
+### Singulink.UI.Icons
+
+Provides supporting base types that are used by **Icon Pack Builder** when generating strongly-typed icon packs that can be used in any UI framework that supports font-based icons.
+
+**Supported Platforms**: .NET 8.0+, any UI framework (i.e. UWP/WinUI, Uno Platform, Avalonia, WPF, etc)
+
 ### Singulink.UI.Navigation
 
 Designed for handling MVVM-based applications with complex deep-linked navigation, with a strong emphasis on maintainability, separation of concerns and full testability of view models. The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer.
 
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
+**Supported Platforms**: .NET 10.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.5+
 
 ### Singulink.UI.Xaml.WinUI
 
 Contains useful XAML extensions (behaviors, converters, static convert methods for use with `x:Bind`) for WinUI and Uno-based applications.
 
-**Supported Platforms**: .NET 8.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.0+
+**Supported Platforms**: .NET 10.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.5+
 
 ### Singulink.UI.Tasks
 

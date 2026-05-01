@@ -4,7 +4,7 @@ using Singulink.UI.Navigation.Utilities;
 namespace Singulink.UI.Navigation;
 
 /// <summary>
-/// Represents a builder used for constructing routes without path parameters.
+/// Represents a builder used for constructing routes to view models without parameters.
 /// </summary>
 public class RouteBuilder
 {
@@ -61,7 +61,7 @@ public class RouteBuilder
 }
 
 /// <summary>
-/// Represents a builder used for constructing parameterized routes.
+/// Represents a builder used for constructing routes to view models with parameters.
 /// </summary>
 public class RouteBuilder<[DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam> : RouteBuilderBase
     where TParam : notnull
@@ -144,33 +144,5 @@ public class RouteBuilder<[DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TP
                 $"Parameter type '{typeof(TParam)}' provides query string access and cannot be used for a view model with child routes. " +
                 $"Query string parameters are only available to leaf view models.");
         }
-    }
-}
-
-/// <summary>
-/// Provides extension methods for <see cref="RouteBuilder"/>.
-/// </summary>
-public static class RouteBuilderExtensions
-{
-    /// <summary>
-    /// Converts the route builder to a parameterized route builder with the specified parameter type.
-    /// </summary>
-    public static RootRoutePart<TViewModel, TParam> Root<TViewModel, [DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam>(this RouteBuilder builder)
-        where TViewModel : class, IRoutedViewModel<TParam>
-        where TParam : notnull
-    {
-        return builder.ToParameterized<TParam>().Root<TViewModel>();
-    }
-
-    /// <summary>
-    /// Converts the route builder to a parameterized route builder with the specified parameter type and creates a child route part for the specified parent and child view model type.
-    /// </summary>
-    public static ChildRoutePart<TParentViewModel, TChildViewModel, TParam> Child<TParentViewModel, TChildViewModel, [DynamicallyAccessedMembers(DAM.PublicDefaultCtor)] TParam>(
-        this RouteBuilder builder)
-        where TParentViewModel : class, IRoutedViewModelBase
-        where TChildViewModel : class, IRoutedViewModel<TParam>
-        where TParam : notnull
-    {
-        return builder.ToParameterized<TParam>().Child<TParentViewModel, TChildViewModel>();
     }
 }

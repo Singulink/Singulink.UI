@@ -2,6 +2,8 @@
 
 # Routed View Models and Lifecycle
 
+### Overview
+
 A routed view model is any class that implements `IRoutedViewModel` (no parameter) or `IRoutedViewModel<TParam>` (with a parameter). The navigator creates instances of these view models using constructor dependency injection when a matching route is navigated to.
 
 ## The Base Interface
@@ -23,7 +25,7 @@ public interface IRoutedViewModelBase
 
 ## Declaring a View Model
 
-### No parameters
+#### No parameters
 
 ```csharp
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -42,7 +44,7 @@ public partial class HomePageViewModel(IUserService userService)
 }
 ```
 
-### With a parameter
+#### With a parameter
 
 Implement `IRoutedViewModel<TParam>` and read the parameter via `this.Parameter`:
 
@@ -62,7 +64,7 @@ public partial class DocumentPageViewModel(IDocumentService documents)
 }
 ```
 
-### With a params model
+#### With a params model
 
 ```csharp
 public partial class EditEntryViewModel(IEntryService entries)
@@ -77,9 +79,9 @@ public partial class EditEntryViewModel(IEntryService entries)
 
 See [Defining Routes](defining-routes.md) for how parameter types are declared on the route side.
 
-## The this.Navigator and this.TaskRunner Accessors
+## Navigator and TaskRunner Accessors
 
-Routed view models do not store the navigator directly — it is exposed through extension members:
+Routed view models do not store the navigator directly; it is exposed through extension members:
 
 ```csharp
 [RelayCommand]
@@ -98,7 +100,7 @@ private async Task ReloadAsync()
 The `TaskRunner` integrates with busy-state on the navigator so the UI automatically disables while long-running tasks are in flight. See the [TaskRunner guide](task-runner.md) for details and patterns.
 
 > [!TIP]
-> Lifecycle methods like `OnNavigatedToAsync`, `OnRouteNavigatedAsync`, etc., are themselves run as busy tasks on the `TaskRunner` — the UI is already disabled for the duration of the returned task and child view models won't begin activating until it completes. As a result, `RunAsBusyAndForget` is rarely useful from inside a lifecycle method (the navigation event itself is already busy). Use `this.TaskRunner.RunAndForget(...)` from a lifecycle method when you want to "break out" of the busy navigation event and let work continue in the background without keeping the UI busy or blocking cascading child navigations:
+> Lifecycle methods like `OnNavigatedToAsync`, `OnRouteNavigatedAsync`, etc., are themselves run as busy tasks on the `TaskRunner`, so the UI is already disabled for the duration of the returned task and child view models won't begin activating until it completes. As a result, `RunAsBusyAndForget` is rarely useful from inside a lifecycle method (the navigation event itself is already busy). Use `this.TaskRunner.RunAndForget(...)` from a lifecycle method when you want to "break out" of the busy navigation event and let work continue in the background without keeping the UI busy or blocking cascading child navigations:
 >
 > ```csharp
 > public Task OnNavigatedToAsync(NavigationArgs args)
@@ -116,7 +118,7 @@ The `TaskRunner` integrates with busy-state on the navigator so the UI automatic
 
 The navigator drives view models through a well-defined set of lifecycle methods. Understanding when each fires is the key to writing correct navigation logic.
 
-### OnNavigatedToAsync(NavigationArgs args)
+#### OnNavigatedToAsync(NavigationArgs args)
 
 Called when the view model **first becomes active** in the current route. Use this hook to load initial state, subscribe to events, or perform one-time setup.
 
@@ -125,9 +127,9 @@ Called when the view model **first becomes active** in the current route. Use th
 - Called exactly once per activation. When the user navigates away and later comes back (and the view model is still cached), it is called again.
 - Always paired with a future call to `OnNavigatedAwayAsync`.
 - Can show dialogs, provided they are closed before the task completes **or** `args.HasChildNavigation` is `false` (see below).
-- Can request a redirect by setting `args.Redirect` — see [Navigation Guards and Redirects](guards-and-redirects.md).
+- Can request a redirect by setting `args.Redirect` (see [Navigation Guards and Redirects](guards-and-redirects.md)).
 
-### OnRouteNavigatedAsync(NavigationArgs args)
+#### OnRouteNavigatedAsync(NavigationArgs args)
 
 Called **every time the current route changes while this view model remains active**. In particular:
 
@@ -150,7 +152,7 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel
 
 Leaf view models (with no children) typically only use `OnNavigatedToAsync` since the two events always coincide for them.
 
-### OnNavigatingAwayAsync(NavigatingArgs args)
+#### OnNavigatingAwayAsync(NavigatingArgs args)
 
 Called **before** the view model is navigated away from, allowing it to cancel the pending navigation. This is where you prompt the user about unsaved changes:
 
@@ -179,11 +181,11 @@ public async Task OnNavigatingAwayAsync(NavigatingArgs args)
 
 Set `args.Cancel = true` to abort the navigation. The method is allowed to `await` asynchronous work including dialogs.
 
-### OnRouteNavigatingAsync(NavigatingArgs args)
+#### OnRouteNavigatingAsync(NavigatingArgs args)
 
 Called when the current route is about to change **but this view model will remain active** in the new route (e.g. a parent view model whose children are being swapped). Rarely needed; use it only when you need to guard a route change that doesn't actually unmount the view model.
 
-### OnNavigatedAwayAsync()
+#### OnNavigatedAwayAsync()
 
 Called when the view model is navigated away from (after any `OnNavigatingAwayAsync` has completed and the navigation was not cancelled). Use this hook to dispose resources, cancel outstanding work, and unhook events:
 
@@ -201,11 +203,11 @@ public async Task OnNavigatedAwayAsync()
 
 This method cannot cancel or redirect the navigation. It is always paired with a previous call to `OnNavigatedToAsync`.
 
-## Lifecycle Summary
+### Lifecycle Summary
 
 For a simple leaf route:
 
-```
+```txt
 OnNavigatedToAsync     (view model becomes active)
 OnRouteNavigatedAsync  (fires together on initial activation)
 ...time passes, user triggers a new navigation...
@@ -215,13 +217,13 @@ OnNavigatedAwayAsync   (cleanup)
 
 For a parent view model whose child route changes but the parent remains active:
 
-```
+```txt
 [parent remains mounted]
 OnRouteNavigatingAsync   (parent, if navigation needs to be guarded)
 OnRouteNavigatedAsync    (parent, after child successfully swaps)
 ```
 
-## Caching and CanBeCached
+## Caching
 
 By default, view model instances are cached when navigated away from so returning to them later is instant and preserves state. If a view model consumes significant memory or should always be recreated fresh, override `CanBeCached`:
 
@@ -232,7 +234,7 @@ public partial class LargeReportViewModel : ObservableObject, IRoutedViewModel
 }
 ```
 
-When a view model with `CanBeCached = false` is navigated away from, it is disposed along with its view. Note that if a parent view model is evicted from cache and provided a service to a child, all of its children are evicted too. Cache depth limits are configured on the navigator builder — see [WinUI / Uno Setup](winui-setup.md).
+When a view model with `CanBeCached = false` is navigated away from, it is disposed along with its view. Note that if a parent view model is evicted from cache and provided a service to a child, all of its children are evicted too. Cache depth limits are configured on the navigator builder (see [WinUI / Uno Setup](winui-setup.md)).
 
 If a view model implements `IDisposable` or `IAsyncDisposable`, `Dispose`/`DisposeAsync` is called automatically when it is evicted.
 

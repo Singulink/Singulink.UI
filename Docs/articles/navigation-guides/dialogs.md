@@ -2,7 +2,9 @@
 
 # Dialogs
 
-Dialogs are modal view models that surface temporary interactions — confirmations, forms, pickers, alerts. The framework handles showing them, waiting for them to close, returning results, and integrating with system back / escape-key dismissal.
+### Overview
+
+Dialogs are modal view models that surface temporary interactions like confirmations, forms, pickers, and alerts. The framework handles showing them, waiting for them to close, returning results, and integrating with system back / escape-key dismissal.
 
 ## Mapping a Dialog
 
@@ -27,22 +29,22 @@ There are four dialog interfaces you can implement:
 | **IDismissibleDialogViewModel** | Dialogs that handle escape-key / system-back dismissal. |
 | **IDismissibleDialogViewModel\<TResult\>** | Combination of the above two. |
 
-All of them inherit `OnDialogShownAsync()` from the base interface — override it to perform initialization when the dialog appears.
+All of them inherit `OnDialogShownAsync()` from the base interface. Override it to perform initialization when the dialog appears.
 
 ## Wiring Up Dialog Buttons
 
-`ContentDialog` exposes three built-in buttons — **primary**, **secondary**, and **close** — but its default behavior is awkward to drive from a view model: clicking a button auto-closes the dialog, command `CanExecute` doesn't sync to the button's enabled state, and intercepting a click usually means hooking a code-behind event handler.
+`ContentDialog` exposes three built-in buttons (**primary**, **secondary**, and **close**), but its default behavior is awkward to drive from a view model: clicking a button auto-closes the dialog, command `CanExecute` doesn't sync to the button's enabled state, and intercepting a click usually means hooking a code-behind event handler.
 
 This library improves on that significantly so you can drive dialogs entirely with commands and almost never need event handlers:
 
-- **Primary and secondary buttons should be wired to commands.** The command's `CanExecute` is automatically synchronized with the button's `IsEnabled` state — no extra binding required, and no `IsPrimaryButtonEnabled` / `IsSecondaryButtonEnabled` setup needed.
+- **Primary and secondary buttons should be wired to commands.** The command's `CanExecute` is automatically synchronized with the button's `IsEnabled` state, with no extra binding required and no `IsPrimaryButtonEnabled` / `IsSecondaryButtonEnabled` setup needed.
 - **Primary and secondary buttons do not auto-close the dialog.** Clicking them invokes the command; closing the dialog is the command's responsibility (call `this.Navigator.Close()` from the view model).
 - **The close button auto-closes the dialog when clicked**, as long as you simply provide a `CloseButtonText` value. You don't need to wire a command for the typical "X / Cancel" behavior.
-- **You can wire a command to the close button to intercept the click.** When a command is set, the dialog will not auto-close — the command must call `this.Navigator.Close()`. This is useful for confirming dismissal (e.g. "Discard changes?").
+- **You can wire a command to the close button to intercept the click.** When a command is set, the dialog will not auto-close. The command must call `this.Navigator.Close()`. This is useful for confirming dismissal (e.g. "Discard changes?").
 - **The close button cannot be disabled.** `ContentDialog` does not expose a `CloseButtonEnabled` property, so the button always appears enabled in the UI even when its command's `CanExecute` returns `false`. Setting `CanExecute = false` will still prevent the command from running on click, but for the cleanest user experience it's better not to provide a `CanExecute` implementation for close button commands. To prevent the user from closing the dialog at certain times, hide the close button by setting `CloseButtonText` to an empty string.
 - **Existing event handlers still work.** If you wire a `Click` event handler in addition to a command, you can set `args.Cancel = true` in the handler to suppress the command invocation for that click.
 
-### Example: A Confirmation Dialog
+#### Example: A Confirmation Dialog
 
 View model:
 
@@ -55,22 +57,19 @@ public partial class ConfirmDeleteDialogViewModel(string itemName)
     bool IDialogViewModel<bool>.Result => Confirmed;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
     public partial bool ConfirmationChecked { get; set; }
 
-    [RelayCommand(CanExecute = nameof(CanDelete))]
+    [RelayCommand(CanExecute = nameof(ConfirmationChecked))]
     private void Delete()
     {
         Confirmed = true;
         this.Navigator.Close();
     }
-
-    private bool CanDelete() => ConfirmationChecked;
-
-    partial void OnConfirmationCheckedChanged(bool value) => DeleteCommand.NotifyCanExecuteChanged();
 }
 ```
 
-XAML — note no event handlers, no `IsPrimaryButtonEnabled`, no manual `Hide()` calls:
+XAML (note no event handlers, no `IsPrimaryButtonEnabled`, no manual `Hide()` calls):
 
 ```xml
 <ContentDialog x:Class="MyApp.Dialogs.ConfirmDeleteDialog"
@@ -114,9 +113,6 @@ public partial class InfoDialogViewModel(string message)
     : ObservableObject, IDialogViewModel
 {
     public string Message => message;
-
-    [RelayCommand]
-    private void Close() => this.Navigator.Close();
 }
 ```
 
@@ -126,10 +122,10 @@ From a routed view model:
 await this.Navigator.ShowDialogAsync(new InfoDialogViewModel("Saved."));
 ```
 
-`this.Navigator` on a dialog view model returns an `IDialogNavigator` — it exposes `Close()`, a `TaskRunner`, and `ShowDialogAsync` for nesting additional dialogs (see below).
+`this.Navigator` on a dialog view model returns an `IDialogNavigator`, which exposes `Close()`, a `TaskRunner`, and `ShowDialogAsync` for nesting additional dialogs (see below).
 
-> [!IMPORTANT]
-> Unlike routed view models (which the navigator constructs), **dialog view models are instantiated by your code** and only get wired up to a navigator immediately before `OnDialogShownAsync` fires. This means `this.Navigator` and `this.TaskRunner` are **not available in the dialog view model's constructor** — attempting to access them there will throw. Defer any work that needs them to `OnDialogShownAsync` or to a command/method that runs after the dialog is shown.
+> [!CAUTION]
+> Unlike routed view models (which the navigator constructs), **dialog view models are instantiated by your code** and only get wired up to a navigator immediately before `OnDialogShownAsync` fires. This means `this.Navigator` and `this.TaskRunner` are **not available in the dialog view model's constructor**, and attempting to access them there will throw. Defer any work that needs them to `OnDialogShownAsync` or to a command/method that runs after the dialog is shown.
 
 ## Dialog with a Result
 
@@ -139,7 +135,7 @@ Implement `IDialogViewModel<TResult>` and expose a `Result` property:
 public partial class PickNumberDialogViewModel : ObservableObject, IDialogViewModel<int?>
 {
     [ObservableProperty]
-    public int? SelectedNumber { get; private set; }
+    public partial int? SelectedNumber { get; private set; }
 
     int? IDialogViewModel<int?>.Result => SelectedNumber;
 
@@ -149,9 +145,6 @@ public partial class PickNumberDialogViewModel : ObservableObject, IDialogViewMo
         SelectedNumber = number;
         this.Navigator.Close();
     }
-
-    [RelayCommand]
-    private void Cancel() => this.Navigator.Close();
 }
 ```
 
@@ -181,9 +174,6 @@ public partial class ConfirmActionDialogViewModel(string prompt)
         Confirmed = true;
         this.Navigator.Close();
     }
-
-    [RelayCommand]
-    private void Cancel() => this.Navigator.Close();
 
     Task IDismissibleDialogViewModel.OnDismissRequestedAsync()
     {
@@ -252,7 +242,7 @@ var options = new MessageDialogOptions(
 int choice = await this.Navigator.ShowMessageDialogAsync(options);
 ```
 
-The default `MessageDialogViewModel` is mapped to a built-in `ContentDialog` automatically — no manual `MapDialog` call is needed.
+The default `MessageDialogViewModel` is mapped to a built-in `ContentDialog` automatically; no manual `MapDialog` call is needed.
 
 ## Initialization on Show
 
@@ -263,7 +253,7 @@ public partial class LoadUsersDialogViewModel(IUserService userService)
     : ObservableObject, IDialogViewModel<User?>
 {
     [ObservableProperty]
-    private IReadOnlyList<User>? _users;
+    public partial IReadOnlyList<User>? Users { get; private set; } 
 
     public async Task OnDialogShownAsync()
     {
@@ -272,7 +262,7 @@ public partial class LoadUsersDialogViewModel(IUserService userService)
 }
 ```
 
-Note `OnDialogShownAsync` is not re-invoked when a nested dialog closes and the dialog is restored — it fires exactly once per `ShowDialogAsync` call.
+Note `OnDialogShownAsync` is not re-invoked when a nested dialog closes and the dialog is restored; it fires exactly once per `ShowDialogAsync` call.
 
 ## Dialog Restrictions
 
