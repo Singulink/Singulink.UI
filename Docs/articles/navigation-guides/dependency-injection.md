@@ -2,8 +2,6 @@
 
 # Dependency Injection
 
-### Overview
-
 View models get their dependencies through standard constructor injection. This guide shows how services are wired, how child view models can access services from their ancestors, and the presenter-interface pattern for inverting control with view-specific services.
 
 ## Registering Root Services
@@ -80,6 +78,34 @@ Guidelines:
 - Call `SetChildService` from `OnNavigatedToAsync` or `OnRouteNavigatedAsync` **before** any child activation. By the time a child view model is being constructed, the ancestor's `OnNavigatedToAsync` has already completed.
 - Child services are scoped to the lifetime of the ancestor view model. When the ancestor is unmounted, child services registered on it become unavailable.
 - Register each type at most once per view model. Calling `SetChildService` twice with the same type replaces the previous registration.
+- A descendant view model can declare a child service parameter as nullable (e.g. `Repo? repo`) if an ancestor may or may not provide it. When no matching registration is found, the navigator injects `null` instead of throwing.
+
+> [!IMPORTANT]
+> `SetChildService` does **not** manage the lifetime of the provided instance. If the service is disposable, the view model that created it is responsible for disposing it by implementing `IDisposable` or `IAsyncDisposable`:
+>
+> ```csharp
+> public partial class RepoViewModel(IRepoService repoService)
+>     : ObservableObject, IRoutedViewModel<string>, IAsyncDisposable
+> {
+>     private Repo? _repo;
+>
+>     public override async Task OnNavigatedToAsync(NavigationArgs args)
+>     {
+>         // Skip fetch on repeat cached navigations
+>         if (_repo is not null)
+>             return;
+>
+>         _repo = await repoService.LoadAsync(this.Parameter);
+>         this.SetChildService(_repo);
+>     }
+>
+>     public async ValueTask DisposeAsync()
+>     {
+>         if (_repo is not null)
+>             await _repo.DisposeAsync();
+>     }
+> }
+> ```
 
 ## Presenter Interface Pattern
 

@@ -2,8 +2,6 @@
 
 # WinUI / Uno Setup
 
-### Overview
-
 This guide covers the host-side configuration needed to wire a `Navigator` into a WinUI or Uno Platform application.
 
 ## Installing the Packages

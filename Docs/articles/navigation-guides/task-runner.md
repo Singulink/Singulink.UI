@@ -2,24 +2,22 @@
 
 # TaskRunner
 
-### Overview
-
 `TaskRunner` (from the [Singulink.UI.Tasks](https://github.com/Singulink/Singulink.UI) package) is a small but central piece of the navigation framework. Every navigator owns one, and every routed view model and dialog view model exposes it through `this.TaskRunner`. This guide explains what it does, how it integrates with navigation, and the patterns you'll use day-to-day.
 
-## What It Does
+### What It Does
 
 `ITaskRunner` is a UI-thread-affine task dispatcher with three responsibilities:
 
 1. **Tracking busy state.** Tasks run via `RunAsBusy*` increment a busy counter; while the counter is > 0, `IsBusy` is `true`. The navigator wires this to the root content's `IsEnabled` so the entire UI is automatically disabled while busy work is in flight, with no per-control plumbing.
 2. **Propagating exceptions to the UI thread.** When a fire-and-forget or background-thread call faults, the `TaskRunner` posts the exception to the UI thread so it crashes loudly and is debuggable, rather than ending up as a silent unobserved-task exception. (An `async void` method *started* on the UI thread already throws on the UI thread; the difference is that fire-and-forget on a `TaskRunner` is also tracked, so tests can observe completion via `WaitForIdleAsync`.)
-3. **Dispatching to/from the UI thread.** `Post`, `SendAsync`, and the `HasThreadAccess` property let you marshal work between background threads and the UI thread cleanly.
+3. **Dispatching to the UI thread.** `Post`, `SendAsync`, and the `HasThreadAccess` property let you marshal work between background threads and the UI thread cleanly.
 
 `TaskRunner` requires a `SynchronizationContext` at construction time, capturing the calling thread as its UI thread. Inside a navigator, this is set up for you automatically.
 
 > [!NOTE]
 > Only `Post` and `SendAsync` actually push their work to the UI thread. The other methods (`RunAndForget`, `RunAsBusyAndForget`, `RunAsBusyAsync`, `EnterBusyScope`) run their async work on whatever thread invoked them. If you call them from a background thread, the async lambda runs on a background thread too. They only guarantee that *unhandled exceptions* are forwarded to the UI thread.
 
-## How Navigation Uses It
+### How Navigation Uses It
 
 Each navigator has its own `TaskRunner` instance and binds `IsBusy` to the root content's `IsEnabled`:
 
@@ -49,7 +47,7 @@ private async Task SaveAsync()
 While `SaveAsync` is in flight, `Navigator.IsBusy` is `true` and the root content is disabled, so buttons, text boxes, and child controls all become non-interactive automatically. Any exception thrown inside the lambda propagates normally to the awaiting caller.
 
 > [!TIP]
-> `EnterBusyScope` is a flexible alternative to the lambda-based methods. The busy state ends when the scope is disposed, so you can wrap any block of code (sync or async, partial or full method body) without restructuring it as a lambda:
+> `EnterBusyScope` is a flexible alternative to the lambda-based methods. The busy state ends when the scope is disposed, so you can wrap any block of code (sync or async, partial or full method body) without restructuring it as a lambda. Just make certain that the scope is disposed, otherwise busy state won't clear until the scope object is garbage-collected:
 >
 > ```csharp
 > [RelayCommand]
@@ -71,7 +69,7 @@ While `SaveAsync` is in flight, `Navigator.IsBusy` is `true` and the root conten
 
 #### Fire-and-Forget from a Synchronous Callback
 
-When a non-async callback (an event handler, a converter, a `partial void OnXxxChanged` hook) needs to kick off async work, use `RunAndForget` / `RunAsBusyAndForget` instead of `async void`:
+When a non-async callback (an event handler, a converter, a `partial void OnXyzChanged` hook) needs to kick off async work, use `RunAndForget` / `RunAsBusyAndForget` instead of `async void`:
 
 ```csharp
 partial void OnSelectedItemChanged(Item? value)
@@ -156,9 +154,9 @@ The simplest way to react to busy state in XAML is to bind to the view's own `Is
 
 No extra view model property or navigator binding is needed; a busy navigator disables the root content, the `IsEnabled` cascade reaches your view, and the binding picks up the change. Avoid exposing a `Navigator` property on the view model just for this purpose: that property would shadow the `this.Navigator` extension, forcing you to call the extension explicitly as a static method to obtain the navigator instance.
 
-## When to Use Which Method
+## Method Summary
 
-| Method | Awaitable? | Busy? | Runs on UI thread? | Use case |
+| Method | Awaitable | Busy | Runs on UI thread | Use case |
 |---|---|---|---|---|
 | `RunAsBusyAsync` | Yes | Yes | Caller's thread | Async command bodies, anywhere you'd normally `await` |
 | `RunAsBusyAndForget` | No | Yes | Caller's thread | Sync callbacks (event handlers, property-changed hooks) that need to start busy async work |

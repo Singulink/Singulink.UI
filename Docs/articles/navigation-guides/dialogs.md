@@ -2,8 +2,6 @@
 
 # Dialogs
 
-### Overview
-
 Dialogs are modal view models that surface temporary interactions like confirmations, forms, pickers, and alerts. The framework handles showing them, waiting for them to close, returning results, and integrating with system back / escape-key dismissal.
 
 ## Mapping a Dialog

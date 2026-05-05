@@ -2,8 +2,6 @@
 
 # Navigating
 
-### Overview
-
 The navigator is accessed from routed view models through `this.Navigator` and from the host (window or top-level control) directly as the `Navigator` instance. This guide covers the navigation APIs you'll use day-to-day.
 
 ## Navigating to a Concrete Route

@@ -2,8 +2,6 @@
 
 # Defining Routes
 
-### Overview
-
 Routes describe the hierarchy of your application as a tree of strongly-typed route parts. Each route part maps to a view model, and together they form the URL structure of your app.
 
 ## Route Parts
@@ -86,18 +84,6 @@ The `[RouteParamsModel]` source generator implements `IRouteParamsModel<Document
 - Property types must be parsable (`IParsable<T>` + `IEquatable<T>`).
 - Nullable properties correspond to values that may or may not be present. They can be populated from query string values (on [leaf view models](#query-string-and-leaf-view-models)) or from path holes in a [route group](#route-groups) where some patterns fill the hole and others omit it.
 - At most one `RouteQuery` property is allowed. It is optional, can be named anything (`Query`, `Rest`, `Extras`, ...), and captures any query string values that don't match another property in the model.
-
-##### Query String and Leaf View Models
-
-Both required and optional params model properties can be populated from either path holes or query string values when a URL is matched. However, **only leaf-level view models** (those with no child routes registered under them) receive query string values. The query string is consumed entirely by the deepest (leaf) view model in the route hierarchy.
-
-This means that any view model with registered children must satisfy all its required properties through path holes alone. Optional properties on non-leaf view models can only be provided via additional patterns in a [route group](#route-groups) that place the value in a path hole. The navigator validates these constraints at build time and throws an exception if:
-
-- A route to a view model with registered children doesn't set all required properties in path holes.
-- A view model with registered children has a `RouteQuery` parameter type or a params model with a `RouteQuery` property.
-
-> [!TIP]
-> If a parent view model needs access to query string values that only its leaf child receives, have the parent implement an interface and let the child pass the values up through it. See [Dependency Injection](dependency-injection.md) for techniques like the presenter interface pattern and ancestor interface injection.
 
 The route builder references the model's properties in the URL template:
 
@@ -183,6 +169,41 @@ View model parameter types are constrained to `notnull`, both for technical AOT 
 
 This wrapper is only needed for single-parsable parameters. Params models simply use nullable property types (see [Params Models](#params-models) above).
 
+### Lists of Values
+
+`ValueList<T>` lets you use a list of parsable values anywhere a single parsable type is expected, whether as a path parameter, a query parameter, or a property in a params model. It implements `IParsable<T>` and `IEquatable<T>`, so it satisfies the constraints required by route parameters and `RouteQuery` accessors.
+
+```csharp
+[RouteParamsModel]
+public partial record FilterParams
+{
+    public ValueList<long> Ids { get; init; }
+    public ValueList<string>? Tags { get; init; }
+}
+```
+
+Because `ValueList<T>` participates in standard parsing, it works in path holes too:
+
+```csharp
+public static RootRoutePart<BatchViewModel, ValueList<long>> BatchRoot { get; } =
+    Route.Build((ValueList<long> ids) => $"batch/{ids}").Root<BatchViewModel>();
+```
+
+The string format is URI-safe and round-trippable:
+
+- **Tilde-separated** (e.g. `~1~2~3`): used when no value contains a tilde.
+- **Length-prefixed** (e.g. `5~hello5~world`): used when any value contains a tilde, or as a safe fallback.
+
+The format is a serialization detail; you typically don't construct or parse it manually. Build a `ValueList<T>` from items:
+
+```csharp
+ValueList<long> ids = new(1L, 2L, 3L);
+ValueList<string> tags = ImmutableArray.Create("a", "b");      // implicit conversion
+ValueList<long> fromList = new(someEnumerable);
+```
+
+`ValueList<T>` implements `IReadOnlyList<T>` and provides implicit conversions from `ImmutableArray<T>` / to `ImmutableArray<T>`, `ReadOnlySpan<T>`, and `ReadOnlyMemory<T>` (no copying), plus `AsSpan()`, `AsMemory()`, and `ToArray()` helpers.
+
 ## Working with Query Strings
 
 Query strings are represented by the `RouteQuery` type, an immutable, insertion-ordered, key/value collection of strongly-typed parameters. Three patterns use it:
@@ -191,7 +212,17 @@ Query strings are represented by the `RouteQuery` type, an immutable, insertion-
 - A params model with a single `RouteQuery` property, for view models that need both fixed properties and arbitrary leftover query values.
 - Manually-constructed query strings passed to `ToConcrete(...)` for navigation.
 
-Recall from [Query String and Leaf View Models](#query-string-and-leaf-view-models) that query strings are only available on leaf view models; view models with registered children must satisfy all required parameters from path holes.
+##### Query String and Leaf View Models
+
+Both required and optional params model properties can be populated from either path holes or query string values when a URL is matched. However, **only leaf-level view models** (those with no child routes registered under them) receive query string values. The query string is consumed entirely by the deepest (leaf) view model in the route hierarchy.
+
+This means that any view model with registered children must satisfy all its required properties through path holes alone. Optional properties on non-leaf view models can only be provided via additional patterns in a [route group](#route-groups) that place the value in a path hole. The navigator validates these constraints at build time and throws an exception if:
+
+- A route to a view model with registered children doesn't set all required properties in path holes.
+- A view model with registered children has a `RouteQuery` parameter type or a params model with a `RouteQuery` property.
+
+> [!TIP]
+> If a parent view model needs access to query string values that only its leaf child receives, have the parent implement an interface and let the child pass the values up through it. See [Dependency Injection](dependency-injection.md) for techniques like the presenter interface pattern and ancestor interface injection.
 
 #### Reading Values from a RouteQuery
 
@@ -224,6 +255,15 @@ public Task OnNavigatedToAsync(NavigationArgs args)
 ```
 
 `TryGetValue<T>` has an overload that distinguishes a missing key from a parse failure via an `out bool foundKey`, and another that throws on parse errors instead of returning `false`. The latter is useful when you want missing values to be tolerated but malformed values to be loud.
+
+Reading a `ValueList<T>` from a `RouteQuery` works just like any other parsable type:
+
+```csharp
+if (this.Parameter.TryGetValue("ids", out ValueList<long> ids))
+{
+    foreach (long id in ids) { ... }
+}
+```
 
 `RouteQuery` is enumerable (yielding `(string Key, string Value)` tuples) and exposes `Count`, supporting iteration over all entries.
 
@@ -279,50 +319,6 @@ await this.Navigator.NavigateAsync(Routes.SearchRoot.ToConcrete(new SearchParams
 ```
 
 The `RouteQuery` property captures any query string values that don't match another property in the model. See [Params Models](#params-models) for the full rules.
-
-### Lists of Values
-
-`ValueList<T>` lets you use a list of parsable values anywhere a single parsable type is expected, whether as a path parameter, a query parameter, or a property in a params model. It implements `IParsable<T>` and `IEquatable<T>`, so it satisfies the constraints required by route parameters and `RouteQuery` accessors.
-
-```csharp
-[RouteParamsModel]
-public partial record FilterParams
-{
-    public ValueList<long> Ids { get; init; }
-    public ValueList<string>? Tags { get; init; }
-}
-```
-
-Because `ValueList<T>` participates in standard parsing, it works in path holes too:
-
-```csharp
-public static RootRoutePart<BatchViewModel, ValueList<long>> BatchRoot { get; } =
-    Route.Build((ValueList<long> ids) => $"batch/{ids}").Root<BatchViewModel>();
-```
-
-The string format is URI-safe and round-trippable:
-
-- **Tilde-separated** (e.g. `~1~2~3`): used when no value contains a tilde.
-- **Length-prefixed** (e.g. `5~hello5~world`): used when any value contains a tilde, or as a safe fallback.
-
-The format is a serialization detail; you typically don't construct or parse it manually. Build a `ValueList<T>` from items:
-
-```csharp
-ValueList<long> ids = new(1L, 2L, 3L);
-ValueList<string> tags = ImmutableArray.Create("a", "b");      // implicit conversion
-ValueList<long> fromList = new(someEnumerable);
-```
-
-`ValueList<T>` implements `IReadOnlyList<T>` and provides implicit conversions from `ImmutableArray<T>` / to `ImmutableArray<T>`, `ReadOnlySpan<T>`, and `ReadOnlyMemory<T>` (no copying), plus `AsSpan()`, `AsMemory()`, and `ToArray()` helpers.
-
-Reading a `ValueList<T>` from a `RouteQuery` works just like any other parsable type:
-
-```csharp
-if (this.Parameter.TryGetValue("ids", out ValueList<long> ids))
-{
-    foreach (long id in ids) { ... }
-}
-```
 
 ## Route Groups
 
@@ -409,7 +405,7 @@ XAML `{x:Bind}` can traverse **static property → instance property** chains li
 
 Flattening the class structure with a different naming convention (e.g. `Routes.RepoHomePage`, `Routes.RepoSettingsPage`, etc) also works, or if you don't need to `{x:Bind}` directly to routes then you can use normal nested static classes.
 
-## Registering Routes
+### Registering Routes
 
 Every route must be registered with the navigator builder via `AddRoute`. Parent routes must be added before their children. The `AddAllRoutes` extension convention shown above keeps the registration order in one place and is called from the navigator build action:
 

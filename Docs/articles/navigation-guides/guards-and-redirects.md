@@ -2,8 +2,6 @@
 
 # Guards and Redirects
 
-### Overview
-
 Routed view models can veto navigations away from them, or redirect navigations to them. This guide covers the guard and redirect APIs and shows common patterns like confirm-on-unsaved-changes and default-child redirects.
 
 ## Cancelling a Navigation

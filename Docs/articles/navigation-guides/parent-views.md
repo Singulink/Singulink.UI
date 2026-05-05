@@ -2,8 +2,6 @@
 
 # Parent Views and Child Navigation
 
-### Overview
-
 A parent route doesn't just "contain" its children conceptually; in WinUI/Uno it **hosts** them. The parent view stays mounted while child routes swap in and out of a child content host. This guide shows how to set up parent views correctly.
 
 ## The IParentView Interface

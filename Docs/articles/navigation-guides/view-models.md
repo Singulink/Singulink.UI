@@ -2,8 +2,6 @@
 
 # Routed View Models and Lifecycle
 
-### Overview
-
 A routed view model is any class that implements `IRoutedViewModel` (no parameter) or `IRoutedViewModel<TParam>` (with a parameter). The navigator creates instances of these view models using constructor dependency injection when a matching route is navigated to.
 
 ## The Base Interface
