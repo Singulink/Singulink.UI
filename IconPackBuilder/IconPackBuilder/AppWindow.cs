@@ -16,7 +16,7 @@ public sealed class AppWindow : Window, IWindow
     public AppWindow()
     {
 #if DEBUG
-        this.UseStudio();
+        this.UseStudio(launchHotDesignOnStart: false);
 #endif
 
         Title = "Icon Pack Builder";
@@ -30,14 +30,7 @@ public sealed class AppWindow : Window, IWindow
         services.AddSingleton<IExporter>(CSharpExporter.Instance);
         services.AddSingleton<IFileDialogHandler>(new FileDialogHandler(this));
 
-        var rootNav = new ContentControl() {
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch,
-        };
-
-        Content = rootNav;
-
-        _navigator = new(rootNav, ConfigureNavigator);
+        _navigator = new(this, ConfigureNavigator);
         _navigator.HookWindowActivatedEvent(this, n => n.NavigateAsync(Routes.StartRoot));
         _navigator.HookSystemNavigationRequests();
         _navigator.HookWindowClosedEvents(this);

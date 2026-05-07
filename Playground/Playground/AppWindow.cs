@@ -18,19 +18,12 @@ public class AppWindow : Window
     public AppWindow()
     {
 #if DEBUG
-        this.UseStudio();
+        this.UseStudio(launchHotDesignOnStart: false);
 #endif
 
         this.SetWindowIcon();
 
-        var rootNav = new ContentControl() {
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch,
-        };
-
-        Content = rootNav;
-
-        _navigator = new(rootNav, ConfigureNavigator);
+        _navigator = new(this, ConfigureNavigator);
         _navigator.HookWindowActivatedEvent(this, n => n.NavigateAsync(Routes.LoginRoot));
         _navigator.HookSystemNavigationRequests();
         _navigator.HookWindowClosedEvents(this);

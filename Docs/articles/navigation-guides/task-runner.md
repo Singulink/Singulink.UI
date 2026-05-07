@@ -156,7 +156,7 @@ No extra view model property or navigator binding is needed; a busy navigator di
 
 ## Method Summary
 
-| Method | Awaitable | Busy | Runs on UI thread | Use case |
+| Method | Awaitable | Busy | Runs on thread | Use case |
 |---|---|---|---|---|
 | `RunAsBusyAsync` | Yes | Yes | Caller's thread | Async command bodies, anywhere you'd normally `await` |
 | `RunAsBusyAndForget` | No | Yes | Caller's thread | Sync callbacks (event handlers, property-changed hooks) that need to start busy async work |

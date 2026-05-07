@@ -36,6 +36,44 @@ if (args.NavigationType == NavigationType.Normal && HasUnsavedChanges)
 }
 ```
 
+### WebAssembly: Browser Tab Close, Refresh, and External Navigation
+
+In-app navigation (including the browser back / forward buttons) goes through the navigator's normal asynchronous pipeline, so `OnNavigatingAwayAsync` and `OnRouteNavigatingAsync` can freely `await` work such as confirmation dialogs.
+
+Closing the tab, refreshing the page, or navigating to an external URL is different. The browser delivers these as a `beforeunload` event which requires a **synchronous** decision; the navigator cannot await your guard methods. The navigator still invokes the guards synchronously, but if any guard on a view model in the active route does not complete synchronously, the navigator must block the unload immediately and the browser shows its native prompt:
+
+> Leave Site? Changes you made may not be saved.
+
+The wording is browser-controlled and cannot be customized. If the user chooses to leave, the app is terminated immediately - any async work started by the guard is abandoned. If the user chooses to stay, the in-flight guard task continues running to completion in the background, so a subsequent close attempt may complete synchronously without prompting.
+
+Key points:
+
+- The fallback prompt is triggered if **any** `OnNavigatingAwayAsync` or `OnRouteNavigatingAsync` implementation on **any** active-route view model goes async (i.e. awaits an incomplete task), regardless of whether the view model would have set `args.Cancel`.
+- A guard that completes synchronously - whether by returning `Task.CompletedTask`, by being an `async` method that never awaits an incomplete task, or by synchronously setting `args.Cancel = true` - is fully respected and produces no prompt unless `args.Cancel` is `true`.
+- The guard is only installed when [`HookWindowClosedEvents(Window)`](winui-setup.md#hookwindowclosedeventswindow-window) has been called.
+
+For view models that need to behave well across both paths, cache dirty state synchronously and set `args.Cancel` from a synchronous code path. Async confirmation dialogs can still be used; they will be honored on the in-app navigation path and gracefully degrade to the native prompt on tab close / refresh:
+
+```csharp
+public override async Task OnNavigatingAwayAsync(NavigatingArgs args)
+{
+    if (!HasUnsavedChanges)
+        return;
+
+    // On WASM tab-close / refresh, the browser's native "Leave Site?" prompt is
+    // shown first because this method goes async. If the user chooses to leave,
+    // the app is terminated immediately; otherwise, execution continues here and
+    // the dialog below is shown.
+    int result = await this.Navigator.ShowMessageDialogAsync(
+        "You have unsaved changes. Discard them?",
+        "Unsaved Changes",
+        DialogButtonLabels.YesNo);
+
+    if (result != 0)
+        args.Cancel = true;
+}
+```
+
 ## Redirecting a Navigation
 
 `OnNavigatedToAsync(NavigationArgs args)` and `OnRouteNavigatedAsync(NavigationArgs args)` run after the view model has been materialized but before the user can interact with it. Setting `args.Redirect` causes the navigator to immediately perform a different navigation.

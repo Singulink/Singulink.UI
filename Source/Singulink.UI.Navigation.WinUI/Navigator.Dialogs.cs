@@ -183,6 +183,12 @@ partial class Navigator
                     if (command.CanExecute(sender.CloseButtonCommandParameter))
                         command.Execute(sender.CloseButtonCommandParameter);
                 }
+                else if (top.ViewModel is IDismissibleDialogViewModel)
+                {
+                    // If the view model is dismissible, we treat the close button like a dismiss action and invoke the same logic as dialog closing to allow
+                    // the view model to veto the close if needed.
+                    sender.Hide();
+                }
                 else
                 {
                     top.Navigator.Close();

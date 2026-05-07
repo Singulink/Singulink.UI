@@ -179,9 +179,12 @@ public async Task OnNavigatingAwayAsync(NavigatingArgs args)
 
 Set `args.Cancel = true` to abort the navigation. The method is allowed to `await` asynchronous work including dialogs.
 
+> [!NOTE]
+> On WebAssembly, async implementations of this method behave differently when the user closes the tab, refreshes the page, or navigates to an external URL. See [Guards and Redirects: WebAssembly](guards-and-redirects.md#webassembly-browser-tab-close-refresh-and-external-navigation).
+
 #### OnRouteNavigatingAsync(NavigatingArgs args)
 
-Called when the current route is about to change **but this view model will remain active** in the new route (e.g. a parent view model whose children are being swapped). Rarely needed; use it only when you need to guard a route change that doesn't actually unmount the view model.
+Called when the current route is about to change **but this view model will remain active** in the new route (e.g. a parent view model whose children are being swapped). Rarely needed; use it only when you need to guard a route change that doesn't actually unmount the view model. The same WebAssembly tab-close caveat that applies to `OnNavigatingAwayAsync` applies here - see [Guards and Redirects: WebAssembly](guards-and-redirects.md#webassembly-browser-tab-close-refresh-and-external-navigation).
 
 #### OnNavigatedAwayAsync()
 

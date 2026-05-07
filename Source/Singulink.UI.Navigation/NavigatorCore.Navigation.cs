@@ -450,6 +450,8 @@ partial class NavigatorCore
             _blockDialogs = true;
             _blockNavigation = true;
 
+            OnShutDown();
+
             await TaskRunner.WaitForIdleAsync(waitForNonBusyTasks: false);
             return true;
         }
@@ -457,6 +459,41 @@ partial class NavigatorCore
         {
             _isNavigating = false;
         }
+    }
+
+    /// <summary>
+    /// Runs only the cancellable "navigating away" voting phase of a full shutdown by invoking <c>OnNavigatingAwayAsync</c> / <c>OnRouteNavigatingAsync</c>
+    /// on each currently navigated-to route item. Returns <see langword="true"/> if no view model cancelled, otherwise <see langword="false"/>. Performs no
+    /// teardown so it is safe to use as a non-destructive probe (e.g. for the WebAssembly <c>beforeunload</c> event). Returns a faulted/false task without
+    /// starting any work if <see cref="CanMaybeShutDownNow"/> is <see langword="false"/>. The navigator is marked busy synchronously and unmarked when the
+    /// returned task completes, regardless of whether the caller awaits it, so it is safe to call from synchronous host event handlers.
+    /// </summary>
+    protected Task<bool> TryShutDownProbeAsync()
+    {
+        EnsureThreadAccess();
+
+        if (!CanMaybeShutDownNow)
+            return Task.FromResult(false);
+
+        var notifier = new PropertyChangedNotifier(this);
+        _isNavigating = true;
+        notifier.Update();
+
+        var task = TaskRunner.RunAsBusyAsync(() => ProbeNavigateAwayAsync(NavigationType.New, numRouteItemsToKeep: 0, notifier));
+
+        // Reset the busy flag and dispose the notifier on the UI thread when the probe finishes, regardless of whether the caller awaits the task. This
+        // ensures the navigator self-heals if the probe stays async (e.g. a view model awaits an unsaved-changes dialog) and the caller cannot await us
+        // (browser beforeunload listeners are synchronous).
+        _ = task.ContinueWith(
+            _ => {
+                _isNavigating = false;
+                notifier.Dispose();
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.FromCurrentSynchronizationContext());
+
+        return task;
     }
 
     private Task<NavigationResult> NavigateNewWithRouteCheckAsync(IReadOnlyList<IConcreteRoutePart> routeParts, string? anchor)
@@ -551,16 +588,29 @@ partial class NavigatorCore
         bool wasNavigating = _isNavigating;
         _isNavigating = true;
 
+        object? navigationStartingState = OnNavigationStarting(navigationType, route);
+        var result = NavigationResult.Cancelled;
+
         try
         {
             CloseLightDismissPopups();
             notifier.Update();
 
-            return await TaskRunner.RunAsBusyAsync(DoNavigateAsync);
+            result = await TaskRunner.RunAsBusyAsync(DoNavigateAsync);
+            return result;
         }
         finally
         {
             _isNavigating = wasNavigating;
+
+            try
+            {
+                OnNavigationCompleted(navigationType, route, result, navigationStartingState);
+            }
+            catch
+            {
+                // Don't mask any in-flight exception from the navigation itself.
+            }
         }
 
         async Task<NavigationResult> DoNavigateAsync()
@@ -652,49 +702,8 @@ partial class NavigatorCore
     {
         var currentRoute = CurrentRouteCore;
 
-        if (!_isRedirecting && currentRoute is not null)
-        {
-            using (EnterNavigationGuard(blockDialogs: false))
-            {
-                notifier.Update();
-
-                for (int i = currentRoute.Items.Count - 1; i >= 0; i--)
-                {
-                    var routeItem = currentRoute.Items[i];
-
-                    if (routeItem.AlreadyNavigatedTo)
-                    {
-                        bool willNavigateAway = i >= numRouteItemsToKeep;
-                        var args = new NavigatingArgs(this, navigationType);
-
-                        void EnsureDialogsClosed()
-                        {
-                            if (IsShowingDialogCore)
-                            {
-                                throw new InvalidOperationException(
-                                    $"All dialogs must be closed before completing navigating event tasks " +
-                                    $"(view model '{routeItem.ViewModel.GetType()}').");
-                            }
-                        }
-
-                        if (willNavigateAway)
-                        {
-                            await routeItem.ViewModel.OnNavigatingAwayAsync(args);
-                            EnsureDialogsClosed();
-
-                            if (args.Cancel)
-                                return false;
-                        }
-
-                        await routeItem.ViewModel.OnRouteNavigatingAsync(args);
-                        EnsureDialogsClosed();
-
-                        if (args.Cancel)
-                            return false;
-                    }
-                }
-            }
-        }
+        if (!await ProbeNavigateAwayAsync(navigationType, numRouteItemsToKeep, notifier))
+            return false;
 
         using (EnterNavigationGuard(blockDialogs: true))
         {
@@ -727,6 +736,63 @@ partial class NavigatorCore
             }
 
             notifier.Update();
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Runs only the cancellable "navigating away" voting phase of <see cref="NavigateAwayAsyncCore"/> by invoking <c>OnNavigatingAwayAsync</c> /
+    /// <c>OnRouteNavigatingAsync</c> on each currently navigated-to route item and observing <see cref="NavigatingArgs.Cancel"/>. Returns <see
+    /// langword="true"/> if no view model cancelled, otherwise <see langword="false"/>. This phase performs no teardown so it is safe to use as a
+    /// non-destructive probe (e.g. for <c>beforeunload</c> on the browser).
+    /// </summary>
+    private async Task<bool> ProbeNavigateAwayAsync(NavigationType navigationType, int numRouteItemsToKeep, PropertyChangedNotifier notifier)
+    {
+        var currentRoute = CurrentRouteCore;
+
+        if (_isRedirecting || currentRoute is null)
+            return true;
+
+        using (EnterNavigationGuard(blockDialogs: false))
+        {
+            notifier.Update();
+
+            for (int i = currentRoute.Items.Count - 1; i >= 0; i--)
+            {
+                var routeItem = currentRoute.Items[i];
+
+                if (routeItem.AlreadyNavigatedTo)
+                {
+                    bool willNavigateAway = i >= numRouteItemsToKeep;
+                    var args = new NavigatingArgs(this, navigationType);
+
+                    void EnsureDialogsClosed()
+                    {
+                        if (IsShowingDialogCore)
+                        {
+                            throw new InvalidOperationException(
+                                $"All dialogs must be closed before completing navigating event tasks " +
+                                $"(view model '{routeItem.ViewModel.GetType()}').");
+                        }
+                    }
+
+                    if (willNavigateAway)
+                    {
+                        await routeItem.ViewModel.OnNavigatingAwayAsync(args);
+                        EnsureDialogsClosed();
+
+                        if (args.Cancel)
+                            return false;
+                    }
+
+                    await routeItem.ViewModel.OnRouteNavigatingAsync(args);
+                    EnsureDialogsClosed();
+
+                    if (args.Cancel)
+                        return false;
+                }
+            }
         }
 
         return true;

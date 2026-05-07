@@ -126,7 +126,7 @@ partial class NavigatorCore
     /// <summary>
     /// Tries to dismiss the top-most dialog if it is dismissible and its task runner is not currently busy.
     /// </summary>
-    private void TryDismissTopDialog()
+    protected void TryDismissTopDialog()
     {
         if (_dialogStack.TryPeek(out var entry) &&
             entry.ViewModel is IDismissibleDialogViewModel dismissibleViewModel &&

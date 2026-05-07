@@ -8,7 +8,7 @@ public interface INavigatorBuilder
     /// <summary>
     /// The default value of <see cref="MaxNavigationStacksSize"/>.
     /// </summary>
-    public const int DefaultNavigationStacksSize = 20;
+    public const int DefaultNavigationStacksSize = 512;
 
     /// <summary>
     /// The default value of <see cref="MaxBackStackCachedDepth"/>.

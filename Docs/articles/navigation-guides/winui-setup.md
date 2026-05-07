@@ -18,7 +18,7 @@ Add the `Singulink.UI.Navigation.WinUI` package to your client project. It bring
 
 ## Creating the Navigator
 
-The typical place to create the navigator is in the constructor of your main window (or any other window that hosts navigable content). Provide a root `ContentControl` (or a custom `ViewNavigator`) and a configuration action:
+The typical place to create the navigator is in the constructor of your main window (or any other window that hosts navigable content). The simplest setup passes the window directly to the navigator, which installs a control that will host navigated views:
 
 ```csharp
 using Microsoft.UI.Xaml;
@@ -31,9 +31,7 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
-        InitializeComponent();
-
-        Navigator = new Navigator(RootContent, ConfigureNavigator);
+        Navigator = new Navigator(this, ConfigureNavigator);
         Navigator.HookWindowActivatedEvent(this, InitialNavigateAsync, OnInitialNavigationFailedAsync);
         Navigator.HookSystemNavigationRequests();
         Navigator.HookWindowClosedEvents(this);
@@ -76,23 +74,13 @@ public sealed partial class MainWindow : Window
 }
 ```
 
-```xml
-<!-- MainWindow.xaml -->
-<Window ... >
-    <ContentControl x:Name="RootContent"
-                    HorizontalContentAlignment="Stretch"
-                    VerticalContentAlignment="Stretch" />
-</Window>
-```
-
 #### Navigator Constructor Overloads
 
-There are two `Navigator` constructors:
+There are three `Navigator` constructors:
 
-- `Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)`: convenience overload that creates a `ViewNavigator` for the given content control.
-- `Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)`: accepts a pre-built `ViewNavigator` for custom scenarios (e.g. using a non-`ContentControl` host).
-
-Use `ViewNavigator.Create(...)` to build a `ViewNavigator` around various XAML controls supported by the framework.
+- `Navigator(Window window, Action<NavigatorBuilder> buildAction)`: the recommended overload for typical apps. The navigator manages the window's content and uses it to host views.
+- `Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)`: use this when you want custom XAML chrome around the navigator (e.g. a window with a navigation rail, status bar, or other surrounding UI where only part of the window hosts navigated views). Provide your own `ContentControl` placed wherever you want navigated content to appear.
+- `Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)`: accepts a pre-built `ViewNavigator` for advanced scenarios where the host control is customized.
 
 ## Mapping Views and Dialogs
 
@@ -115,6 +103,8 @@ Subscribes to `SystemNavigationManager.BackRequested` on platforms that provide 
 #### HookWindowClosedEvents(Window window)
 
 Intercepts the window close event and runs `TryShutDownAsync()` before letting the window actually close. This gives active view models a chance to cancel (e.g. unsaved changes prompts). See [Guards and Redirects](guards-and-redirects.md) for more detail.
+
+On WebAssembly this hook installs a browser `beforeunload` guard so that closing the tab, refreshing the page, or navigating to an external URL still consults active-route guards. Because `beforeunload` requires a synchronous decision, asynchronous guard implementations fall back to the browser's native "Leave Site?" prompt - see [Guards and Redirects: WebAssembly](guards-and-redirects.md#webassembly-browser-tab-close-refresh-and-external-navigation) for details.
 
 #### HookWindowActivatedEvent(Window, initialNavigationAction, fallbackAction)
 
@@ -142,7 +132,7 @@ Then pass it to `NavigateAsync` as the application's initial navigation. The nav
 
 ## Tuning Caching
 
-By default the navigator keeps 5 levels of back-stack and 5 levels of forward-stack views cached in memory (views and view models are recreated if the user navigates past that depth). For larger apps or apps with expensive view model construction, tune this via:
+By default the navigator caches a limited number of back-stack and forward-stack views in memory (views and view models are recreated if the user navigates past that depth). The default values are exposed as constants on `INavigatorBuilder`: [`DefaultNavigationStacksSize`](../../api/Singulink.UI.Navigation.INavigatorBuilder.DefaultNavigationStacksSize.html), [`DefaultMaxBackStackCachedDepth`](../../api/Singulink.UI.Navigation.INavigatorBuilder.DefaultMaxBackStackCachedDepth.html), and [`DefaultMaxForwardStackCachedDepth`](../../api/Singulink.UI.Navigation.INavigatorBuilder.DefaultMaxForwardStackCachedDepth.html). They can be overridden via:
 
 ```csharp
 builder.ConfigureNavigationStacks(

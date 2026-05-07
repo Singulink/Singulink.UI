@@ -74,7 +74,7 @@ public static class Route
     public static string GetRoute(IEnumerable<IConcreteRoutePart> routeParts, string? anchor = null)
     {
         string path = string.Join("/", routeParts.Select(r => r.ToString()).Where(r => r.Length > 0));
-        return anchor is null ? path : path + "#" + anchor;
+        return anchor is null ? path : $"{path}#{anchor}";
     }
 
     /// <summary>

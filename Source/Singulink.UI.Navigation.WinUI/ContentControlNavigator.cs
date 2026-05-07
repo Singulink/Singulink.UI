@@ -1,3 +1,5 @@
+using Microsoft.UI;
+
 namespace Singulink.UI.Navigation.WinUI;
 
 /// <summary>

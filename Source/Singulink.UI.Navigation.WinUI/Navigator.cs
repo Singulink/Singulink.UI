@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Singulink.UI.Tasks;
@@ -9,30 +11,52 @@ namespace Singulink.UI.Navigation.WinUI;
 /// <inheritdoc cref="INavigator"/>
 public sealed partial class Navigator : NavigatorCore, IDialogPresenter
 {
+    /// <summary>
+    /// The navigator instance that currently owns the system navigation request hook (<see cref="HookSystemNavigationRequests"/>). Cleared on shutdown so a
+    /// new navigator can be hooked. Static handlers (popstate on WebAssembly, BackRequested elsewhere) dispatch through this field and no-op when null.
+    /// </summary>
+    private static Navigator? s_systemNavOwner;
+
+    /// <summary>
+    /// Tracks which window each navigator that has hooked window closed events is associated with. Enables conflict detection (same window already hooked,
+    /// or same navigator already hooked to another window) and lookup of the active owner from static event handlers (e.g. WebAssembly
+    /// <c>beforeunload</c>). Entries are added by <see cref="HookWindowClosedEvents"/> and removed by <see cref="OnShutDown"/>.
+    /// </summary>
+    private static readonly ConditionalWeakTable<Window, Navigator> s_windowClosedHookOwners = [];
+
     private readonly ViewNavigator _viewNavigator;
 
     private bool _isSystemNavigationHooked;
-    private bool _isWindowClosedHooked;
 #if WINDOWS
     private TypedEventHandler<object, Microsoft.UI.Xaml.WindowActivatedEventArgs>? _windowActivatedHandler;
 #else
     private WindowActivatedEventHandler? _windowActivatedHandler;
 #endif
 
+    private Window? _hookedWindow;
+#if !__WASM__
+    private TypedEventHandler<object, WindowEventArgs>? _windowClosedHandler;
+#endif
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="Navigator"/> class with the specified content control for displaying the active view and
-    /// navigator build action.
+    /// Initializes a new instance of the <see cref="Navigator"/> class with the specified window for displaying the active view and navigator build action. The
+    /// window's content will be overridden with content managed by the navigator.
+    /// </summary>
+    public Navigator(Window window, Action<NavigatorBuilder> buildAction)
+        : this(ViewNavigator.Create(window), CreateBuilder(buildAction)) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Navigator"/> class with the specified content control for displaying the active view and navigator build
+    /// action. The content control's content will be overridden with content managed by the navigator.
     /// </summary>
     public Navigator(ContentControl contentControl, Action<NavigatorBuilder> buildAction)
-        : this(new ContentControlNavigator(contentControl), buildAction) { }
+        : this(ViewNavigator.Create(contentControl), buildAction) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Navigator"/> class with the specified root view navigator and navigator build action.
     /// </summary>
     public Navigator(ViewNavigator viewNavigator, Action<NavigatorBuilder> buildAction)
-        : this(viewNavigator, CreateBuilder(buildAction))
-    {
-    }
+        : this(viewNavigator, CreateBuilder(buildAction)) { }
 
     private Navigator(ViewNavigator viewNavigator, NavigatorBuilder builder)
         : base(viewNavigator, CreateTaskRunner(viewNavigator), builder)
@@ -40,11 +64,24 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
         _viewNavigator = viewNavigator;
         EnsureThreadAccess();
 
+#if __WASM__
+        // Capture the UI sync context up front so static JS callbacks (popstate, beforeunload) can restore it without depending on which Hook* method
+        // happened to run first.
+        CaptureSynchronizationContextForJSCallbacks();
+#endif
+
+        // Ensures background is set so that nav control can receive pointer events over entire surface.
+
+        if (viewNavigator.NavigationControl.Background is null)
+            viewNavigator.NavigationControl.Background = new SolidColorBrush(Colors.Transparent);
+
         _viewNavigator.NavigationControl.PointerPressed += (s, e) => {
             if (!e.Handled && e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse)
             {
-                if (e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties.IsXButton1Pressed ||
-                    e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties.IsXButton2Pressed)
+                var properties = e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties;
+
+                if (properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.XButton1Pressed ||
+                    properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.XButton2Pressed)
                 {
                     _viewNavigator.NavigationControl.CapturePointer(e.Pointer);
                 }
@@ -52,11 +89,13 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
         };
 
         _viewNavigator.NavigationControl.PointerReleased += (s, e) => {
-            if (e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse)
+            if (!e.Handled && e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse)
             {
-                if (e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties.IsXButton1Pressed)
+                var properties = e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties;
+
+                if (properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.XButton1Released)
                     _ = HandleSystemBackRequest();
-                if (e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties.IsXButton2Pressed)
+                if (properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.XButton2Released)
                     _ = HandleSystemForwardRequest();
             }
         };
@@ -90,9 +129,9 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
             var window = (Window)sender;
 
 #if WINDOWS
-            var deactivatedState = WindowActivationState.Deactivated;
+            const WindowActivationState deactivatedState = WindowActivationState.Deactivated;
 #else
-            var deactivatedState = CoreWindowActivationState.Deactivated;
+            const CoreWindowActivationState deactivatedState = CoreWindowActivationState.Deactivated;
 #endif
 
             if (!hasNavigated && args.WindowActivationState != deactivatedState)
@@ -115,21 +154,9 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
         }
     }
 
-#if __WASM__
-
     /// <summary>
-    /// Gets the current browser route (path, query string, and fragment) without the scheme and host.
-    /// </summary>
-    public static string GetBrowserRoute()
-    {
-        var uri = new Uri(BrowserNavigationHelper.GetCurrentUrl());
-        return uri.PathAndQuery + uri.Fragment;
-    }
-
-#endif
-
-    /// <summary>
-    /// Configures the navigator to handle system back/forward navigation requests on supported platforms.
+    /// Configures the navigator to handle system back/forward navigation requests on supported platforms. On WebAssembly, this also enables synchronization
+    /// between the browser's history (back/forward buttons and address bar) and the navigator's in-app navigation stack.
     /// </summary>
     public void HookSystemNavigationRequests()
     {
@@ -138,37 +165,80 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
         if (_isSystemNavigationHooked)
             throw new InvalidOperationException("System navigation requests have already been hooked. Multiple calls to HookSystemNavigationRequests are not allowed.");
 
-        _isSystemNavigationHooked = true;
+        if (s_systemNavOwner is not null)
+        {
+            throw new InvalidOperationException(
+                "System navigation requests are already hooked by another navigator instance. Shut down the existing navigator before hooking a new one.");
+        }
 
-#if !WINDOWS
+        _isSystemNavigationHooked = true;
+        s_systemNavOwner = this;
+
+#if __WASM__
+
+        InitializeBrowserHistorySync();
+
+#elif !WINDOWS
 
         var navManager = SystemNavigationManager.GetForCurrentView();
 
         navManager.AppViewBackButtonVisibility = AppViewBackButtonVisibility.Visible;
-        navManager.BackRequested -= OnBackRequested;
-        navManager.BackRequested += OnBackRequested;
-
-        void OnBackRequested(object? sender, BackRequestedEventArgs args) => args.Handled = HandleSystemBackRequest();
+        navManager.BackRequested += OnSystemBackRequested;
 #endif
     }
+
+#if !WINDOWS && !__WASM__
+    private static void OnSystemBackRequested(object? sender, BackRequestedEventArgs args)
+    {
+        var owner = s_systemNavOwner;
+
+        if (owner is not null)
+            args.Handled = owner.HandleSystemBackRequest();
+    }
+#endif
 
     /// <summary>
     /// Configures the navigator to handle window closed events to trigger navigator shutdown and prevent closing the window if
     /// navigation or busy task are in progress, dialogs are showing, or any view models are preventing navigating away from the current view.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown if window closed events have already been hooked.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if this navigator already has window closed events hooked, or if another navigator already has
+    /// window closed events hooked to the specified window.</exception>
     public void HookWindowClosedEvents(Window window)
     {
         EnsureThreadAccess();
 
-        if (_isWindowClosedHooked)
-            throw new InvalidOperationException("Window closed events have already been hooked. Multiple calls to HookWindowClosed are not allowed.");
+        foreach (var (existingWindow, existingNavigator) in s_windowClosedHookOwners)
+        {
+            if (existingNavigator == this)
+            {
+                throw new InvalidOperationException(
+                    "Window closed events have already been hooked by this navigator. Multiple calls to HookWindowClosedEvents are not allowed.");
+            }
 
-        _isWindowClosedHooked = true;
+            if (existingWindow == window)
+            {
+                throw new InvalidOperationException(
+                    "Window closed events are already hooked on this window by another navigator instance. " +
+                    "Shut down the existing navigator before hooking a new one.");
+            }
 
+#if __WASM__
+            throw new InvalidOperationException("Hooking multiple windows is not supported on WebAssembly.");
+#endif
+        }
+
+        s_windowClosedHookOwners.Add(window, this);
+        _hookedWindow = window;
+
+#if __WASM__
+        // On WebAssembly the Window.Closed event still fires but cannot cancel the close, and by the time it fires the browser has already committed to
+        // tearing down the page. Hook the browser's beforeunload event instead, which is the only place the close can actually be blocked.
+        InitializeBrowserUnloadGuard();
+#else
         bool isNavigatorShutdown = false;
 
-        window.Closed += OnWindowClosed;
+        _windowClosedHandler = OnWindowClosed;
+        window.Closed += _windowClosedHandler;
 
         async void OnWindowClosed(object sender, WindowEventArgs args)
         {
@@ -182,6 +252,28 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
                     window.Close();
                 }
             }
+        }
+#endif
+    }
+
+    /// <inheritdoc />
+    protected override void OnShutDown()
+    {
+        if (s_systemNavOwner == this)
+            s_systemNavOwner = null;
+
+        if (_hookedWindow is not null)
+        {
+            s_windowClosedHookOwners.Remove(_hookedWindow);
+
+#if !__WASM__
+            if (_windowClosedHandler is not null)
+            {
+                _hookedWindow.Closed -= _windowClosedHandler;
+                _windowClosedHandler = null;
+            }
+#endif
+            _hookedWindow = null;
         }
     }
 
@@ -235,14 +327,6 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
         var frameworkElement = (FrameworkElement?)view;
         ((ViewNavigator)viewNavigator).SetActiveView(frameworkElement);
     }
-
-#if __WASM__
-    /// <inheritdoc />
-    protected override void OnCurrentRouteChanged(NavigatorRoute route)
-    {
-        BrowserNavigationHelper.ReplaceState(null, string.Empty, "/" + route.ToString());
-    }
-#endif
 
     private static NavigatorBuilder CreateBuilder(Action<NavigatorBuilder> buildAction)
     {

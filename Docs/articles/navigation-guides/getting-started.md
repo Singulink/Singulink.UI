@@ -56,7 +56,6 @@ using Singulink.UI.Navigation;
 
 namespace MyApp.ViewModels;
 
-[Bindable(true)]
 public static class Routes
 {
     public static RootRoutePart<HomeViewModel> HomeRoot { get; } =
@@ -93,7 +92,6 @@ In the main application window:
 
 ```csharp
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using MyApp.Client.Views;
 using MyApp.ViewModels;
 using Singulink.UI.Navigation.WinUI;
@@ -106,15 +104,7 @@ public class AppWindow : Window
 
     public AppWindow()
     {
-        var rootContent = new ContentControl
-        {
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch,
-        };
-
-        Content = rootContent;
-
-        _navigator = new Navigator(rootContent, builder => {
+        _navigator = new Navigator(this, builder => {
             builder.MapRoutedView<HomeViewModel, HomePage>();
             builder.AddAllRoutes();
         });

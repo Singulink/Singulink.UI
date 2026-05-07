@@ -11,6 +11,21 @@ public abstract class ViewNavigator
     public static ContentControlNavigator Create(ContentControl contentControl) => new(contentControl);
 
     /// <summary>
+    /// Creates a new <see cref="ViewNavigator"/> instance for the specified window.
+    /// </summary>
+    public static ViewNavigator Create(Window window)
+    {
+        var contentControl = new ContentControl {
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Stretch,
+        };
+
+        window.Content = contentControl;
+
+        return new ContentControlNavigator(contentControl);
+    }
+
+    /// <summary>
     /// Gets the navigation control that the navigator is managing the active view for.
     /// </summary>
     public abstract Control NavigationControl { get; }

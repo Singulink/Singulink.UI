@@ -130,6 +130,25 @@ public abstract partial class NavigatorCore : INavigator
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the navigator is currently in a state where <see cref="TryShutDownAsync"/> could begin without immediately returning
+    /// <see langword="false"/> due to busy state. This does not run any view model lifecycle methods, so view models that would cancel a navigation away
+    /// can still cause an actual shutdown attempt to fail. Useful for synchronous host hooks (e.g. WebAssembly <c>beforeunload</c>) where awaiting is not
+    /// possible.
+    /// </summary>
+    protected bool CanMaybeShutDownNow
+    {
+        get {
+            EnsureThreadAccess();
+            return !_isNavigating && !IsShowingDialogCore && !TaskRunner.IsBusy && !_blockNavigation;
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the current navigation is occurring as part of a redirect from another navigation.
+    /// </summary>
+    protected bool IsRedirecting => _isRedirecting;
+
     private NavigatorRoute? CurrentRouteCore => _currentRouteIndex >= 0 ? _routeStack[_currentRouteIndex] : null;
 
     private bool IsShowingDialogCore => _dialogStack.Count > 0;
@@ -166,4 +185,38 @@ public abstract partial class NavigatorCore : INavigator
     /// </summary>
     /// <param name="route">The new current route.</param>
     protected virtual void OnCurrentRouteChanged(NavigatorRoute route) { }
+
+    /// <summary>
+    /// Called synchronously at the start of a navigation, before any view model lifecycle methods are invoked and before any awaits occur. Implementations
+    /// should perform any synchronous work required at the start of a navigation, such as updating browser history state on WebAssembly platforms (which
+    /// must happen synchronously while user activation is still valid).
+    /// </summary>
+    /// <param name="navigationType">The type of navigation that is starting.</param>
+    /// <param name="targetRoute">The route that the navigation is targeting. Note that this may differ from the final route if a redirect occurs during
+    /// navigation, in which case a nested navigation will be started for the redirect target.</param>
+    /// <returns>An optional state object that will be passed back to <see cref="OnNavigationCompleted"/> when the navigation completes. This is useful for
+    /// implementations that need to track per-navigation state without having to use instance fields (which would be clobbered by nested redirect
+    /// navigations).</returns>
+    /// <remarks>
+    /// <para>If a redirect occurs during navigation, this method will be called again for the redirect target as part of the nested navigation. The <see
+    /// cref="IsRedirecting"/> property can be used to detect this case.</para>
+    /// </remarks>
+    protected virtual object? OnNavigationStarting(NavigationType navigationType, NavigatorRoute targetRoute) => null;
+
+    /// <summary>
+    /// Called when a navigation completes, either successfully or due to cancellation. This is always called if <see cref="OnNavigationStarting"/> was
+    /// called for the same navigation.
+    /// </summary>
+    /// <param name="navigationType">The type of navigation that completed.</param>
+    /// <param name="targetRoute">The route that the navigation was targeting (the same value passed to <see cref="OnNavigationStarting"/>).</param>
+    /// <param name="result">The result of the navigation.</param>
+    /// <param name="state">The state object returned from <see cref="OnNavigationStarting"/> for this navigation.</param>
+    protected virtual void OnNavigationCompleted(NavigationType navigationType, NavigatorRoute targetRoute, NavigationResult result, object? state) { }
+
+    /// <summary>
+    /// Called once on the UI thread after a successful <see cref="TryShutDownAsync"/> has torn down the navigator. Implementations should release any
+    /// resources tied to the navigator instance (e.g. unsubscribe from system event handlers) so the instance can be garbage collected and a new navigator
+    /// can be hooked in its place.
+    /// </summary>
+    protected virtual void OnShutDown() { }
 }
