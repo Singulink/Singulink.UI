@@ -6,7 +6,7 @@ View models get their dependencies through standard constructor injection. This 
 
 ## Registering Root Services
 
-Assign any `IServiceProvider` to `builder.Services` when configuring the navigator. Services registered here are available to all routed view models via constructor injection:
+Assign any <xref:System.IServiceProvider> to <xref:Singulink.UI.Navigation.INavigatorBuilder.Services> when configuring the navigator. Services registered here are available to all routed view models via constructor injection:
 
 ```csharp
 public App()
@@ -67,21 +67,21 @@ public partial class DocumentViewModel(Repo repo, IDocumentService docService)
 }
 ```
 
-Child services are resolved **ancestor-first**: when a descendant view model is activated, the navigator walks up the route hierarchy looking for a matching `SetChildService<T>` registration before falling back to `builder.Services`. This means a child service registration shadows any root registration of the same type.
+Child services are resolved **ancestor-first**: when a descendant view model is activated, the navigator walks up the route hierarchy looking for a matching `SetChildService<T>` registration before falling back to <xref:Singulink.UI.Navigation.INavigatorBuilder.Services>. This means a child service registration shadows any root registration of the same type.
 
 In addition to services registered via `SetChildService`, an ancestor view model that **directly implements an interface** also satisfies that interface as a dependency for its descendants. For example, if a parent view hosts a breadcrumb trail and its view model implements `IBreadcrumbConfig`, child view models can take `IBreadcrumbConfig` as a constructor parameter and the navigator will inject the ancestor view model itself, with no `SetChildService` call required.
 
-A parent view model can also act as a full container for its descendants by implementing `IServiceProvider`. When a child view model is being constructed and the navigator can't satisfy a dependency from `SetChildService` registrations or directly-implemented interfaces, it walks up the route hierarchy and calls `GetService(Type)` on any ancestor view model that implements `IServiceProvider`. This lets a parent integrate an arbitrary DI container (e.g. a per-document scope) into the resolution chain before falling back to `builder.Services`.
+A parent view model can also act as a full container for its descendants by implementing <xref:System.IServiceProvider>. When a child view model is being constructed and the navigator can't satisfy a dependency from `SetChildService` registrations or directly-implemented interfaces, it walks up the route hierarchy and calls <xref:System.IServiceProvider.GetService(System.Type)> on any ancestor view model that implements <xref:System.IServiceProvider>. This lets a parent integrate an arbitrary DI container (e.g. a per-document scope) into the resolution chain before falling back to <xref:Singulink.UI.Navigation.INavigatorBuilder.Services>.
 
 Guidelines:
 
-- Call `SetChildService` from `OnNavigatedToAsync` or `OnRouteNavigatedAsync` **before** any child activation. By the time a child view model is being constructed, the ancestor's `OnNavigatedToAsync` has already completed.
+- Call `SetChildService` from <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*> or <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatedAsync*> **before** any child activation. By the time a child view model is being constructed, the ancestor's <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*> has already completed.
 - Child services are scoped to the lifetime of the ancestor view model. When the ancestor is unmounted, child services registered on it become unavailable.
 - Register each type at most once per view model. Calling `SetChildService` twice with the same type replaces the previous registration.
 - A descendant view model can declare a child service parameter as nullable (e.g. `Repo? repo`) if an ancestor may or may not provide it. When no matching registration is found, the navigator injects `null` instead of throwing.
 
 > [!IMPORTANT]
-> `SetChildService` does **not** manage the lifetime of the provided instance. If the service is disposable, the view model that created it is responsible for disposing it by implementing `IDisposable` or `IAsyncDisposable`:
+> `SetChildService` does **not** manage the lifetime of the provided instance. If the service is disposable, the view model that created it is responsible for disposing it by implementing <xref:System.IDisposable> or <xref:System.IAsyncDisposable>:
 >
 > ```csharp
 > public partial class RepoViewModel(IRepoService repoService)

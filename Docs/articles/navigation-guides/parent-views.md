@@ -6,7 +6,7 @@ A parent route doesn't just "contain" its children conceptually; in WinUI/Uno it
 
 ## The IParentView Interface
 
-Any view that serves as a parent in the route hierarchy must implement `IParentView`:
+Any view that serves as a parent in the route hierarchy must implement <xref:Singulink.UI.Navigation.WinUI.IParentView>:
 
 ```csharp
 using Microsoft.UI.Xaml.Controls;
@@ -24,9 +24,9 @@ public sealed partial class RepoPage : UserControl, IParentView
 }
 ```
 
-`CreateChildViewNavigator` returns a `ViewNavigator` built around a content control where the child view will be hosted. The navigator calls this method once per materialization of the parent view, typically the first time the parent is navigated to.
+<xref:Singulink.UI.Navigation.WinUI.IParentView.CreateChildViewNavigator> returns a <xref:Singulink.UI.Navigation.WinUI.ViewNavigator> built around a content control where the child view will be hosted. The navigator calls this method once per materialization of the parent view, typically the first time the parent is navigated to.
 
-The builder validates at startup that any view model registered as a parent has a view type implementing `IParentView`, so you cannot forget to implement it.
+The builder validates at startup that any view model registered as a parent has a view type implementing <xref:Singulink.UI.Navigation.WinUI.IParentView>, so you cannot forget to implement it.
 
 ## The Parent's XAML
 
@@ -66,22 +66,22 @@ A parent view's XAML typically reserves a named container for child content, alo
 </UserControl>
 ```
 
-The child host is typically a `ContentControl` with stretched content alignment, but any control that `ViewNavigator.Create` accepts works.
+The child host is typically a `ContentControl` with stretched content alignment, but any control that <xref:Singulink.UI.Navigation.WinUI.ViewNavigator.Create*> accepts works.
 
 ## How Child Navigation Works
 
 When a child route is navigated to, the navigator:
 
 1. Materializes the parent view and its view model (if not already active).
-2. Calls `IParentView.CreateChildViewNavigator()` on the parent view to get the child host.
+2. Calls <xref:Singulink.UI.Navigation.WinUI.IParentView.CreateChildViewNavigator> on the parent view to get the child host.
 3. Materializes the child view and view model.
 4. Sets the child view as the active view inside the parent's child navigator.
 
-When navigating between sibling child routes under the same parent, only step 3 and 4 happen; the parent view stays mounted and receives `OnRouteNavigatedAsync` notifications (see [Routed View Models and Lifecycle](view-models.md)).
+When navigating between sibling child routes under the same parent, only step 3 and 4 happen; the parent view stays mounted and receives <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatedAsync*> notifications (see [Routed View Models and Lifecycle](view-models.md)).
 
 ## Multi-Level Parents
 
-The same pattern composes recursively. A child view can itself be a parent by implementing `IParentView`. Its `CreateChildViewNavigator` returns a view navigator for its own grandchild content host. There is no depth limit; each level participates in the same materialize-once-and-swap-children lifecycle.
+The same pattern composes recursively. A child view can itself be a parent by implementing <xref:Singulink.UI.Navigation.WinUI.IParentView>. Its <xref:Singulink.UI.Navigation.WinUI.IParentView.CreateChildViewNavigator> returns a view navigator for its own grandchild content host. There is no depth limit; each level participates in the same materialize-once-and-swap-children lifecycle.
 
 ## Navigation Commands from the Parent
 
@@ -96,6 +96,6 @@ public partial class RepoViewModel : ObservableObject, IRoutedViewModel<string>
 }
 ```
 
-Combined with the [Routes class pattern](defining-routes.md#the-routes-class-pattern), this gives you strongly-typed navigation buttons throughout the parent view without any magic strings.
+Combined with the [Routes class pattern](defining-routes.md#the-routes-class-pattern), this gives you strongly-typed navigation buttons throughout the parent view without any magic strings. See <xref:Singulink.UI.Navigation.IConcreteChildRoutePart`1> and <xref:Singulink.UI.Navigation.INavigator.NavigatePartialAsync*> for details.
 
 </div>

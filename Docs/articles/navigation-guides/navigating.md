@@ -12,7 +12,7 @@ Parameter-less root routes can be navigated to directly:
 await this.Navigator.NavigateAsync(Routes.LoginRoot);
 ```
 
-Parameterized routes require a concrete instance created via `ToConcrete`:
+Parameterized routes require a concrete instance created via <xref:Singulink.UI.Navigation.RootRoutePart`2.ToConcrete*>:
 
 ```csharp
 await this.Navigator.NavigateAsync(Routes.RepoRoot.ToConcrete("my-repo"));
@@ -26,7 +26,7 @@ await this.Navigator.NavigateAsync(
     Routes.Repo.DocumentPage.ToConcrete(new DocumentParams { DocumentId = 42 }));
 ```
 
-All `NavigateAsync` overloads accept an optional `anchor` argument for URL fragments:
+All <xref:Singulink.UI.Navigation.INavigator.NavigateAsync*> overloads accept an optional <xref:Singulink.UI.Navigation.NavigatorRoute.Anchor> argument for URL fragments:
 
 ```csharp
 await this.Navigator.NavigateAsync(Routes.HomeRoot, anchor: "about");
@@ -40,11 +40,11 @@ The navigator also accepts raw URL strings. This is how deep links from browsers
 await _navigator.NavigateAsync("/r/my-repo/document/42");
 ```
 
-If the URL is malformed or doesn't match any registered route, a `NavigationRouteException` is thrown. Use try/catch around string-based navigation calls to react appropriately to malformed URLs.
+If the URL is malformed or doesn't match any registered route, a <xref:Singulink.UI.Navigation.NavigationRouteException> is thrown. Use try/catch around string-based navigation calls to react appropriately to malformed URLs.
 
 ## Partial Navigation
 
-`NavigatePartialAsync` swaps child routes without re-navigating the parent. This is the preferred way to switch between pages that share the same parent:
+<xref:Singulink.UI.Navigation.INavigator.NavigatePartialAsync*> swaps child routes without re-navigating the parent. This is the preferred way to switch between pages that share the same parent:
 
 ```csharp
 [RelayCommand]
@@ -54,9 +54,9 @@ private async Task ShowHomeAsync()
 }
 ```
 
-The route's generic parameters describe the parent view model the child is registered under; the navigator verifies at runtime that the current route actually contains that parent. If it doesn't, an `InvalidOperationException` is thrown.
+The route's generic parameters describe the parent view model the child is registered under; the navigator verifies at runtime that the current route actually contains that parent. If it doesn't, an <xref:System.InvalidOperationException> is thrown.
 
-The `NavigatePartialAsync(string? anchor)` overload updates only the anchor on the current route. This fires the usual `OnRouteNavigating` / `OnRouteNavigated` lifecycle events, so view models that react to route changes (e.g. to update a highlighted item or scroll position) will see the new anchor. If you only want to reflect an anchor change in the URL without firing any lifecycle events, use [`UpdateCurrentRoute(anchor)`](#anchor-only-update) instead; the two methods are otherwise equivalent.
+The [NavigatePartialAsync(string? anchor)](xref:Singulink.UI.Navigation.INavigator.NavigatePartialAsync(System.String)) overload updates only the anchor on the current route. This fires the usual <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatingAsync*> / <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatedAsync*> lifecycle events, so view models that react to route changes (e.g. to update a highlighted item or scroll position) will see the new anchor. If you only want to reflect an anchor change in the URL without firing any lifecycle events, use <xref:Singulink.UI.Navigation.INavigator.UpdateCurrentRoute(System.String)> instead (see the [Anchor-only update](#anchor-only-update) section below); the two methods are otherwise equivalent.
 
 ## Back, Forward, Refresh
 
@@ -66,11 +66,11 @@ await this.Navigator.GoForwardAsync();
 await this.Navigator.RefreshAsync();
 ```
 
-Each of these returns a `NavigationResult` (see below). Corresponding properties support binding their "can execute" state to UI:
+Each of these (<xref:Singulink.UI.Navigation.INavigator.GoBackAsync>, <xref:Singulink.UI.Navigation.INavigator.GoForwardAsync>, <xref:Singulink.UI.Navigation.INavigator.RefreshAsync>) returns a <xref:Singulink.UI.Navigation.NavigationResult> (see below). Corresponding properties support binding their "can execute" state to UI:
 
-- `CanGoBack`
-- `CanGoForward`
-- `CanRefresh`
+- <xref:Singulink.UI.Navigation.INavigator.CanGoBack>
+- <xref:Singulink.UI.Navigation.INavigator.CanGoForward>
+- <xref:Singulink.UI.Navigation.INavigator.CanRefresh>
 
 ```xml
 <Button Content="Back"
@@ -80,21 +80,21 @@ Each of these returns a `NavigationResult` (see below). Corresponding properties
 
 To check whether there is any back / forward history regardless of current navigation state:
 
-- `HasBackHistory`
-- `HasForwardHistory`
+- <xref:Singulink.UI.Navigation.INavigator.HasBackHistory>
+- <xref:Singulink.UI.Navigation.INavigator.HasForwardHistory>
 
 ## Navigation Results
 
-Navigation methods return a `NavigationResult`:
+Navigation methods return a <xref:Singulink.UI.Navigation.NavigationResult>:
 
-- `NavigationResult.Success`: the navigation completed successfully.
-- `NavigationResult.Cancelled`: the navigation was cancelled (e.g. by a view model's `OnNavigatingAwayAsync` setting `args.Cancel = true`).
+- <xref:Singulink.UI.Navigation.NavigationResult.Success>: the navigation completed successfully.
+- <xref:Singulink.UI.Navigation.NavigationResult.Cancelled>: the navigation was cancelled (e.g. by a view model's <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatingAwayAsync*> setting <xref:Singulink.UI.Navigation.NavigatingArgs.Cancel> to `true`).
 
 Callers rarely need to inspect this directly; it's useful when chaining navigations or when the caller needs to know whether a guard prevented a navigation.
 
 ## The Current Route
 
-`INavigator.CurrentRoute` returns a `NavigatorRoute` describing the current navigation state:
+<xref:Singulink.UI.Navigation.INavigator.CurrentRoute> returns a <xref:Singulink.UI.Navigation.NavigatorRoute> describing the current navigation state:
 
 ```csharp
 NavigatorRoute current = this.Navigator.CurrentRoute;
@@ -106,7 +106,7 @@ string? anchor = current.Anchor;
 string full = current.ToString();                            // path + query + anchor
 ```
 
-`ToString()` is particularly useful for building shareable URLs:
+Key members include <xref:Singulink.UI.Navigation.NavigatorRoute.Path>, <xref:Singulink.UI.Navigation.NavigatorRoute.Parts>, <xref:Singulink.UI.Navigation.NavigatorRoute.Anchor>, and <xref:Singulink.UI.Navigation.NavigatorRoute.ToString>. The latter is particularly useful for building shareable URLs:
 
 ```csharp
 string shareUrl = $"{Hosts.AppBaseUrl}/{this.Navigator.CurrentRoute}";
@@ -123,15 +123,17 @@ if (this.Navigator.CurrentRouteHasParent<RepoViewModel>())
 }
 ```
 
+<xref:Singulink.UI.Navigation.INavigator.CurrentRouteHasParent``1> walks up the active route tree to check for a specific view model type.
+
 ```csharp
 bool inRepoHome = this.Navigator.CurrentPathStartsWith(
     Routes.RepoRoot.ToConcrete("my-repo"),
     Routes.Repo.HomePage);
 ```
 
-`CurrentPathStartsWith` only checks path equivalence; it does not require the current VM or view instances to match. This is useful for highlighting navigation items regardless of how the route was reached.
+<xref:Singulink.UI.Navigation.INavigator.CurrentPathStartsWith*> only checks path equivalence; it does not require the current VM or view instances to match. This is useful for highlighting navigation items regardless of how the route was reached.
 
-`GetCurrentRoutePartsToParent(Type parentViewModelType)` enumerates route parts up to a specific ancestor, which is handy when constructing breadcrumbs:
+<xref:Singulink.UI.Navigation.INavigator.GetCurrentRoutePartsToParent(System.Type)> enumerates route parts up to a specific ancestor, which is handy when constructing breadcrumbs:
 
 ```csharp
 foreach (var part in this.Navigator.GetCurrentRoutePartsToParent(typeof(MainViewModel)))
@@ -148,11 +150,11 @@ IReadOnlyList<NavigatorRoute> forwardStack = this.Navigator.GetForwardStack();
 await this.Navigator.ClearHistoryAsync();
 ```
 
-The returned stacks **do not include the current route** and are ordered most-recent-first. Stack sizes and caching depth are configured on the navigator builder (see [WinUI / Uno Setup](winui-setup.md)).
+The returned stacks from <xref:Singulink.UI.Navigation.INavigator.GetBackStack> and <xref:Singulink.UI.Navigation.INavigator.GetForwardStack> **do not include the current route** and are ordered most-recent-first. <xref:Singulink.UI.Navigation.INavigator.ClearHistoryAsync> wipes both stacks. Stack sizes and caching depth are configured on the navigator builder (see [WinUI / Uno Setup](winui-setup.md)).
 
 ## Updating the Current Route In-Place
 
-Sometimes you need to reflect a change in URL state without performing a navigation. Two overloads support this:
+Sometimes you need to reflect a change in URL state without performing a navigation. Two <xref:Singulink.UI.Navigation.INavigator.UpdateCurrentRoute*> overloads support this:
 
 #### Anchor-only update
 
@@ -160,7 +162,7 @@ Sometimes you need to reflect a change in URL state without performing a navigat
 this.Navigator.UpdateCurrentRoute(anchor: "section-2");
 ```
 
-Useful for reacting to UI state like the currently-selected item in a scrollable list. Unlike [`NavigatePartialAsync(anchor)`](#partial-navigation), this method does **not** fire any `OnRouteNavigating` / `OnRouteNavigated` lifecycle events; it simply updates the URL in place. That's the only difference between the two; choose `UpdateCurrentRoute` when the anchor change is purely cosmetic and shouldn't be observed by view models, and `NavigatePartialAsync` when it should.
+Useful for reacting to UI state like the currently-selected item in a scrollable list. Unlike <xref:Singulink.UI.Navigation.INavigator.NavigatePartialAsync*> (see the [Partial Navigation](#partial-navigation) section), <xref:Singulink.UI.Navigation.INavigator.UpdateCurrentRoute(System.String)> does **not** fire any <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatingAsync*> / <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatedAsync*> lifecycle events; it simply updates the URL in place. That's the only difference between the two; choose <xref:Singulink.UI.Navigation.INavigator.UpdateCurrentRoute*> when the anchor change is purely cosmetic and shouldn't be observed by view models, and <xref:Singulink.UI.Navigation.INavigator.NavigatePartialAsync*> when it should.
 
 #### Replacing the leaf route part
 
@@ -171,11 +173,11 @@ this.Navigator.UpdateCurrentRoute(
     Routes.Repo.EntryPage.ToConcrete(newEntryId));
 ```
 
-The new leaf route part must map to the same view model type as the current leaf, otherwise an `ArgumentException` is thrown. No lifecycle methods fire; the view model and view remain mounted while the URL updates.
+<xref:Singulink.UI.Navigation.INavigator.UpdateCurrentRoute(Singulink.UI.Navigation.IConcreteRoutePart,System.String)> requires the new leaf route part to map to the same view model type as the current leaf, otherwise an <xref:System.ArgumentException> is thrown. No lifecycle methods fire; the view model and view remain mounted while the URL updates.
 
 ## System Back / Forward Handling
 
-On platforms where the OS or browser provides back / forward gestures (Android, iOS, WASM, some desktops), hook them via the WinUI navigator's `HookSystemNavigationRequests` method (see [WinUI / Uno Setup](winui-setup.md)). Under the hood these dispatch to:
+On platforms where the OS or browser provides back / forward gestures (Android, iOS, WASM, some desktops), hook them via the WinUI navigator's <xref:Singulink.UI.Navigation.WinUI.Navigator.HookSystemNavigationRequests> method (see [WinUI / Uno Setup](winui-setup.md)). Under the hood these dispatch to <xref:Singulink.UI.Navigation.INavigator.HandleSystemBackRequest> and <xref:Singulink.UI.Navigation.INavigator.HandleSystemForwardRequest>:
 
 ```csharp
 bool handled = _navigator.HandleSystemBackRequest();
@@ -186,7 +188,7 @@ A back request returns `true` if any of the following happened: a dialog was dis
 
 ## Graceful Shutdown
 
-`TryShutDownAsync()` attempts to close down the navigator gracefully by asking each active view model if it is ready to unload:
+<xref:Singulink.UI.Navigation.INavigator.TryShutDownAsync> attempts to close down the navigator gracefully by asking each active view model if it is ready to unload:
 
 ```csharp
 if (await _navigator.TryShutDownAsync())
@@ -199,6 +201,6 @@ else
 }
 ```
 
-See [Navigation Guards and Redirects](guards-and-redirects.md) for the `HookWindowClosedEvents` convenience that wires this up automatically on window close.
+See [Navigation Guards and Redirects](guards-and-redirects.md) for the <xref:Singulink.UI.Navigation.WinUI.Navigator.HookWindowClosedEvents*> convenience that wires this up automatically on window close.
 
 </div>

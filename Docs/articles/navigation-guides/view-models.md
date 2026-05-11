@@ -2,11 +2,11 @@
 
 # Routed View Models and Lifecycle
 
-A routed view model is any class that implements `IRoutedViewModel` (no parameter) or `IRoutedViewModel<TParam>` (with a parameter). The navigator creates instances of these view models using constructor dependency injection when a matching route is navigated to.
+A routed view model is any class that implements <xref:Singulink.UI.Navigation.IRoutedViewModel> (no parameter) or <xref:Singulink.UI.Navigation.IRoutedViewModel`1> (with a parameter). The navigator creates instances of these view models using constructor dependency injection when a matching route is navigated to.
 
 ## The Base Interface
 
-`IRoutedViewModelBase` defines lifecycle hooks that all routed view models inherit. All methods have default implementations that do nothing, so you only implement the hooks you need:
+<xref:Singulink.UI.Navigation.IRoutedViewModelBase> defines lifecycle hooks that all routed view models inherit. All methods have default implementations that do nothing, so you only implement the hooks you need:
 
 ```csharp
 public interface IRoutedViewModelBase
@@ -44,7 +44,7 @@ public partial class HomePageViewModel(IUserService userService)
 
 #### With a parameter
 
-Implement `IRoutedViewModel<TParam>` and read the parameter via `this.Parameter`:
+Implement <xref:Singulink.UI.Navigation.IRoutedViewModel`1> and read the parameter via `this.Parameter`:
 
 ```csharp
 public partial class DocumentPageViewModel(IDocumentService documents)
@@ -93,12 +93,12 @@ private async Task ReloadAsync()
 }
 ```
 
-`this.Navigator` returns the `INavigator` associated with the view model; `this.TaskRunner` returns its task runner. The extension properties can be accessed anytime, including in the view model's constructor, if needed.
+`this.Navigator` returns the <xref:Singulink.UI.Navigation.INavigator> associated with the view model; `this.TaskRunner` returns its <xref:Singulink.UI.Tasks.ITaskRunner>. The extension properties can be accessed anytime, including in the view model's constructor, if needed.
 
-The `TaskRunner` integrates with busy-state on the navigator so the UI automatically disables while long-running tasks are in flight. See the [TaskRunner guide](task-runner.md) for details and patterns.
+The <xref:Singulink.UI.Tasks.ITaskRunner> integrates with busy-state on the navigator so the UI automatically disables while long-running tasks are in flight. See the [TaskRunner guide](task-runner.md) for details and patterns.
 
 > [!TIP]
-> Lifecycle methods like `OnNavigatedToAsync`, `OnRouteNavigatedAsync`, etc., are themselves run as busy tasks on the `TaskRunner`, so the UI is already disabled for the duration of the returned task and child view models won't begin activating until it completes. As a result, `RunAsBusyAndForget` is rarely useful from inside a lifecycle method (the navigation event itself is already busy). Use `this.TaskRunner.RunAndForget(...)` from a lifecycle method when you want to "break out" of the busy navigation event and let work continue in the background without keeping the UI busy or blocking cascading child navigations:
+> Lifecycle methods like <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*>, <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatedAsync*>, etc., are themselves run as busy tasks on the <xref:Singulink.UI.Tasks.ITaskRunner>, so the UI is already disabled for the duration of the returned task and child view models won't begin activating until it completes. As a result, <xref:Singulink.UI.Tasks.TaskRunner.RunAsBusyAndForget*> is rarely useful from inside a lifecycle method (the navigation event itself is already busy). Use <xref:Singulink.UI.Tasks.TaskRunner.RunAndForget*> from a lifecycle method when you want to "break out" of the busy navigation event and let work continue in the background without keeping the UI busy or blocking cascading child navigations:
 >
 > ```csharp
 > public Task OnNavigatedToAsync(NavigationArgs args)
@@ -118,20 +118,20 @@ The navigator drives view models through a well-defined set of lifecycle methods
 
 #### OnNavigatedToAsync(NavigationArgs args)
 
-Called when the view model **first becomes active** in the current route. Use this hook to load initial state, subscribe to events, or perform one-time setup.
+<xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*> is called when the view model **first becomes active** in the current route. Use this hook to load initial state, subscribe to events, or perform one-time setup.
 
 **Rules**:
 
 - Called exactly once per activation. When the user navigates away and later comes back (and the view model is still cached), it is called again.
-- Always paired with a future call to `OnNavigatedAwayAsync`.
-- Can show dialogs, provided they are closed before the task completes **or** `args.HasChildNavigation` is `false` (see below).
-- Can request a redirect by setting `args.Redirect` (see [Navigation Guards and Redirects](guards-and-redirects.md)).
+- Always paired with a future call to <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedAwayAsync>.
+- Can show dialogs, provided they are closed before the task completes **or** <xref:Singulink.UI.Navigation.NavigationArgs.HasChildNavigation> is `false` (see below).
+- Can request a redirect by setting <xref:Singulink.UI.Navigation.NavigationArgs.Redirect> (see [Navigation Guards and Redirects](guards-and-redirects.md)).
 
 #### OnRouteNavigatedAsync(NavigationArgs args)
 
-Called **every time the current route changes while this view model remains active**. In particular:
+<xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatedAsync*> is called **every time the current route changes while this view model remains active**. In particular:
 
-- Fires after `OnNavigatedToAsync` on initial activation.
+- Fires after <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*> on initial activation.
 - Fires again each time a child route changes under a parent view model, or when the route is refreshed / its parameters update.
 
 This is the right hook for parent view models that need to react to child route changes (e.g. update a breadcrumb or a highlighted menu item):
@@ -148,11 +148,11 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel
 }
 ```
 
-Leaf view models (with no children) typically only use `OnNavigatedToAsync` since the two events always coincide for them.
+Leaf view models (with no children) typically only use <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*> since the two events always coincide for them.
 
 #### OnNavigatingAwayAsync(NavigatingArgs args)
 
-Called **before** the view model is navigated away from, allowing it to cancel the pending navigation. This is where you prompt the user about unsaved changes:
+<xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatingAwayAsync*> is called **before** the view model is navigated away from, allowing it to cancel the pending navigation. This is where you prompt the user about unsaved changes:
 
 ```csharp
 public async Task OnNavigatingAwayAsync(NavigatingArgs args)
@@ -177,18 +177,18 @@ public async Task OnNavigatingAwayAsync(NavigatingArgs args)
 }
 ```
 
-Set `args.Cancel = true` to abort the navigation. The method is allowed to `await` asynchronous work including dialogs.
+Set <xref:Singulink.UI.Navigation.NavigatingArgs.Cancel> to `true` to abort the navigation. The method is allowed to `await` asynchronous work including dialogs.
 
 > [!NOTE]
 > On WebAssembly, async implementations of this method behave differently when the user closes the tab, refreshes the page, or navigates to an external URL. See [Guards and Redirects: WebAssembly](guards-and-redirects.md#webassembly-browser-tab-close-refresh-and-external-navigation).
 
 #### OnRouteNavigatingAsync(NavigatingArgs args)
 
-Called when the current route is about to change **but this view model will remain active** in the new route (e.g. a parent view model whose children are being swapped). Rarely needed; use it only when you need to guard a route change that doesn't actually unmount the view model. The same WebAssembly tab-close caveat that applies to `OnNavigatingAwayAsync` applies here - see [Guards and Redirects: WebAssembly](guards-and-redirects.md#webassembly-browser-tab-close-refresh-and-external-navigation).
+<xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatingAsync*> is called when the current route is about to change **but this view model will remain active** in the new route (e.g. a parent view model whose children are being swapped). Rarely needed; use it only when you need to guard a route change that doesn't actually unmount the view model. The same WebAssembly tab-close caveat that applies to <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatingAwayAsync*> applies here - see [Guards and Redirects: WebAssembly](guards-and-redirects.md#webassembly-browser-tab-close-refresh-and-external-navigation).
 
 #### OnNavigatedAwayAsync()
 
-Called when the view model is navigated away from (after any `OnNavigatingAwayAsync` has completed and the navigation was not cancelled). Use this hook to dispose resources, cancel outstanding work, and unhook events:
+<xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedAwayAsync*> is called when the view model is navigated away from (after any <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatingAwayAsync*> has completed and the navigation was not cancelled). Use this hook to dispose resources, cancel outstanding work, and unhook events:
 
 ```csharp
 public async Task OnNavigatedAwayAsync()
@@ -202,7 +202,7 @@ public async Task OnNavigatedAwayAsync()
 }
 ```
 
-This method cannot cancel or redirect the navigation. It is always paired with a previous call to `OnNavigatedToAsync`.
+This method cannot cancel or redirect the navigation. It is always paired with a previous call to <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*>.
 
 ### Lifecycle Summary
 
@@ -226,7 +226,7 @@ OnRouteNavigatedAsync    (parent, after child successfully swaps)
 
 ## Caching
 
-By default, view model instances are cached when navigated away from so returning to them later is instant and preserves state. If a view model consumes significant memory or should always be recreated fresh, override `CanBeCached`:
+By default, view model instances are cached when navigated away from so returning to them later is instant and preserves state. If a view model consumes significant memory or should always be recreated fresh, override <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBeCached> to return `false`:
 
 ```csharp
 public partial class LargeReportViewModel : ObservableObject, IRoutedViewModel
@@ -235,13 +235,13 @@ public partial class LargeReportViewModel : ObservableObject, IRoutedViewModel
 }
 ```
 
-When a view model with `CanBeCached = false` is navigated away from, it is disposed along with its view. Note that if a parent view model is evicted from cache and provided a service to a child, all of its children are evicted too. Cache depth limits are configured on the navigator builder (see [WinUI / Uno Setup](winui-setup.md)).
+When a view model with <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBeCached> set to `false` is navigated away from, it is disposed along with its view. Note that if a parent view model is evicted from cache and provided a service to a child, all of its children are evicted too. Cache depth limits are configured on the navigator builder (see [WinUI / Uno Setup](winui-setup.md)).
 
-If a view model implements `IDisposable` or `IAsyncDisposable`, `Dispose`/`DisposeAsync` is called automatically when it is evicted.
+If a view model implements <xref:System.IDisposable> or <xref:System.IAsyncDisposable>, <xref:System.IDisposable.Dispose> / <xref:System.IAsyncDisposable.DisposeAsync> is called automatically when it is evicted.
 
 ## Default Child Redirects
 
-When a parent view model loads but the URL did not specify a child segment, you typically want to redirect to a default child. Use `args.HasChildNavigation` inside `OnNavigatedToAsync`:
+When a parent view model loads but the URL did not specify a child segment, you typically want to redirect to a default child. Use <xref:Singulink.UI.Navigation.NavigationArgs.HasChildNavigation> inside <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*>:
 
 ```csharp
 public async Task OnNavigatedToAsync(NavigationArgs args)

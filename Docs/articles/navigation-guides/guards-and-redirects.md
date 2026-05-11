@@ -6,7 +6,7 @@ Routed view models can veto navigations away from them, or redirect navigations 
 
 ## Cancelling a Navigation
 
-`OnNavigatingAwayAsync(NavigatingArgs args)` and `OnRouteNavigatingAsync(NavigatingArgs args)` are invoked before any navigation that would unmount the view model. Either can set `args.Cancel = true` to veto the navigation:
+<xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatingAwayAsync(Singulink.UI.Navigation.NavigatingArgs)> and <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatingAsync(Singulink.UI.Navigation.NavigatingArgs)> are invoked before any navigation that would unmount the view model. Either can set <xref:Singulink.UI.Navigation.NavigatingArgs.Cancel> to `true` to veto the navigation:
 
 ```csharp
 public override async Task OnNavigatingAwayAsync(NavigatingArgs args)
@@ -24,10 +24,10 @@ public override async Task OnNavigatingAwayAsync(NavigatingArgs args)
 }
 ```
 
-- `OnNavigatingAwayAsync` fires only when **this** view model is being unmounted (its route part is changing).
-- `OnRouteNavigatingAsync` fires for **any** navigation involving the current route, including sibling child swaps. Use it on parent view models to guard the whole subtree.
+- <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatingAwayAsync*> fires only when **this** view model is being unmounted (its route part is changing).
+- <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatingAsync*> fires for **any** navigation involving the current route, including sibling child swaps. Use it on parent view models to guard the whole subtree.
 
-`NavigatingArgs.NavigationType` indicates whether the navigation is a `Normal`, `Back`, `Forward` or `Refresh` operation. Use this to allow back/forward to bypass the guard if appropriate:
+<xref:Singulink.UI.Navigation.NavigatingArgs.NavigationType> indicates whether the navigation is a `Normal`, `Back`, `Forward` or `Refresh` operation (see <xref:Singulink.UI.Navigation.NavigationType>). Use this to allow back/forward to bypass the guard if appropriate:
 
 ```csharp
 if (args.NavigationType == NavigationType.Normal && HasUnsavedChanges)
@@ -38,7 +38,7 @@ if (args.NavigationType == NavigationType.Normal && HasUnsavedChanges)
 
 ### WebAssembly: Browser Tab Close, Refresh, and External Navigation
 
-In-app navigation (including the browser back / forward buttons) goes through the navigator's normal asynchronous pipeline, so `OnNavigatingAwayAsync` and `OnRouteNavigatingAsync` can freely `await` work such as confirmation dialogs.
+In-app navigation (including the browser back / forward buttons) goes through the navigator's normal asynchronous pipeline, so <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatingAwayAsync*> and <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatingAsync*> can freely `await` work such as confirmation dialogs.
 
 Closing the tab, refreshing the page, or navigating to an external URL is different. The browser delivers these as a `beforeunload` event which requires a **synchronous** decision; the navigator cannot await your guard methods. The navigator still invokes the guards synchronously, but if any guard on a view model in the active route does not complete synchronously, the navigator must block the unload immediately and the browser shows its native prompt:
 
@@ -48,11 +48,11 @@ The wording is browser-controlled and cannot be customized. If the user chooses 
 
 Key points:
 
-- The fallback prompt is triggered if **any** `OnNavigatingAwayAsync` or `OnRouteNavigatingAsync` implementation on **any** active-route view model goes async (i.e. awaits an incomplete task), regardless of whether the view model would have set `args.Cancel`.
-- A guard that completes synchronously - whether by returning `Task.CompletedTask`, by being an `async` method that never awaits an incomplete task, or by synchronously setting `args.Cancel = true` - is fully respected and produces no prompt unless `args.Cancel` is `true`.
-- The guard is only installed when [`HookWindowClosedEvents(Window)`](winui-setup.md#hookwindowclosedeventswindow-window) has been called.
+- The fallback prompt is triggered if **any** <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatingAwayAsync*> or <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatingAsync*> implementation on **any** active-route view model goes async (i.e. awaits an incomplete task), regardless of whether the view model would have set <xref:Singulink.UI.Navigation.NavigatingArgs.Cancel>.
+- A guard that completes synchronously - whether by returning <xref:System.Threading.Tasks.Task.CompletedTask>, by being an `async` method that never awaits an incomplete task, or by synchronously setting <xref:Singulink.UI.Navigation.NavigatingArgs.Cancel> to `true` - is fully respected and produces no prompt unless <xref:Singulink.UI.Navigation.NavigatingArgs.Cancel> is `true`.
+- The guard is only installed when <xref:Singulink.UI.Navigation.WinUI.Navigator.HookWindowClosedEvents*> has been called (see [WinUI / Uno Setup](winui-setup.md#hookwindowclosedeventswindow-window)).
 
-For view models that need to behave well across both paths, cache dirty state synchronously and set `args.Cancel` from a synchronous code path. Async confirmation dialogs can still be used; they will be honored on the in-app navigation path and gracefully degrade to the native prompt on tab close / refresh:
+For view models that need to behave well across both paths, cache dirty state synchronously and set <xref:Singulink.UI.Navigation.NavigatingArgs.Cancel> from a synchronous code path. Async confirmation dialogs can still be used; they will be honored on the in-app navigation path and gracefully degrade to the native prompt on tab close / refresh:
 
 ```csharp
 public override async Task OnNavigatingAwayAsync(NavigatingArgs args)
@@ -76,7 +76,7 @@ public override async Task OnNavigatingAwayAsync(NavigatingArgs args)
 
 ## Redirecting a Navigation
 
-`OnNavigatedToAsync(NavigationArgs args)` and `OnRouteNavigatedAsync(NavigationArgs args)` run after the view model has been materialized but before the user can interact with it. Setting `args.Redirect` causes the navigator to immediately perform a different navigation.
+<xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync(Singulink.UI.Navigation.NavigationArgs)> and <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatedAsync(Singulink.UI.Navigation.NavigationArgs)> run after the view model has been materialized but before the user can interact with it. Setting <xref:Singulink.UI.Navigation.NavigationArgs.Redirect> causes the navigator to immediately perform a different navigation.
 
 ```csharp
 public override Task OnNavigatedToAsync(NavigationArgs args)
@@ -90,15 +90,15 @@ public override Task OnNavigatedToAsync(NavigationArgs args)
 }
 ```
 
-The `Redirect` class provides static factory methods that mirror the navigator's own APIs:
+The <xref:Singulink.UI.Navigation.Redirect> class provides static factory methods that mirror the navigator's own APIs:
 
 | Factory | Equivalent |
 |---|---|
-| `Redirect.Navigate(string)` | `NavigateAsync(string)` |
-| `Redirect.Navigate(rootPart, ...)` | `NavigateAsync(rootPart, ...)` |
-| `Redirect.NavigatePartial(...)` | `NavigatePartialAsync(...)` |
-| `Redirect.NavigateToParent<T>()` | `NavigateToParentAsync<T>()` |
-| `Redirect.GoBack()` | `GoBackAsync()` |
+| <xref:Singulink.UI.Navigation.Redirect.Navigate(System.String)> | <xref:Singulink.UI.Navigation.INavigator.NavigateAsync*> (string) |
+| <xref:Singulink.UI.Navigation.Redirect.Navigate*> with route parts | <xref:Singulink.UI.Navigation.INavigator.NavigateAsync*> with route parts |
+| <xref:Singulink.UI.Navigation.Redirect.NavigatePartial*> | <xref:Singulink.UI.Navigation.INavigator.NavigatePartialAsync*> |
+| <xref:Singulink.UI.Navigation.Redirect.NavigateToParent``1(System.String)> | <xref:Singulink.UI.Navigation.INavigator.NavigateToParentAsync*> |
+| <xref:Singulink.UI.Navigation.Redirect.GoBack> | <xref:Singulink.UI.Navigation.INavigator.GoBackAsync> |
 
 ## Default Child Redirect Pattern
 
@@ -117,17 +117,17 @@ public override Task OnRouteNavigatedAsync(NavigationArgs args)
 }
 ```
 
-`args.HasChildNavigation` is `true` when the navigation target includes a descendant route beneath this view model; skipping the redirect in that case avoids overriding the user's intended destination.
+<xref:Singulink.UI.Navigation.NavigationArgs.HasChildNavigation> is `true` when the navigation target includes a descendant route beneath this view model; skipping the redirect in that case avoids overriding the user's intended destination.
 
 ## Graceful Shutdown
 
-The guard methods are also consulted by `TryShutDownAsync()` (see [Navigating](navigating.md#graceful-shutdown)). The WinUI navigator provides `HookWindowClosedEvents(Window)` which ties everything together:
+The guard methods are also consulted by <xref:Singulink.UI.Navigation.INavigator.TryShutDownAsync> (see [Navigating](navigating.md#graceful-shutdown)). The WinUI navigator provides <xref:Singulink.UI.Navigation.WinUI.Navigator.HookWindowClosedEvents*> which ties everything together:
 
 ```csharp
 var navigator = new Navigator(MainContent, ConfigureNavigator);
 navigator.HookWindowClosedEvents(this);   // 'this' is the Window
 ```
 
-When the user closes the window, the navigator intercepts the close event, runs `TryShutDownAsync()` (which calls guards on each active view model), and only actually closes the window if all guards allow. This provides unsaved-changes prompts on window close without any extra manaul wiring.
+When the user closes the window, the navigator intercepts the close event, runs <xref:Singulink.UI.Navigation.INavigator.TryShutDownAsync> (which calls guards on each active view model), and only actually closes the window if all guards allow. This provides unsaved-changes prompts on window close without any extra manaul wiring.
 
 </div>

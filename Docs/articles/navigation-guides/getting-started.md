@@ -116,14 +116,14 @@ public class AppWindow : Window
 }
 ```
 
-That's the complete loop: routes define structure, view models define behavior, views render state, and the navigator ties them together.
+That's the complete loop: routes define structure, view models define behavior, views render state, and the <xref:Singulink.UI.Navigation.WinUI.Navigator> ties them together.
 
 ## Next Steps
 
 Learn more about each area of the framework:
 
 - [Defining Routes](defining-routes.md): route hierarchy, parameters, query strings, and the `Routes` class pattern.
-- [Routed View Models and Lifecycle](view-models.md): `IRoutedViewModel`, parameters, and lifecycle methods.
+- [Routed View Models and Lifecycle](view-models.md): <xref:Singulink.UI.Navigation.IRoutedViewModel>, parameters, and lifecycle methods.
 - [Navigating](navigating.md): navigating between routes, history, and system back integration.
 - [Parent Views and Child Navigation](parent-views.md): hosting child views inside parent views.
 - [Dialogs](dialogs.md): showing dialogs and returning results.
