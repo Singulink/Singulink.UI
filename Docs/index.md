@@ -6,27 +6,27 @@
 
 This package is part of our **Singulink Libraries** collection. Visit https://github.com/Singulink to see our full list of publicly available libraries and other open-source projects.
 
-### Components
+## Components
 
-#### Singulink.UI.Icons
+### Singulink.UI.Icons
 
 Provides supporting base types that are used by **Icon Pack Builder** when generating strongly-typed icon packs that can be used in any UI framework that supports font-based icons.
 
 **Supported Platforms**: .NET 8.0+, any UI framework (i.e. UWP/WinUI, Uno Platform, Avalonia, WPF, etc)
 
-#### Singulink.UI.Navigation
+### Singulink.UI.Navigation
 
 Designed for handling MVVM-based applications with complex deep-linked navigation, with a strong emphasis on maintainability, separation of concerns and full testability of view models. The base library is not tied to any particular UI framework and can be referenced from framework-agnostic view model projects, but currently only WinUI/Uno-specific implementations of the base library types are provided via the `Singulink.UI.Navigation.WinUI` package to do the actual navigation and routing in the UI app layer.
 
 **Supported Platforms**: .NET 10.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.5+
 
-#### Singulink.UI.Xaml.WinUI
+### Singulink.UI.Xaml.WinUI
 
 Contains useful XAML extensions (behaviors, converters, static convert methods for use with `x:Bind`) for WinUI and Uno-based applications.
 
 **Supported Platforms**: .NET 10.0+, WinUI (WinAppSDK 1.7+), Uno Platform 6.5+
 
-#### Singulink.UI.Tasks
+### Singulink.UI.Tasks
 
 Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with integrated support for managing UI busy-state while tasks are running. Supports running "fire-and-forget" tasks that can be tracked and fully tested with exceptions being propagated back to the UI thread, avoiding frowned upon `async void` methods for things like event handlers.
 

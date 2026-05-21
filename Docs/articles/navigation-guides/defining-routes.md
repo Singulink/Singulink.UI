@@ -254,7 +254,7 @@ public Task OnNavigatedToAsync(NavigationArgs args)
 }
 ```
 
-<xref:Singulink.UI.Navigation.RouteQuery.TryGetValue``1*> has additional overloads that can distinguish a missing key from a parse failure or throw on parse errors instead of returning `false`. The latter is useful when you want missing values to be tolerated but malformed values to be loud.
+<xref:Singulink.UI.Navigation.RouteQuery.TryGetValue*> has additional overloads that can distinguish a missing key from a parse failure or throw on parse errors instead of returning `false`. The latter is useful when you want missing values to be tolerated but malformed values to be loud.
 
 Reading a <xref:Singulink.UI.Navigation.ValueList`1> from a <xref:Singulink.UI.Navigation.RouteQuery> works just like any other parsable type:
 
