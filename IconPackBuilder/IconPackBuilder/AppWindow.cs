@@ -30,17 +30,18 @@ public sealed class AppWindow : Window, IWindow
         services.AddSingleton<IExporter>(CSharpExporter.Instance);
         services.AddSingleton<IFileDialogHandler>(new FileDialogHandler(this));
 
-        _navigator = new(this, ConfigureNavigator);
+        _navigator = new Navigator(this, builder => {
+            builder.Services = services.BuildServiceProvider();
+
+            builder.MapRoutedView<StartRootModel, StartRoot>();
+            builder.MapRoutedView<EditorRootModel, EditorRoot>();
+            builder.MapDialog<PreviewIconPackDialogModel, PreviewIconPackDialog>();
+
+            builder.AddAllRoutes();
+        });
+
         _navigator.HookWindowActivatedEvent(this, n => n.NavigateAsync(Routes.StartRoot));
         _navigator.HookSystemNavigationRequests();
         _navigator.HookWindowClosedEvents(this);
-    }
-
-    private static void ConfigureNavigator(NavigatorBuilder builder)
-    {
-        builder.MapRoutedView<StartRootModel, StartRoot>();
-        builder.MapRoutedView<EditorRootModel, EditorRoot>();
-        builder.MapDialog<PreviewIconPackDialogModel, PreviewIconPackDialog>();
-        builder.AddAllRoutes();
     }
 }
