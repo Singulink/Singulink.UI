@@ -175,7 +175,7 @@ public class YourViewModelTests
 
 ## Further Reading
 
-You can view API documentation on the [project documentation site](https://www.singulink.com/Docs/Singulink.UI/index.html).
+Please head over to the [project documentation site](https://www.singulink.com/Docs/Singulink.UI/index.html) to view articles, examples and the fully documented API.
 
 ## Shoutouts 🎉
 
