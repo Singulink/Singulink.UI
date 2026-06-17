@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Singulink.UI.Tasks;
@@ -8,8 +9,7 @@ namespace Singulink.UI.Tasks;
 /// </summary>
 public sealed partial class BusyTaskScope : IDisposable
 {
-    private static readonly bool _captureStack = AppContext.TryGetSwitch("Singulink.UI.Tasks.CaptureBusyTaskStackTraces", out bool captureStack) ? captureStack :
-        Assembly.GetEntryAssembly()?.GetCustomAttribute<DebuggableAttribute>()?.IsJITOptimizerDisabled ?? false;
+    private static readonly bool _captureStack = GetDefaultCaptureStack();
 
     private readonly TaskCompletionSource _tcs;
     private StackTrace? _stackTrace;
@@ -22,6 +22,18 @@ public sealed partial class BusyTaskScope : IDisposable
 
         if (_captureStack)
             _stackTrace = new StackTrace(true);
+    }
+
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2045:AttributeRemoval",
+        Justification = "DebuggableAttribute may be removed by the trimmer; the null-conditional lookup then defaults stack capture to off, which is the desired behavior for trimmed/optimized builds.")]
+    private static bool GetDefaultCaptureStack()
+    {
+        if (AppContext.TryGetSwitch("Singulink.UI.Tasks.CaptureBusyTaskStackTraces", out bool captureStack))
+            return captureStack;
+
+        return Assembly.GetEntryAssembly()?.GetCustomAttribute<DebuggableAttribute>()?.IsJITOptimizerDisabled ?? false;
     }
 
     /// <summary>
