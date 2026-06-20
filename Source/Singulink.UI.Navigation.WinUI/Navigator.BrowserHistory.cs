@@ -15,8 +15,23 @@ partial class Navigator
 
     private SynchronizationContext _synchronizationContext;
     private double _seqCounter;
-    private double _currentSeq;
-    private int _suppressPopstateCount;
+
+    // The sequence number of the browser history entry that corresponds to the navigator's current in-app route. This is the authoritative target: the
+    // browser is kept pointed at this entry. It only changes when a navigation commits or when a self-induced browser move settles.
+    private double _committedSeq;
+
+    // True while we are waiting for a popstate caused by our own history.back()/forward() call (an app-initiated move, a cancellation undo, or a rewind of
+    // an unhandled user gesture). Such popstates are adopted into _committedSeq and never drive an in-app navigation.
+    private bool _selfNavPending;
+
+    // True while an app-initiated Back/Forward navigation is in flight. The actual browser move is deferred until the navigation completes, so
+    // OnCurrentRouteChanged must not write the new route's URL onto the entry we are about to leave.
+    private bool _appBackForwardInProgress;
+
+    // When an app-initiated Back/Forward move is deferred to completion, this holds the URL to reconcile onto the landed entry once its popstate settles
+    // (covers the rare case where a redirect changed the route during the back/forward navigation).
+    private string? _pendingReconcileUrl;
+
     private bool _isPopstateNavigation;
     private bool _isFirstNavigation = true;
 
@@ -44,8 +59,8 @@ partial class Navigator
     /// </summary>
     private void InitializeBrowserHistorySync()
     {
-        _currentSeq = ++_seqCounter;
-        BrowserNavigationHelper.ReplaceState(_currentSeq, string.Empty, BrowserNavigationHelper.GetCurrentUrl());
+        _committedSeq = ++_seqCounter;
+        BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, BrowserNavigationHelper.GetCurrentUrl());
 
         if (!s_popStateListenerRegistered)
         {
@@ -118,7 +133,7 @@ partial class Navigator
     /// <inheritdoc />
     protected override object? OnNavigationStarting(NavigationType navigationType, NavigatorRoute targetRoute)
     {
-        // If this navigation was triggered by a browser popstate (user clicked the browser back/forward button), the browser has already moved its
+        // If this navigation was triggered by a browser popstate (user clicked the browser/mouse back/forward button), the browser has already moved its
         // history pointer. We must not call any history APIs here, otherwise we'd double-navigate the browser.
         if (_isPopstateNavigation)
             return null;
@@ -133,26 +148,25 @@ partial class Navigator
                     // First navigation should replace the entry the browser landed on (no extra back-stack entry). Redirects should also replace, since the
                     // in-app stack treats them as replacements of the current entry rather than additions.
                     _isFirstNavigation = false;
-                    BrowserNavigationHelper.ReplaceState(_currentSeq, string.Empty, url);
+                    BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, url);
                     return WasmNavState.ReplacedNew;
                 }
 
-                _currentSeq = ++_seqCounter;
-                BrowserNavigationHelper.PushState(_currentSeq, string.Empty, url);
+                _committedSeq = ++_seqCounter;
+                BrowserNavigationHelper.PushState(_committedSeq, string.Empty, url);
                 return WasmNavState.PushedNew;
 
             case NavigationType.Back:
-                _suppressPopstateCount++;
-                BrowserNavigationHelper.Back();
-                return WasmNavState.WentBack;
-
             case NavigationType.Forward:
-                _suppressPopstateCount++;
-                BrowserNavigationHelper.Forward();
-                return WasmNavState.WentForward;
+                // Defer the actual browser move (history.back()/forward()) until the navigation completes successfully. Performing it here would race with
+                // the async popstate it produces against the in-app navigation and the OnCurrentRouteChanged URL sync, which is what caused a single
+                // app-initiated back to cascade into multiple back navigations when a page completed synchronously. Deferring it to a single call in
+                // OnNavigationCompleted means there is exactly one self-induced popstate, issued last, that is reliably recognized via _selfNavPending.
+                _appBackForwardInProgress = true;
+                return navigationType == NavigationType.Back ? WasmNavState.WentBack : WasmNavState.WentForward;
 
             case NavigationType.Refresh:
-                BrowserNavigationHelper.ReplaceState(_currentSeq, string.Empty, url);
+                BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, url);
                 return WasmNavState.Replaced;
 
             default:
@@ -163,15 +177,18 @@ partial class Navigator
     /// <inheritdoc />
     protected override void OnNavigationCompleted(NavigationType navigationType, NavigatorRoute targetRoute, NavigationResult result, object? state)
     {
+        // Only ever true for an app-initiated Back/Forward; clear it now that the in-app navigation (and its route-changed events) are done.
+        _appBackForwardInProgress = false;
+
         if (_isPopstateNavigation)
         {
             _isPopstateNavigation = false;
 
             if (result == NavigationResult.Cancelled)
             {
-                // The user pressed browser back/forward, but the in-app navigation was cancelled (e.g. by an "unsaved changes" dialog). The browser already
-                // moved its pointer, so undo it to keep browser and in-app state in sync.
-                _suppressPopstateCount++;
+                // The user pressed browser/mouse back/forward, but the in-app navigation was cancelled (e.g. by an "unsaved changes" dialog). The browser
+                // already moved its pointer, so undo it to keep browser and in-app state in sync. The undo's popstate is adopted via _selfNavPending.
+                _selfNavPending = true;
 
                 if (navigationType == NavigationType.Back)
                     BrowserNavigationHelper.Forward();
@@ -180,34 +197,43 @@ partial class Navigator
             }
             else
             {
-                // Successful popstate-initiated navigation. The browser URL may not exactly match the resolved route (e.g. if a redirect occurred), so
-                // make sure the URL reflects the current route.
-                BrowserNavigationHelper.ReplaceState(_currentSeq, string.Empty, "/" + targetRoute);
+                // Successful popstate-initiated navigation. The browser is already on the landed entry; make sure its URL reflects the resolved route
+                // (it may differ if a redirect occurred).
+                BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, "/" + targetRoute);
             }
 
             return;
         }
 
-        if (result != NavigationResult.Cancelled)
+        if (result == NavigationResult.Cancelled)
+        {
+            // App-initiated navigation was cancelled. Undo the only browser change OnNavigationStarting could have made up front: a pushState for a New
+            // navigation. Back/Forward defer their browser move to the success path below, so nothing was moved and there is nothing to undo for them.
+            if ((WasmNavState?)state == WasmNavState.PushedNew)
+            {
+                _selfNavPending = true;
+                BrowserNavigationHelper.Back();
+            }
+
             return;
+        }
 
-        // App-initiated navigation was cancelled. Undo the browser change made in OnNavigationStarting.
-        _suppressPopstateCount++;
-
+        // App-initiated navigation succeeded. Perform the deferred browser move for Back/Forward as a single history call whose popstate is recognized via
+        // _selfNavPending. _pendingReconcileUrl fixes the landed entry's URL once the move settles (covers a redirect during the back/forward navigation).
         switch ((WasmNavState?)state)
         {
-            case WasmNavState.PushedNew:
-                BrowserNavigationHelper.Back();
-                break;
             case WasmNavState.WentBack:
-                BrowserNavigationHelper.Forward();
+                _pendingReconcileUrl = "/" + targetRoute;
+                _selfNavPending = true;
+                BrowserNavigationHelper.Back();
                 break;
             case WasmNavState.WentForward:
-                BrowserNavigationHelper.Back();
+                _pendingReconcileUrl = "/" + targetRoute;
+                _selfNavPending = true;
+                BrowserNavigationHelper.Forward();
                 break;
             default:
-                // Replaced/ReplacedNew/null - nothing to undo on the browser side.
-                _suppressPopstateCount--;
+                // New/Refresh already synced their browser state in OnNavigationStarting; nothing to do.
                 break;
         }
     }
@@ -215,9 +241,14 @@ partial class Navigator
     /// <inheritdoc />
     protected override void OnCurrentRouteChanged(NavigatorRoute route)
     {
+        // While an app-initiated Back/Forward navigation is in flight, the browser move is deferred (see OnNavigationStarting), so the browser is still on
+        // the entry we are leaving. Writing the new route's URL here would corrupt that entry, so skip it; the deferred move reconciles the URL instead.
+        if (_appBackForwardInProgress)
+            return;
+
         // This fires for in-place route mutations (UpdateCurrentRoute, anchor changes) that don't go through NavigateAsyncCore, as well as after every
         // successful navigation. Calling replaceState with the same URL is a no-op for browser history but ensures the address bar stays in sync.
-        BrowserNavigationHelper.ReplaceState(_currentSeq, string.Empty, "/" + route);
+        BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, "/" + route);
     }
 
     private static void OnPopStateRaw(JSObject evt)
@@ -250,32 +281,37 @@ partial class Navigator
         if (SynchronizationContext.Current is null)
             SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
 
-        double previousSeq = _currentSeq;
-        _currentSeq = newSeq;
-
-        if (_suppressPopstateCount > 0)
+        if (_selfNavPending)
         {
-            _suppressPopstateCount--;
+            // This popstate was caused by our own history.back()/forward() call (a deferred app-initiated move, a cancellation undo, or a rewind of an
+            // unhandled gesture). Adopt the browser's reported position as committed and never drive an in-app navigation from it.
+            _selfNavPending = false;
+            _committedSeq = newSeq;
+
+            if (_pendingReconcileUrl is not null)
+            {
+                BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, _pendingReconcileUrl);
+                _pendingReconcileUrl = null;
+            }
+
             return;
         }
 
-        bool isBack = newSeq < previousSeq;
-        bool isForward = newSeq > previousSeq;
+        if (newSeq == _committedSeq)
+            return; // Browser is already where the navigator expects it (e.g. a duplicate or redundant popstate); nothing to do.
 
-        if (!isBack && !isForward)
-            return;
-
-        bool dispatched = false;
+        // Sequence numbers strictly increase with history-stack position, so a lower number than the committed entry means the user went back and a higher
+        // number means the user went forward.
+        bool isBack = newSeq < _committedSeq;
 
         if (isBack)
         {
             // Mirror HandleSystemBackRequest semantics: a back gesture should consume light-dismiss popups and dismissible dialogs before walking the
-            // in-app history. The browser already moved its pointer though, so in any of these consumed-but-no-in-app-nav cases we still need to undo it
-            // below to keep the browser stack in sync.
+            // in-app history. The browser already moved its pointer though, so in any consumed-but-no-in-app-nav case we rewind it below to stay in sync.
 
             if (CloseLightDismissPopups())
             {
-                // Popup consumed the gesture; dispatched stays false so the browser is rewound.
+                // Popup consumed the gesture; fall through to the rewind.
             }
             else if (IsShowingDialog)
             {
@@ -283,29 +319,28 @@ partial class Navigator
             }
             else if (!IsNavigating && HasBackHistory)
             {
+                _committedSeq = newSeq;
                 _isPopstateNavigation = true;
                 TaskRunner.RunAndForget(GoBackAsync());
-                dispatched = true;
+                return;
             }
         }
         else if (!IsNavigating && !IsShowingDialog && HasForwardHistory)
         {
+            _committedSeq = newSeq;
             _isPopstateNavigation = true;
             TaskRunner.RunAndForget(GoForwardAsync());
-            dispatched = true;
+            return;
         }
 
-        if (!dispatched)
-        {
-            // Either the navigator is busy, a dialog is showing or was just dismissed, a popup was closed, or there's no in-app history in that direction.
-            // Undo the browser nav so the browser stays in sync with the in-app state.
-            _suppressPopstateCount++;
+        // Gesture not honored (navigator busy, dialog showing or just dismissed, a popup was closed, or no in-app history in that direction). Rewind the
+        // browser one step back to the committed entry; the resulting popstate is adopted via _selfNavPending.
+        _selfNavPending = true;
 
-            if (isBack)
-                BrowserNavigationHelper.Forward();
-            else
-                BrowserNavigationHelper.Back();
-        }
+        if (isBack)
+            BrowserNavigationHelper.Forward();
+        else
+            BrowserNavigationHelper.Back();
     }
 
     private enum WasmNavState

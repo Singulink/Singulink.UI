@@ -11,7 +11,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
-    <Version>6.0</Version>
+    <Version>6.1.1</Version>
     <!-- Silence root-level analyzer rules that don't apply to generator projects. -->
     <NoWarn>$(NoWarn);RS1036;RS2008;RS1032;NETSDK1210;SA1600;SA1649;SA1515;SA1602;SA0001</NoWarn>
   </PropertyGroup>

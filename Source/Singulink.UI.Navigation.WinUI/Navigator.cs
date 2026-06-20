@@ -76,12 +76,12 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
             viewNavigator.NavigationControl.Background = new SolidColorBrush(Colors.Transparent);
 
         _viewNavigator.NavigationControl.PointerPressed += (s, e) => {
-            if (!e.Handled && e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse)
+            if (!e.Handled && e.Pointer.PointerDeviceType is Microsoft.UI.Input.PointerDeviceType.Mouse)
             {
                 var properties = e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties;
 
-                if (properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.XButton1Pressed ||
-                    properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.XButton2Pressed)
+                if (properties.PointerUpdateKind is Microsoft.UI.Input.PointerUpdateKind.XButton1Pressed ||
+                    properties.PointerUpdateKind is Microsoft.UI.Input.PointerUpdateKind.XButton2Pressed)
                 {
                     _viewNavigator.NavigationControl.CapturePointer(e.Pointer);
                 }
@@ -89,14 +89,14 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
         };
 
         _viewNavigator.NavigationControl.PointerReleased += (s, e) => {
-            if (!e.Handled && e.Pointer.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Mouse)
+            if (!e.Handled && e.Pointer.PointerDeviceType is Microsoft.UI.Input.PointerDeviceType.Mouse)
             {
                 var properties = e.GetCurrentPoint(_viewNavigator.NavigationControl).Properties;
 
-                if (properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.XButton1Released)
-                    _ = HandleSystemBackRequest();
-                if (properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.XButton2Released)
-                    _ = HandleSystemForwardRequest();
+                if (properties.PointerUpdateKind is Microsoft.UI.Input.PointerUpdateKind.XButton1Released)
+                    HandleSystemBackRequest();
+                if (properties.PointerUpdateKind is Microsoft.UI.Input.PointerUpdateKind.XButton2Released)
+                    HandleSystemForwardRequest();
             }
         };
     }
@@ -163,7 +163,10 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
         EnsureThreadAccess();
 
         if (_isSystemNavigationHooked)
-            throw new InvalidOperationException("System navigation requests have already been hooked. Multiple calls to HookSystemNavigationRequests are not allowed.");
+        {
+            throw new InvalidOperationException(
+                "System navigation requests have already been hooked. Multiple calls to HookSystemNavigationRequests are not allowed.");
+        }
 
         if (s_systemNavOwner is not null)
         {
@@ -190,9 +193,7 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
 #if !WINDOWS && !__WASM__
     private static void OnSystemBackRequested(object? sender, BackRequestedEventArgs args)
     {
-        var owner = s_systemNavOwner;
-
-        if (owner is not null)
+        if (s_systemNavOwner is { } owner)
             args.Handled = owner.HandleSystemBackRequest();
     }
 #endif
