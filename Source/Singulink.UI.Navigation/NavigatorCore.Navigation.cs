@@ -32,7 +32,7 @@ partial class NavigatorCore
         }
 
         if (!TryMatchRoute(route, query, out var routeItems))
-            throw new ArgumentException($"No route found for '{route}'.", nameof(route));
+            throw new NavigationRouteException($"No route found for '{route}'.");
 
         return await NavigateNewAsyncCore(routeItems, anchor);
     }
