@@ -18,7 +18,8 @@ public enum EnterKeyAction
 
     /// <summary>
     /// Indicates that the next control in the tab order should be focused when the Enter key is pressed. This changes the Enter key label on soft keyboards to
-    /// <c>"Next"</c> on iOS and Android.
+    /// <c>"Next"</c> on iOS and Android. Since a <c>"Next"</c> key cannot dismiss the soft keyboard, setting this action also implies
+    /// <see cref="SoftKeyboard.DismissableProperty"/> unless it is explicitly set on the control.
     /// </summary>
     Next,
 }

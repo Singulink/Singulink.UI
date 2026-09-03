@@ -17,7 +17,10 @@ public static class SoftKeyboard
     /// <summary>
     /// Attached <see cref="DependencyProperty"/> that adds a "Done" button in a toolbar above the iOS soft keyboard which dismisses it, for inputs where the
     /// Enter key cannot dismiss the keyboard (e.g. Enter moves to the next field or enters a newline in a multiline text box). No-op on all other platforms
-    /// (Android's back button already dismisses the keyboard and other platforms use hardware keyboards).
+    /// (Android's back button already dismisses the keyboard and other platforms use hardware keyboards). Implied by
+    /// <see cref="KeyActions.EnterProperty"/> being set to <see cref="EnterKeyAction.Next"/> unless explicitly set on the control. Can be set on any control,
+    /// including containers (focus events bubble, so the toolbar applies whenever focus lands on a text input within it), and is inert on controls that never
+    /// open the keyboard.
     /// </summary>
     public static readonly DependencyProperty DismissableProperty = DependencyProperty.RegisterAttached(
         "Dismissable", typeof(bool), typeof(SoftKeyboard), new PropertyMetadata(false, OnDismissableChanged));
@@ -71,24 +74,35 @@ public static class SoftKeyboard
 
     private static void OnDismissableChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-#if __IOS__
-        if (d is not Control control)
-            return;
+        if (d is Control control)
+            UpdateHooks(control);
+    }
 
-        if ((bool)e.NewValue)
+    /// <summary>
+    /// Re-evaluates whether the control needs focus hooks for the keyboard dismiss toolbar, based on the effective dismissable state computed from
+    /// <see cref="DismissableProperty"/> (when explicitly set) or <see cref="KeyActions.EnterProperty"/> (a "Next" return key cannot dismiss the keyboard, so
+    /// dismissability is implied for it). Called when either property changes; no-op on non-iOS platforms.
+    /// </summary>
+    internal static void UpdateHooks(Control control)
+    {
+#if __IOS__
+        control.GotFocus -= OnControlGotFocus;
+        control.LostFocus -= OnControlLostFocus;
+
+        if (GetEffectiveDismissable(control))
         {
             control.GotFocus += OnControlGotFocus;
             control.LostFocus += OnControlLostFocus;
-        }
-        else
-        {
-            control.GotFocus -= OnControlGotFocus;
-            control.LostFocus -= OnControlLostFocus;
         }
 #endif
     }
 
 #if __IOS__
+    private static bool GetEffectiveDismissable(Control control) =>
+        control.ReadLocalValue(DismissableProperty) != DependencyProperty.UnsetValue
+            ? GetDismissable(control)
+            : KeyActions.GetEnter(control) == EnterKeyAction.Next;
+
     private static UIToolbar? _toolbar;
     private static WeakReference<Control>? _focusedControl;
 
@@ -111,7 +125,7 @@ public static class SoftKeyboard
         control.DispatcherQueue.TryEnqueue(() =>
         {
             // Skip clearing when focus moved to another opted-in control (its GotFocus re-applies anyway, but clearing in between makes the toolbar flicker).
-            if (control.XamlRoot is { } xamlRoot && FocusManager.GetFocusedElement(xamlRoot) is Control focused && GetDismissable(focused))
+            if (control.XamlRoot is { } xamlRoot && FocusManager.GetFocusedElement(xamlRoot) is Control focused && GetEffectiveDismissable(focused))
                 return;
 
             SetAccessoryOnFirstResponder(attach: false);

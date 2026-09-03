@@ -14,6 +14,8 @@ public static class KeyActions
 {
     /// <summary>
     /// Attached <see cref="DependencyProperty"/> for binding an <see cref="EnterKeyAction"/> to a <see cref="TextBox"/> or <see cref="PasswordBox"/>.
+    /// Deliberately restricted to those types (other control types throw): the behavior rewrites Enter key handling, which is only meaningful on text inputs
+    /// and would hijack Enter activation semantics elsewhere. Additional text input types can be supported as needed.
     /// </summary>
     public static readonly DependencyProperty EnterProperty = DependencyProperty.RegisterAttached(
         "Enter", typeof(EnterKeyAction), typeof(KeyActions), new PropertyMetadata(EnterKeyAction.None, OnEnterChanged));
@@ -36,32 +38,36 @@ public static class KeyActions
         {
             tb.KeyUp -= OnKeyUp;
 
-            if (action == EnterKeyAction.None)
-                return;
-
-            tb.KeyUp += OnKeyUp;
+            if (action != EnterKeyAction.None)
+            {
+                tb.KeyUp += OnKeyUp;
 
 #if HAS_UNO
-            TextBoxExtensions.SetInputReturnType(tb, action == EnterKeyAction.Done ? InputReturnType.Done : InputReturnType.Next);
+                TextBoxExtensions.SetInputReturnType(tb, action == EnterKeyAction.Done ? InputReturnType.Done : InputReturnType.Next);
 #endif
+            }
         }
         else if (d is PasswordBox pb)
         {
             pb.KeyUp -= OnKeyUp;
 
-            if (action == EnterKeyAction.None)
-                return;
-
-            pb.KeyUp += OnKeyUp;
+            if (action != EnterKeyAction.None)
+            {
+                pb.KeyUp += OnKeyUp;
 
 #if HAS_UNO
-            TextBoxExtensions.SetInputReturnType(pb, action == EnterKeyAction.Done ? InputReturnType.Done : InputReturnType.Next);
+                TextBoxExtensions.SetInputReturnType(pb, action == EnterKeyAction.Done ? InputReturnType.Done : InputReturnType.Next);
 #endif
+            }
         }
         else
         {
             throw new ArgumentException($"Unsupported control type '{d.GetType()}'.", nameof(d));
         }
+
+        // A "Next" return key cannot dismiss the soft keyboard on iOS, so SoftKeyboard implies dismissability for it unless SoftKeyboard.Dismissable is
+        // explicitly set. The effective state is computed from current values when focus changes, so this only needs to keep its focus hooks current.
+        SoftKeyboard.UpdateHooks((Control)d);
     }
 
     private static void OnKeyUp(object sender, KeyRoutedEventArgs e)
