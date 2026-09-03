@@ -19,6 +19,7 @@
     <Project Path="Source/Singulink.UI.Navigation/Singulink.UI.Navigation.csproj" />
     <Project Path="Source/Singulink.UI.Navigation.Generators/Singulink.UI.Navigation.Generators.csproj" />
     <Project Path="Source/Singulink.UI.Tasks/Singulink.UI.Tasks.csproj" />
+    <Project Path="Source/Singulink.UI.Xaml.Native/Singulink.UI.Xaml.Native.csproj" />
     <Project Path="Source/Singulink.UI.Xaml.WinUI/Singulink.UI.Xaml.WinUI.csproj" />
   </Folder>
   <Folder Name="/Tests/">

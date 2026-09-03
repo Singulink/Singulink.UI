@@ -1,11 +1,5 @@
-using Microsoft.UI.Xaml.Media;
-
-#if __IOS__
-using System.Diagnostics;
-using CoreGraphics;
 using Microsoft.UI.Xaml.Input;
-using UIKit;
-#endif
+using Microsoft.UI.Xaml.Media;
 
 namespace Singulink.UI.Xaml.Behaviors;
 
@@ -24,6 +18,8 @@ public static class SoftKeyboard
     /// </summary>
     public static readonly DependencyProperty DismissableProperty = DependencyProperty.RegisterAttached(
         "Dismissable", typeof(bool), typeof(SoftKeyboard), new PropertyMetadata(false, OnDismissableChanged));
+
+    private static WeakReference<Control>? _focusedControl;
 
     /// <summary>
     /// Gets a value indicating whether the control shows a "Done" button above the iOS soft keyboard that dismisses it.
@@ -81,11 +77,14 @@ public static class SoftKeyboard
     /// <summary>
     /// Re-evaluates whether the control needs focus hooks for the keyboard dismiss toolbar, based on the effective dismissable state computed from
     /// <see cref="DismissableProperty"/> (when explicitly set) or <see cref="KeyActions.EnterProperty"/> (a "Next" return key cannot dismiss the keyboard, so
-    /// dismissability is implied for it). Called when either property changes; no-op on non-iOS platforms.
+    /// dismissability is implied for it). Called when either property changes; no-op on platforms without dismiss accessory support. The toolbar itself is
+    /// managed through <see cref="SoftKeyboardNative"/>, which stays platform-built on Skia-rendered heads where this assembly is swapped for its Skia build.
     /// </summary>
     internal static void UpdateHooks(Control control)
     {
-#if __IOS__
+        if (!SoftKeyboardNative.IsDismissAccessorySupported)
+            return;
+
         control.GotFocus -= OnControlGotFocus;
         control.LostFocus -= OnControlLostFocus;
 
@@ -94,17 +93,12 @@ public static class SoftKeyboard
             control.GotFocus += OnControlGotFocus;
             control.LostFocus += OnControlLostFocus;
         }
-#endif
     }
 
-#if __IOS__
     private static bool GetEffectiveDismissable(Control control) =>
         control.ReadLocalValue(DismissableProperty) != DependencyProperty.UnsetValue
             ? GetDismissable(control)
             : KeyActions.GetEnter(control) == EnterKeyAction.Next;
-
-    private static UIToolbar? _toolbar;
-    private static WeakReference<Control>? _focusedControl;
 
     private static void OnControlGotFocus(object sender, RoutedEventArgs e)
     {
@@ -113,8 +107,8 @@ public static class SoftKeyboard
 
         _focusedControl = new(control);
 
-        // The native input view becomes first responder as part of focus processing, so defer until it exists.
-        control.DispatcherQueue.TryEnqueue(() => SetAccessoryOnFirstResponder(attach: true));
+        // The native input view becomes active as part of focus processing, so defer until it exists.
+        control.DispatcherQueue.TryEnqueue(() => SoftKeyboardNative.ShowDismissAccessory(OnAccessoryDismissRequested));
     }
 
     private static void OnControlLostFocus(object sender, RoutedEventArgs e)
@@ -124,97 +118,17 @@ public static class SoftKeyboard
 
         control.DispatcherQueue.TryEnqueue(() =>
         {
-            // Skip clearing when focus moved to another opted-in control (its GotFocus re-applies anyway, but clearing in between makes the toolbar flicker).
+            // Skip hiding when focus moved to another opted-in control (its GotFocus re-applies anyway, but hiding in between makes the toolbar flicker).
             if (control.XamlRoot is { } xamlRoot && FocusManager.GetFocusedElement(xamlRoot) is Control focused && GetEffectiveDismissable(focused))
                 return;
 
-            SetAccessoryOnFirstResponder(attach: false);
+            SoftKeyboardNative.HideDismissAccessory();
         });
     }
 
-    private static void OnDonePressed()
+    private static void OnAccessoryDismissRequested()
     {
-        if (_focusedControl?.TryGetTarget(out var control) is not true)
-        {
-            Windows.UI.ViewManagement.InputPane.GetForCurrentView().TryHide();
-            return;
-        }
-
-        control.DispatcherQueue.TryEnqueue(() => Dismiss(control));
+        if (_focusedControl?.TryGetTarget(out var control) is true)
+            control.DispatcherQueue.TryEnqueue(() => Dismiss(control));
     }
-
-    private static void SetAccessoryOnFirstResponder(bool attach)
-    {
-        var responder = FindFirstResponder();
-
-        if (responder is null)
-            return;
-
-        var toolbar = attach ? (_toolbar ??= CreateToolbar()) : null;
-
-        if (responder is UITextField textField)
-        {
-            if (textField.InputAccessoryView != toolbar)
-            {
-                textField.InputAccessoryView = toolbar;
-                textField.ReloadInputViews();
-            }
-        }
-        else if (responder is UITextView textView)
-        {
-            if (textView.InputAccessoryView != toolbar)
-            {
-                textView.InputAccessoryView = toolbar;
-                textView.ReloadInputViews();
-            }
-        }
-        else
-        {
-            // InputAccessoryView is read-only on other responders - log the type so an incompatible Uno text input implementation is identifiable.
-            Debug.WriteLine($"SoftKeyboard: first responder is '{responder.GetType()}' - cannot attach accessory view.");
-        }
-    }
-
-    private static UIToolbar CreateToolbar()
-    {
-        var toolbar = new UIToolbar(new CGRect(0, 0, UIScreen.MainScreen.Bounds.Width, 44));
-
-        var done = new UIBarButtonItem(UIBarButtonSystemItem.Done, (_, _) => OnDonePressed());
-        toolbar.Items = [new UIBarButtonItem(UIBarButtonSystemItem.FlexibleSpace), done];
-        toolbar.SizeToFit();
-
-        return toolbar;
-    }
-
-    private static UIView? FindFirstResponder()
-    {
-        foreach (var scene in UIApplication.SharedApplication.ConnectedScenes)
-        {
-            if (scene is not UIWindowScene windowScene)
-                continue;
-
-            foreach (var window in windowScene.Windows)
-            {
-                if (FindFirstResponder(window) is { } responder)
-                    return responder;
-            }
-        }
-
-        return null;
-
-        static UIView? FindFirstResponder(UIView view)
-        {
-            if (view.IsFirstResponder)
-                return view;
-
-            foreach (var subview in view.Subviews)
-            {
-                if (FindFirstResponder(subview) is { } responder)
-                    return responder;
-            }
-
-            return null;
-        }
-    }
-#endif
 }

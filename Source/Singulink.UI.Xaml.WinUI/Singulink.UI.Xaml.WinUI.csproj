@@ -7,7 +7,7 @@
     <!-- Ensures the .xr.xml files are generated in a proper layout folder -->
     <GenerateLibraryLayout>true</GenerateLibraryLayout>
 
-    <Version>3.4.1</Version>
+    <Version>3.5.0</Version>
     <PackageTags>WinUI; Uno Platform; XAML; Behaviors; Convert; Converters; MVVM; Toolkit;</PackageTags>
     <Description>Singulink WinUI 3 / Uno Platform XAML extensions (behaviors, converters, static convert methods).</Description>
     
@@ -20,6 +20,10 @@
       SkiaRenderer;
     </UnoFeatures>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Singulink.UI.Xaml.Native\Singulink.UI.Xaml.Native.csproj" />
+  </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
     <PackageReference Remove="Uno.WinUI" />
