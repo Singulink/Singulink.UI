@@ -7,7 +7,7 @@
     <!-- Ensures the .xr.xml files are generated in a proper layout folder -->
     <GenerateLibraryLayout>true</GenerateLibraryLayout>
 
-    <Version>3.2</Version>
+    <Version>3.3</Version>
     <PackageTags>WinUI; Uno Platform; XAML; Behaviors; Convert; Converters; MVVM; Toolkit;</PackageTags>
     <Description>Singulink WinUI 3 / Uno Platform XAML extensions (behaviors, converters, static convert methods).</Description>
     

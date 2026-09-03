@@ -49,7 +49,7 @@ public static class KeyActions
         {
             pb.KeyUp -= OnKeyUp;
 
-            if (action != EnterKeyAction.None)
+            if (action == EnterKeyAction.None)
                 return;
 
             pb.KeyUp += OnKeyUp;
@@ -73,13 +73,7 @@ public static class KeyActions
             var root = control.XamlRoot?.Content;
 
             if (GetEnter(control) == EnterKeyAction.Done || root is null || !FocusManager.TryMoveFocus(FocusNavigationDirection.Next, new() { SearchRoot = root }))
-            {
-                bool isTabStop = control.IsTabStop;
-                control.IsTabStop = false;
-                control.IsEnabled = false;
-                control.IsEnabled = true;
-                control.IsTabStop = isTabStop;
-            }
+                SoftKeyboard.Dismiss(control);
 
             e.Handled = true;
         }
