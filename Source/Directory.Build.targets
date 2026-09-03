@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <!-- HACK: Works around an Uno.Sdk bug (fixed in Uno.Sdk 6.7.22 - remove this once the repo updates to
+         6.7.22+): the Hot Design stories configuration clobbers DefaultItemExcludes in optimized (Release)
+         builds, dropping the standard bin/obj excludes. Uno's default image Content globs (**\*.png etc.)
+         then sweep obj build artifacts (e.g. extracted Android library resources under obj\...\lp) into
+         @(Content), which NuGet packs into the nupkg's content/contentFiles, causing NETSDK1152
+         duplicate-file publish errors in consuming apps when multiple contaminated packages are referenced.
+         Re-append the excludes here (this file is evaluated after the clobber but before Uno's Content
+         globs) so packages stay clean. -->
+    <DefaultItemExcludes Condition="!$(DefaultItemExcludes.Contains('bin/**'))">$(DefaultItemExcludes);bin/**</DefaultItemExcludes>
+    <DefaultItemExcludes Condition="!$(DefaultItemExcludes.Contains('obj/**'))">$(DefaultItemExcludes);obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>
