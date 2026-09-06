@@ -10,9 +10,9 @@ This package is part of our **Singulink Libraries** collection. Visit https://gi
 
 ### Singulink.UI.Icons
 
-Provides supporting base types that are used by **Icon Pack Builder** when generating strongly-typed icon packs that can be used in any UI framework that supports font-based icons.
+Provides the base types used by **Icon Pack Builder**, a tool in this repository that generates trimmed, strongly-typed font icon packs from Microsoft's Fluent UI System Icons (via the Seagull Fluent Icons font). Companion packages (`Singulink.UI.Icons.WinUI`, `.Wpf`, `.Avalonia` and `.Maui`) display the correct glyph for the current flow direction, so directional icons mirror automatically in right-to-left layouts. See the [Icon Guides](articles/icon-guides/getting-started.md).
 
-**Supported Platforms**: .NET 8.0+, any UI framework (i.e. UWP/WinUI, Uno Platform, Avalonia, WPF, etc)
+**Supported Platforms**: .NET 8.0+, any UI framework that renders text (Windows Forms needs only the base package); framework packages for WinUI 3 / Uno Platform, WPF, Avalonia 11.3+ and .NET MAUI
 
 ### Singulink.UI.Navigation
 
@@ -37,6 +37,7 @@ Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with int
 Here are some additonal links to get you started:
 
 - [Getting Started](articles/navigation-guides/getting-started.md) - Visit here first for a quick `Navigation` walkthrough and entry point into additional guides.
+- [Icon Guides](articles/icon-guides/getting-started.md) - Building icon packs with Icon Pack Builder and using them in each UI framework.
 - [API Documentation](api/index.html) - Browse the fully documented API here.
 - [Chat on Discord](https://discord.gg/EkQhJFsBu6) - Have questions or want to discuss the library? This is the place for all Singulink project discussions.
 - [Github Repo](https://github.com/Singulink/Singulink.UI) - File issues, contribute pull requests or check out the code for yourself!

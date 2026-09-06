@@ -1,11 +1,14 @@
-using Playground.ViewModels;
+﻿using Playground.ViewModels;
 using Playground.ViewModels.DialogTest;
 using Playground.ViewModels.Home;
+using Playground.ViewModels.IconsTest;
 using Playground.ViewModels.ParamsTest;
 using Playground.Views;
 using Playground.Views.DialogTest;
 using Playground.Views.Home;
+using Playground.Views.IconsTest;
 using Playground.Views.ParamsTest;
+using Singulink.UI.Navigation;
 using Singulink.UI.Navigation.WinUI;
 using Uno.Resizetizer;
 
@@ -36,6 +39,7 @@ public class AppWindow : Window
         builder.MapRoutedView<HomeViewModel, HomePage>();
         builder.MapRoutedView<DialogTestViewModel, DialogTestPage>();
         builder.MapRoutedView<ParamsTestViewModel, ParamsTestPage>();
+        builder.MapRoutedView<IconsTestViewModel, IconsTestPage>();
         builder.MapRoutedView<ShowParamsTestViewModel, ShowParamsTestPage>();
 
         builder.MapDialog<DismissibleDialogViewModel, DismissibleDialog>();

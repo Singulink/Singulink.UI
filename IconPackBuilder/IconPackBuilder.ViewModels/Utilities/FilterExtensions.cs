@@ -1,4 +1,4 @@
-namespace IconPackBuilder.ViewModels.Utilities;
+﻿namespace IconPackBuilder.ViewModels.Utilities;
 
 public static class FilterExtensions
 {
@@ -21,7 +21,9 @@ public static class FilterExtensions
         return MatchesFilter(value, filterParts);
     }
 
-    private static bool MatchesFilter(string value, string[] filterParts)
+    public static string[] SplitFilter(string filter) => filter.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+    public static bool MatchesFilter(this string value, string[] filterParts)
     {
         foreach (string filterPart in filterParts)
         {

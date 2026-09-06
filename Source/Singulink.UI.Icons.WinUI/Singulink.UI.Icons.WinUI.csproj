@@ -1,0 +1,28 @@
+<Project Sdk="Uno.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Singulink.UI.Icons.WinUI</RootNamespace>
+    <TargetFrameworks>net10.0;net10.0-windows10.0.26100;net10.0-browserwasm;net10.0-desktop</TargetFrameworks>
+    <UnoSingleProject>true</UnoSingleProject>
+    <OutputType>Library</OutputType>
+    <GenerateLibraryLayout>true</GenerateLibraryLayout>
+    <!-- Uno0001: FlowDirection is flagged as not implemented for Android/iOS/native WASM; it is implemented on Skia and the inherited value still flows elsewhere. -->
+    <NoWarn>$(NoWarn);Uno0001</NoWarn>
+
+    <Version>1.1.0</Version>
+    <PackageTags>WinUI; Uno Platform; Icons; RTL; IconPackBuilder;</PackageTags>
+    <Description>WinUI 3 / Uno Platform support for icon packs built with Singulink Icon Pack Builder: flow direction aware font icons.</Description>
+
+    <UnoFeatures>
+      SkiaRenderer;
+    </UnoFeatures>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Singulink.UI.Icons\Singulink.UI.Icons.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+    <PackageReference Remove="Uno.WinUI" />
+    <PackageReference Remove="Uno.WinUI.Graphics2DSK"/>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,76 @@
+﻿<UserControl
+  x:Class="Playground.Views.IconsTest.IconsTestPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:Playground.Views.IconsTest"
+  xmlns:icons="using:Singulink.UI.Icons.WinUI"
+  xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+  Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+  <UserControl.Resources>
+    <FontFamily x:Key="SeagullFont">ms-appx:///Assets/Fonts/SeagullFluentIcons.otf#Seagull Fluent Icons</FontFamily>
+    <Style x:Key="BigIcon" TargetType="FontIcon">
+      <Setter Property="FontFamily" Value="{StaticResource SeagullFont}" />
+      <Setter Property="FontSize" Value="32" />
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer>
+    <StackPanel Spacing="12">
+      <StackPanel Orientation="Horizontal" Spacing="16">
+        <ToggleSwitch x:Name="RtlToggle" Header="Right to left" Toggled="OnRtlToggled" />
+        <Button x:Name="RunChecksButton" Content="Run self-check" Click="OnRunChecksClick" VerticalAlignment="Bottom" />
+      </StackPanel>
+
+      <StackPanel x:Name="Container" Spacing="12">
+        <TextBlock Text="Plain FontIcon (baseline, never changes), AutoDirectionFontIcon (x:Bind), AutoDirectionFontIcon (Binding), AutoDirectionFontIcon without RTL glyph, FontIcon with attached property, IconSourceElement with DirectionalFontIconSource (direction bound to the container):" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Spacing="16">
+          <FontIcon x:Name="PlainIcon" Glyph="{x:Bind local:TestIcons.ArrowPrevious}" Style="{StaticResource BigIcon}" />
+          <icons:AutoDirectionFontIcon x:Name="AutoIcon" Glyph="{x:Bind local:TestIcons.ArrowPrevious}" Style="{StaticResource BigIcon}" />
+          <icons:AutoDirectionFontIcon x:Name="BoundIcon" Glyph="{Binding Icon}" Style="{StaticResource BigIcon}" />
+          <icons:AutoDirectionFontIcon x:Name="NoRtlIcon" Glyph="{x:Bind local:TestIcons.Save}" Style="{StaticResource BigIcon}" />
+          <FontIcon x:Name="AttachedIcon" icons:AutoDirection.Glyph="{x:Bind local:TestIcons.ArrowPrevious}" Style="{StaticResource BigIcon}" />
+          <muxc:IconSourceElement x:Name="SourceElement">
+            <muxc:IconSourceElement.IconSource>
+              <icons:DirectionalFontIconSource Icon="{x:Bind local:TestIcons.ArrowPrevious}" FlowDirection="{x:Bind Container.FlowDirection, Mode=OneWay}"
+                                               FontFamily="{StaticResource SeagullFont}" FontSize="32" />
+            </muxc:IconSourceElement.IconSource>
+          </muxc:IconSourceElement>
+        </StackPanel>
+
+        <MenuBar>
+          <MenuBarItem Title="Menu with AutoDirectionFontIcon item">
+            <MenuFlyoutItem x:Name="MenuItem" Text="Arrow Previous">
+              <MenuFlyoutItem.Icon>
+                <icons:AutoDirectionFontIcon Glyph="{x:Bind local:TestIcons.ArrowPrevious}" FontFamily="{StaticResource SeagullFont}" />
+              </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+          </MenuBarItem>
+        </MenuBar>
+
+        <Button x:Name="FlyoutButton" Content="Button with MenuFlyout">
+          <Button.Flyout>
+            <MenuFlyout>
+              <MenuFlyoutItem x:Name="FlyoutMenuItem" Text="Arrow Previous">
+                <MenuFlyoutItem.Icon>
+                  <icons:AutoDirectionFontIcon x:Name="FlyoutMenuIcon" Glyph="{x:Bind local:TestIcons.ArrowPrevious}" FontFamily="{StaticResource SeagullFont}" />
+                </MenuFlyoutItem.Icon>
+              </MenuFlyoutItem>
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+
+        <muxc:TabView IsAddTabButtonVisible="False" Height="120">
+          <muxc:TabViewItem x:Name="TabItem" Header="Tab with DirectionalFontIconSource" IsClosable="False">
+            <muxc:TabViewItem.IconSource>
+              <icons:DirectionalFontIconSource Icon="{x:Bind local:TestIcons.ArrowPrevious}" FlowDirection="{x:Bind Container.FlowDirection, Mode=OneWay}"
+                                               FontFamily="{StaticResource SeagullFont}" />
+            </muxc:TabViewItem.IconSource>
+          </muxc:TabViewItem>
+        </muxc:TabView>
+      </StackPanel>
+
+      <TextBlock x:Name="Results" FontFamily="Consolas" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

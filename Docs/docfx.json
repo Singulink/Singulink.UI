@@ -8,11 +8,33 @@
         {
           "files": [
             "Singulink.UI.Icons/Singulink.UI.Icons.csproj",
+            "Singulink.UI.Icons.WinUI/Singulink.UI.Icons.WinUI.csproj",
+            "Singulink.UI.Icons.Avalonia/Singulink.UI.Icons.Avalonia.csproj",
+            "Singulink.UI.Icons.Maui/Singulink.UI.Icons.Maui.csproj",
             "Singulink.UI.Navigation/Singulink.UI.Navigation.csproj",
             "Singulink.UI.Navigation.WinUI/Singulink.UI.Navigation.WinUI.csproj",
             "Singulink.UI.Navigation.Testing/Singulink.UI.Navigation.Testing.csproj",
             "Singulink.UI.Tasks/Singulink.UI.Tasks.csproj",
             "Singulink.UI.Xaml.WinUI/Singulink.UI.Xaml.WinUI.csproj"
+          ],
+          "src": "../Source"
+        }
+      ],
+      "dest": "api",
+      "filter": "filterConfig.yml",
+      "memberLayout": "separatePages",
+      "includeExplicitInterfaceImplementations": true,
+      "disableGitFeatures": true,
+      "disableDefaultFilter": false
+    },
+    {
+      "properties": {
+          "TargetFramework": "net10.0-windows"
+      },
+      "src": [
+        {
+          "files": [
+            "Singulink.UI.Icons.Wpf/Singulink.UI.Icons.Wpf.csproj"
           ],
           "src": "../Source"
         }

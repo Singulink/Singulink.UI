@@ -2,6 +2,7 @@
   <Folder Name="/IconPackBuilder/">
     <Project Path="IconPackBuilder/IconPackBuilder.Core/IconPackBuilder.Core.csproj" Id="cddbbbd5-8c5f-4abc-aa77-b112d756194b" />
     <Project Path="IconPackBuilder/IconPackBuilder.Data/IconPackBuilder.Data.csproj" />
+    <Project Path="IconPackBuilder/IconPackBuilder.SeagullAssetsGenerator/IconPackBuilder.SeagullAssetsGenerator.csproj" />
     <Project Path="IconPackBuilder/IconPackBuilder.ViewModels/IconPackBuilder.ViewModels.csproj" />
     <Project Path="IconPackBuilder/IconPackBuilder/IconPackBuilder.csproj">
       <Deploy />
@@ -15,6 +16,10 @@
   </Folder>
   <Folder Name="/Source/">
     <Project Path="Source/Singulink.UI.Icons/Singulink.UI.Icons.csproj" />
+    <Project Path="Source/Singulink.UI.Icons.Avalonia/Singulink.UI.Icons.Avalonia.csproj" />
+    <Project Path="Source/Singulink.UI.Icons.Maui/Singulink.UI.Icons.Maui.csproj" />
+    <Project Path="Source/Singulink.UI.Icons.WinUI/Singulink.UI.Icons.WinUI.csproj" />
+    <Project Path="Source/Singulink.UI.Icons.Wpf/Singulink.UI.Icons.Wpf.csproj" />
     <Project Path="Source/Singulink.UI.Navigation.WinUI/Singulink.UI.Navigation.WinUI.csproj" />
     <Project Path="Source/Singulink.UI.Navigation.Testing/Singulink.UI.Navigation.Testing.csproj" />
     <Project Path="Source/Singulink.UI.Navigation/Singulink.UI.Navigation.csproj" />
@@ -24,7 +29,9 @@
     <Project Path="Source/Singulink.UI.Xaml.WinUI/Singulink.UI.Xaml.WinUI.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="Tests/IconPackBuilder.Tests/IconPackBuilder.Tests.csproj" />
     <Project Path="Tests/Singulink.UI.Navigation.Generators.Tests/Singulink.UI.Navigation.Generators.Tests.csproj" />
+    <Project Path="Tests/Singulink.UI.Icons.Tests/Singulink.UI.Icons.Tests.csproj" />
     <Project Path="Tests/Singulink.UI.Navigation.Tests/Singulink.UI.Navigation.Tests.csproj" />
   </Folder>
 </Solution>

@@ -2,9 +2,16 @@
   x:Class="IconPackBuilder.Views.StartRoot"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:local="using:IconPackBuilder.Views">
+  xmlns:local="using:IconPackBuilder.Views"
+  xmlns:vm="using:IconPackBuilder.ViewModels"
+  xmlns:utu="using:Uno.Toolkit.UI"
+  xmlns:suxc="using:Singulink.UI.Xaml.Converters">
 
-  <Grid>
+  <UserControl.Resources>
+    <FontFamily x:Key="SeagullIconFont">ms-appx:///Assets/Seagull/SeagullFluentIcons.otf#Seagull Fluent Icons</FontFamily>
+  </UserControl.Resources>
+
+  <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20" Width="500" Padding="32">
       <TextBlock Text="Icon Pack Builder" HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold" />
       <TextBlock Text="Create a new project or open an existing one." FontSize="15" HorizontalAlignment="Center" Opacity="0.8" />
@@ -20,6 +27,40 @@
       </StackPanel>
 
       <Button Content="Open existing project" Command="{x:Bind Model.OpenProjectCommand}" HorizontalAlignment="Center" />
+
+      <StackPanel Spacing="6" Visibility="{x:Bind suxc:Visible.IfTrue(Model.HasRecentProjects), Mode=OneWay}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="Recent Projects" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <HyperlinkButton Grid.Column="1" Content="Clear" Command="{x:Bind Model.ClearRecentProjectsCommand}" Padding="6,2" />
+        </Grid>
+
+        <ItemsRepeater ItemsSource="{x:Bind Model.RecentProjects, Mode=OneWay}">
+          <ItemsRepeater.Layout>
+            <StackLayout Spacing="4" />
+          </ItemsRepeater.Layout>
+          <ItemsRepeater.ItemTemplate>
+            <DataTemplate x:DataType="vm:RecentProjectModel">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
+                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="10,6"
+                        Command="{utu:AncestorBinding AncestorType=UserControl, Path=Model.OpenRecentProjectCommand}" CommandParameter="{x:Bind}"
+                        ToolTipService.ToolTip="{x:Bind Path}">
+                  <StackPanel Spacing="2" Opacity="{x:Bind Opacity}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" />
+                      <TextBlock Text="(not found)" Opacity="0.7" Visibility="{x:Bind suxc:Visible.IfTrue(IsMissing)}" />
+                    </StackPanel>
+                    <TextBlock Text="{x:Bind Folder}" FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Button>
+                <Button Grid.Column="1" VerticalAlignment="Stretch" Padding="8,0" ToolTipService.ToolTip="Remove from list"
+                        Command="{utu:AncestorBinding AncestorType=UserControl, Path=Model.RemoveRecentProjectCommand}" CommandParameter="{x:Bind}">
+                  <FontIcon Glyph="&#xF01C0;" FontFamily="{StaticResource SeagullIconFont}" FontSize="14" />
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ItemsRepeater.ItemTemplate>
+        </ItemsRepeater>
+      </StackPanel>
     </StackPanel>
-  </Grid>
+  </ScrollViewer>
 </UserControl>

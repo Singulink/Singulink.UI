@@ -1,0 +1,157 @@
+name: Build pyftsubset binaries
+
+# Builds single-file pyftsubset (fonttools) binaries for every platform the Icon Pack Builder desktop head can run on and
+# publishes them as assets of the "pyftsubset-v<fonttools version>" release. IconPackBuilder/IconPackBuilder/Tools/PyFtSubset.targets
+# downloads the asset for the build platform; bump PyFtSubsetVersion there after publishing a new version.
+#
+# Linux binaries are built inside manylinux_2_28 containers so they run on any glibc 2.28+ distro (Debian 10+, Ubuntu 18.10+,
+# RHEL 8+, Fedora 29+ and derivatives). musl-based distros (Alpine) are not supported by these binaries.
+
+on:
+  workflow_dispatch:
+    inputs:
+      fonttools_version:
+        description: fonttools version to bundle (leave blank for the latest release on PyPI)
+        required: false
+        default: ""
+      publish_release:
+        description: Publish the binaries as a GitHub release
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+env:
+  PYINSTALLER_VERSION: "6.22.2"
+
+jobs:
+  resolve-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - id: resolve
+        shell: bash
+        run: |
+          version="${{ inputs.fonttools_version }}"
+          if [ -z "$version" ]; then
+            version=$(curl -fsSL https://pypi.org/pypi/fonttools/json | python3 -c 'import json,sys; print(json.load(sys.stdin)["info"]["version"])')
+          fi
+          echo "fonttools version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: resolve-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            os: windows-latest
+          - rid: osx-arm64
+            os: macos-14
+          - rid: osx-x64
+            os: macos-15-intel
+          - rid: linux-x64
+            os: ubuntu-latest
+            container: quay.io/pypa/manylinux_2_28_x86_64
+          - rid: linux-arm64
+            os: ubuntu-24.04-arm
+            container: quay.io/pypa/manylinux_2_28_aarch64
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: IconPackBuilder/IconPackBuilder/Tools/build
+
+      - name: Set up Python (GitHub runner)
+        if: ${{ !matrix.container }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Python (manylinux container)
+        if: ${{ matrix.container }}
+        shell: bash
+        run: |
+          dnf install -y binutils
+          echo "/opt/python/cp312-cp312/bin" >> "$GITHUB_PATH"
+
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python --version
+          python -m pip install --upgrade pip
+          python -m pip install "fonttools==${{ needs.resolve-version.outputs.version }}" "pyinstaller==${PYINSTALLER_VERSION}"
+          python -m PyInstaller --onefile --clean --noconfirm \
+            --name "pyftsubset-${{ matrix.rid }}" \
+            --collect-submodules fontTools \
+            IconPackBuilder/IconPackBuilder/Tools/build/entry.py
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin=$(ls dist/pyftsubset-${{ matrix.rid }}*)
+          "$bin" --help | head -n 3
+          python - "$bin" <<'EOF'
+          import subprocess, sys, tempfile, os
+          from fontTools.fontBuilder import FontBuilder
+          from fontTools.pens.ttGlyphPen import TTGlyphPen
+          # Build a tiny font with two glyphs and subset it down to one.
+          fb = FontBuilder(1000, isTTF=True)
+          fb.setupGlyphOrder([".notdef", "a", "b"])
+          fb.setupCharacterMap({0x61: "a", 0x62: "b"})
+          pen = TTGlyphPen(None); pen.moveTo((0, 0)); pen.lineTo((0, 500)); pen.lineTo((500, 500)); pen.closePath()
+          g = pen.glyph()
+          fb.setupGlyf({".notdef": g, "a": g, "b": g})
+          fb.setupHorizontalMetrics({n: (600, 0) for n in [".notdef", "a", "b"]})
+          fb.setupHorizontalHeader(ascent=800, descent=-200)
+          fb.setupNameTable({"familyName": "Smoke", "styleName": "Regular"})
+          fb.setupOS2(); fb.setupPost()
+          d = tempfile.mkdtemp(); src = os.path.join(d, "in.ttf"); out = os.path.join(d, "out.ttf")
+          fb.save(src)
+          subprocess.run([sys.argv[1], src, "--unicodes=U+0061", f"--output-file={out}"], check=True)
+          from fontTools.ttLib import TTFont
+          cmap = TTFont(out).getBestCmap()
+          assert set(cmap) == {0x61}, cmap
+          print("subset OK:", cmap)
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pyftsubset-${{ matrix.rid }}
+          path: dist/pyftsubset-${{ matrix.rid }}*
+          if-no-files-found: error
+
+  release:
+    needs: [resolve-version, build]
+    if: ${{ inputs.publish_release }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.resolve-version.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd dist
+          chmod +x pyftsubset-linux-* pyftsubset-osx-*
+          sha256sum pyftsubset-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          tag="pyftsubset-v${VERSION}"
+          notes="Single-file pyftsubset binaries bundling fonttools ${VERSION} (PyInstaller ${PYINSTALLER_VERSION}). Linux binaries require glibc 2.28 or later. Consumed by IconPackBuilder/IconPackBuilder/Tools/PyFtSubset.targets."
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" pyftsubset-* SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$tag" pyftsubset-* SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --title "pyftsubset ${VERSION} binaries" --notes "$notes" --latest=false
+          fi

@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Maintenance tool that regenerates the Seagull icon assets used by the builder app (IconPackBuilder/Assets/Seagull):
+      - SeagullFluentIcons.otf   : the font, taken from the FluentIcons.WinUI NuGet package.
+      - SeagullFluentIcons.json  : symbols, code points per variant, RTL code points and the Microsoft Fluent UI System Icons
+                                   metadata (description, metaphors, direction type) for each symbol.
+
+    To update to a newer FluentIcons release, set the three properties below to the new versions and run:
+
+      dotnet run -\-project IconPackBuilder/IconPackBuilder.SeagullAssetsGenerator
+
+    The tool needs network access (nuget.org and github.com) and git on the PATH.
+  -->
+  <PropertyGroup>
+    <!-- Package containing the Symbol enum (the symbol IDs and enum values that code points are derived from). -->
+    <FluentIconsCommonVersion>2.1.339.1</FluentIconsCommonVersion>
+    <!-- Package containing SeagullFluentIcons.otf. -->
+    <FluentIconsWinUIVersion>2.2.339.1</FluentIconsWinUIVersion>
+    <!-- Git tag in https://github.com/davidxuang/FluentIcons that the packages were built from. Determines the upstream metadata commit. -->
+    <FluentIconsTag>2.1.339</FluentIconsTag>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>IconPackBuilder.SeagullAssetsGenerator</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentIcons.Common" Version="$(FluentIconsCommonVersion)" />
+    <PackageReference Include="WaterTrans.GlyphLoader.Core" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IconPackBuilder.Core\IconPackBuilder.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="FluentIconsCommonVersion" Value="$(FluentIconsCommonVersion)" />
+    <AssemblyMetadata Include="FluentIconsWinUIVersion" Value="$(FluentIconsWinUIVersion)" />
+    <AssemblyMetadata Include="FluentIconsTag" Value="$(FluentIconsTag)" />
+  </ItemGroup>
+</Project>

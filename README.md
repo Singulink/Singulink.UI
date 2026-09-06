@@ -9,6 +9,10 @@ Details of each component are provided below:
 | Library | Status | Package |
 | --- | --- | --- |
 | **Singulink.UI.Icons** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Icons.svg)](https://www.nuget.org/packages/Singulink.UI.Icons/) |
+| **Singulink.UI.Icons.WinUI** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Icons.WinUI.svg)](https://www.nuget.org/packages/Singulink.UI.Icons.WinUI/) |
+| **Singulink.UI.Icons.Wpf** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Icons.Wpf.svg)](https://www.nuget.org/packages/Singulink.UI.Icons.Wpf/) |
+| **Singulink.UI.Icons.Avalonia** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Icons.Avalonia.svg)](https://www.nuget.org/packages/Singulink.UI.Icons.Avalonia/) |
+| **Singulink.UI.Icons.Maui** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Icons.Maui.svg)](https://www.nuget.org/packages/Singulink.UI.Icons.Maui/) |
 | **Singulink.UI.Navigation** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation/) |
 | **Singulink.UI.Navigation.WinUI** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.WinUI.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation.WinUI/) |
 | **Singulink.UI.Navigation.Testing** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.Testing.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation.Testing/) |
@@ -34,9 +38,22 @@ These packages are part of our **Singulink Libraries** collection. Visit https:/
 
 ### Singulink.UI.Icons
 
-Provides supporting base types that are used by **Icon Pack Builder** when generating strongly-typed icon packs that can be used in any UI framework that supports font-based icons. **Icon Pack Builder** is currently in beta and under development in this repository, and will be documented separately when ready.
+**Icon Pack Builder** (in the [IconPackBuilder](https://github.com/Singulink/Singulink.UI/tree/main/IconPackBuilder) folder) generates trimmed, strongly-typed font icon packs from Microsoft's Fluent UI System Icons (via the [Seagull Fluent Icons](https://github.com/davidxuang/FluentIcons) font). Pick the icons and variants your app uses and it exports a subset font containing only those glyphs plus a generated C# class with a member per icon, so icons are referenced by name and the font stays tiny.
 
-**Supported Platforms**: .NET 8.0+, any UI framework (i.e. UWP/WinUI, Uno Platform, Avalonia, WPF, etc)
+![Icon Pack Builder](Docs/images/icon-pack-builder.png)
+
+**Key Features**:
+
+✔️ Search by name or by Microsoft's metaphor keywords ("trash" finds Delete), with icon descriptions  
+✔️ Regular, Filled, Color and Light variants, with per-icon export names  
+✔️ Right-to-left glyphs for directional icons are exported automatically, and the framework packages display the correct glyph for the current flow direction  
+✔️ Small JSON project file that is safe to commit and reloads when it changes on disk  
+
+The **Singulink.UI.Icons** package provides the base types used by generated packs and is enough on its own for Windows Forms or any framework that renders text. **Singulink.UI.Icons.WinUI** (WinUI 3 and Uno Platform), **Singulink.UI.Icons.Wpf**, **Singulink.UI.Icons.Avalonia** and **Singulink.UI.Icons.Maui** add flow direction aware font icon elements for each framework.
+
+See the [Icon Guides](https://www.singulink.com/Docs/Singulink.UI/articles/icon-guides/getting-started.html) on the documentation site for a walkthrough of the builder and per-framework usage.
+
+**Supported Platforms**: .NET 8.0+ for the base package and WPF/Avalonia packages; .NET 10.0+ for WinUI (WinAppSDK 1.7+), Uno Platform 6.5+ and .NET MAUI
 
 ### Singulink.UI.Navigation
 

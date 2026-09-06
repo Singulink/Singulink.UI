@@ -11,5 +11,19 @@ public sealed partial class EditorRoot : UserControl
     public EditorRoot()
     {
         InitializeComponent();
+
+        DataContextChanged += (s, e) => {
+            if (e.NewValue is EditorRootModel model)
+                model.PropertyChanged += OnModelPropertyChanged;
+        };
     }
+
+    private void OnModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        // Start from the top whenever the filter produces a new list.
+        if (e.PropertyName is nameof(EditorRootModel.FilteredIconGroups))
+            IconGroupsScrollViewer.ChangeView(null, 0, null, disableAnimation: true);
+    }
+
+    private void OnIconGroupClick(object sender, RoutedEventArgs e) => Model.SelectedIconGroup = (IconGroupModel)((Button)sender).DataContext;
 }

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Playground.ViewModels.DialogTest;
 using Playground.ViewModels.Home;
+using Playground.ViewModels.IconsTest;
 using Playground.ViewModels.ParamsTest;
 using Singulink.UI.Navigation;
 
@@ -26,6 +27,9 @@ public static class Routes
         public static ChildRoutePart<MainViewModel, ParamsTestViewModel> ParamsTestChild { get; } =
             Route.Build("ParamsTest").Child<MainViewModel, ParamsTestViewModel>();
 
+        public static ChildRoutePart<MainViewModel, IconsTestViewModel> IconsTestChild { get; } =
+            Route.Build("IconsTest").Child<MainViewModel, IconsTestViewModel>();
+
         public static ChildRoutePart<MainViewModel, ShowParamsTestViewModel, ShowParamsTestViewModel.Params> ShowParamsTestChild { get; } =
             Route.BuildGroup<ShowParamsTestViewModel.Params>()
                 .Add(p => $"ParamsTest/Show/{p.IntValue}")
@@ -40,6 +44,7 @@ public static class Routes
         builder.AddRoute(Main.HomeChild);
         builder.AddRoute(Main.DialogTestChild);
         builder.AddRoute(Main.ParamsTestChild);
+        builder.AddRoute(Main.IconsTestChild);
         builder.AddRoute(Main.ShowParamsTestChild);
     }
 }

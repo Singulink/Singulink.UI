@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <UseMaui>true</UseMaui>
+    <RootNamespace>Singulink.UI.Icons.Maui</RootNamespace>
+
+    <Version>1.1.0</Version>
+    <PackageTags>MAUI; Icons; RTL; IconPackBuilder;</PackageTags>
+    <Description>.NET MAUI support for icon packs built with Singulink Icon Pack Builder: flow direction aware font icons.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Singulink.UI.Icons\Singulink.UI.Icons.csproj" />
+  </ItemGroup>
+</Project>

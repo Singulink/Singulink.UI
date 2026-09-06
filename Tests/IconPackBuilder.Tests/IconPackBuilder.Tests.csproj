@@ -1,0 +1,22 @@
+<Project Sdk="MSTest.Sdk/4.0.2">
+  <PropertyGroup>
+    <RootNamespace>IconPackBuilder.Tests</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\IconPackBuilder\IconPackBuilder.Core\IconPackBuilder.Core.csproj" />
+    <ProjectReference Include="..\..\IconPackBuilder\IconPackBuilder.Data\IconPackBuilder.Data.csproj" />
+    <ProjectReference Include="..\..\IconPackBuilder\IconPackBuilder.ViewModels\IconPackBuilder.ViewModels.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Navigation\Singulink.UI.Navigation.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.Testing\Singulink.UI.Navigation.Testing.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.Generators\Singulink.UI.Navigation.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The Seagull icon source reads its assets from the app base directory, so mirror the builder app's asset layout in the test output. -->
+    <Content Include="..\..\IconPackBuilder\IconPackBuilder\Assets\Seagull\*" Link="Assets\Seagull\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Only the Windows binary is committed; other platforms are downloaded by the app project at build time. -->
+    <Content Include="..\..\IconPackBuilder\IconPackBuilder\Tools\win-x64\pyftsubset.exe" Link="Tools\win-x64\pyftsubset.exe" CopyToOutputDirectory="PreserveNewest" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+  </ItemGroup>
+</Project>

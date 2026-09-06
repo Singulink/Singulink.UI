@@ -8,7 +8,8 @@ using Singulink.UI.Navigation;
 
 namespace IconPackBuilder.ViewModels;
 
-public partial class StartRootModel(IconsSource iconsSource, IFileDialogHandler fileDialogHandler) : ObservableObject, IRoutedViewModel
+public partial class StartRootModel(IconsSource iconsSource, IFileDialogHandler fileDialogHandler, IRecentProjectsStore recentProjects)
+    : ObservableObject, IRoutedViewModel
 {
     private static readonly string[] ProjectFileFilters = [".ipproj"];
     private static readonly JsonSerializerOptions ProjectJsonOptions = new() { WriteIndented = true };
@@ -17,7 +18,19 @@ public partial class StartRootModel(IconsSource iconsSource, IFileDialogHandler 
     [NotifyCanExecuteChangedFor(nameof(CreateProjectCommand))]
     public partial string NewProjectName { get; set; } = string.Empty;
 
+    [ObservableProperty]
+    public partial IReadOnlyList<RecentProjectModel> RecentProjects { get; private set; } = [];
+
+    [ObservableProperty]
+    public partial bool HasRecentProjects { get; private set; }
+
     private bool CanCreateProject => IsValidProjectName(NewProjectName);
+
+    public Task OnNavigatedToAsync(NavigationArgs args)
+    {
+        RefreshRecentProjects();
+        return Task.CompletedTask;
+    }
 
     [RelayCommand(CanExecute = nameof(CanCreateProject))]
     private async Task CreateProjectAsync()
@@ -50,6 +63,53 @@ public partial class StartRootModel(IconsSource iconsSource, IFileDialogHandler 
             return;
 
         await this.Navigator.NavigateAsync(Routes.EditorRoot.ToConcrete(filePath.PathDisplay));
+    }
+
+    [RelayCommand]
+    private async Task OpenRecentProjectAsync(RecentProjectModel project)
+    {
+        if (!File.Exists(project.Path))
+        {
+            int result = await this.Navigator.ShowMessageDialogAsync(
+                $"The project file no longer exists:\n{project.Path}\n\nDo you want to remove it from the recent projects list?",
+                "Project Not Found",
+                ["Remove", "Keep"]);
+
+            if (result is 0)
+                await RemoveRecentProjectAsync(project);
+            else
+                RefreshRecentProjects();
+
+            return;
+        }
+
+        await this.Navigator.NavigateAsync(Routes.EditorRoot.ToConcrete(project.Path));
+    }
+
+    [RelayCommand]
+    private async Task RemoveRecentProjectAsync(RecentProjectModel project)
+    {
+        await recentProjects.RemoveAsync(project.Path);
+        RefreshRecentProjects();
+    }
+
+    [RelayCommand]
+    private async Task ClearRecentProjectsAsync()
+    {
+        int result = await this.Navigator.ShowMessageDialogAsync(
+            "Do you want to clear the recent projects list?", "Clear Recent Projects", ["Clear", "Cancel"]);
+
+        if (result is 0)
+        {
+            await recentProjects.ClearAsync();
+            RefreshRecentProjects();
+        }
+    }
+
+    private void RefreshRecentProjects()
+    {
+        RecentProjects = [.. recentProjects.Projects.Select(p => new RecentProjectModel(p))];
+        HasRecentProjects = RecentProjects.Count > 0;
     }
 
     private static bool IsValidProjectName(string? projectName)

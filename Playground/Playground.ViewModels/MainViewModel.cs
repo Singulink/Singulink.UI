@@ -10,7 +10,8 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel, IMessag
     public IReadOnlyList<MenuItem> MainMenuItems { get; } = [
         new("Home", Routes.Main.HomeChild),
         new("Dialog Test", Routes.Main.DialogTestChild),
-        new("Parameters Test", Routes.Main.ParamsTestChild)
+        new("Parameters Test", Routes.Main.ParamsTestChild),
+        new("Icons Test", Routes.Main.IconsTestChild)
     ];
 
     public IReadOnlyList<MenuItem> FooterMenuItems { get; } = [

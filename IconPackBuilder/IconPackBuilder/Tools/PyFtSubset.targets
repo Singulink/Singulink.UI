@@ -1,0 +1,58 @@
+<Project>
+
+  <!--
+    Bundles the single-file pyftsubset binary for the target platform into the app's Tools/<rid> folder.
+
+    Binaries are built by the "Build pyftsubset binaries" GitHub Actions workflow and published as assets of the
+    "pyftsubset-v<fonttools version>" release. The Windows x64 binary is committed to the repo; other platforms are
+    downloaded into obj/ on first build when building on (or publishing for) that platform.
+  -->
+
+  <PropertyGroup>
+    <PyFtSubsetVersion Condition="'$(PyFtSubsetVersion)' == ''">4.64.0</PyFtSubsetVersion>
+    <PyFtSubsetReleaseUrl Condition="'$(PyFtSubsetReleaseUrl)' == ''">https://github.com/Singulink/Singulink.UI/releases/download/pyftsubset-v$(PyFtSubsetVersion)</PyFtSubsetReleaseUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="Tools\*\pyftsubset;Tools\*\pyftsubset.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+  <Target Name="ResolvePyFtSubsetBinary" BeforeTargets="AssignTargetPaths">
+    <PropertyGroup>
+      <_PyFtRid>$(RuntimeIdentifier)</_PyFtRid>
+      <_PyFtArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</_PyFtArch>
+      <_PyFtArch>$(_PyFtArch.ToLowerInvariant())</_PyFtArch>
+      <_PyFtRid Condition="'$(_PyFtRid)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">win-$(_PyFtArch)</_PyFtRid>
+      <_PyFtRid Condition="'$(_PyFtRid)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">osx-$(_PyFtArch)</_PyFtRid>
+      <_PyFtRid Condition="'$(_PyFtRid)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">linux-$(_PyFtArch)</_PyFtRid>
+      <_PyFtExeExt Condition="$(_PyFtRid.StartsWith('win'))">.exe</_PyFtExeExt>
+      <_PyFtExe>pyftsubset$(_PyFtExeExt)</_PyFtExe>
+      <_PyFtCommittedFile>$(MSBuildThisFileDirectory)$(_PyFtRid)\$(_PyFtExe)</_PyFtCommittedFile>
+      <_PyFtDownloadDir>$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)pyftsubset\$(PyFtSubsetVersion)\$(_PyFtRid)\</_PyFtDownloadDir>
+      <_PyFtDownloadedFile>$(_PyFtDownloadDir)$(_PyFtExe)</_PyFtDownloadedFile>
+      <_PyFtNeedsDownload>false</_PyFtNeedsDownload>
+      <_PyFtNeedsDownload Condition="'$(_PyFtRid)' != '' and !Exists('$(_PyFtCommittedFile)')">true</_PyFtNeedsDownload>
+    </PropertyGroup>
+
+    <DownloadFile Condition="'$(_PyFtNeedsDownload)' == 'true' and !Exists('$(_PyFtDownloadedFile)')"
+                  SourceUrl="$(PyFtSubsetReleaseUrl)/pyftsubset-$(_PyFtRid)$(_PyFtExeExt)"
+                  DestinationFolder="$(_PyFtDownloadDir)"
+                  DestinationFileName="$(_PyFtExe)"
+                  ContinueOnError="WarnAndContinue" />
+
+    <Warning Condition="'$(_PyFtNeedsDownload)' == 'true' and !Exists('$(_PyFtDownloadedFile)')"
+             Text="pyftsubset binary for '$(_PyFtRid)' is not available. Exporting will fall back to 'pyftsubset' on the PATH or a Python installation with fonttools." />
+
+    <!-- Cross-publishing from Windows cannot set the bit; PyFtSubsetter sets it at runtime if it is missing. -->
+    <Exec Condition="'$(_PyFtNeedsDownload)' == 'true' and Exists('$(_PyFtDownloadedFile)') and '$(_PyFtExeExt)' == '' and !$([MSBuild]::IsOSPlatform('Windows'))"
+          Command="chmod +x &quot;$(_PyFtDownloadedFile)&quot;" />
+
+    <ItemGroup Condition="'$(_PyFtNeedsDownload)' == 'true' and Exists('$(_PyFtDownloadedFile)')">
+      <None Include="$(_PyFtDownloadedFile)" Link="Tools\$(_PyFtRid)\$(_PyFtExe)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
+</Project>

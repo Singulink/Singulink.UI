@@ -1,2 +1,4 @@
 - name: Navigation Guides
   href: navigation-guides/toc.yml
+- name: Icon Guides
+  href: icon-guides/toc.yml

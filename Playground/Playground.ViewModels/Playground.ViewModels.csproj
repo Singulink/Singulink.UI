@@ -8,6 +8,7 @@
     <ProjectReference Include="..\..\Source\Singulink.UI.Navigation\Singulink.UI.Navigation.csproj" />
     <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.Generators\Singulink.UI.Navigation.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
     <ProjectReference Include="..\..\Source\Singulink.UI.Tasks\Singulink.UI.Tasks.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Icons\Singulink.UI.Icons.csproj" />
   </ItemGroup>
 
   <ItemGroup>

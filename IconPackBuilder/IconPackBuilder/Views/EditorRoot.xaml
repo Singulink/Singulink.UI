@@ -5,24 +5,54 @@
   xmlns:local="using:IconPackBuilder.Views"
   xmlns:vm="using:IconPackBuilder.ViewModels"
   xmlns:utu="using:Uno.Toolkit.UI"
-  xmlns:suxc="using:Singulink.UI.Xaml.Converters"
-  xmlns:fi="using:FluentIcons.WinUI.Markup">
+  xmlns:suxc="using:Singulink.UI.Xaml.Converters">
+
+  <UserControl.Resources>
+    <FontFamily x:Key="SeagullIconFont">ms-appx:///Assets/Seagull/SeagullFluentIcons.otf#Seagull Fluent Icons</FontFamily>
+    <Style x:Key="IconGroupTileStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+  </UserControl.Resources>
 
   <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,280">
     <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6" Margin="10" HorizontalAlignment="Left">
       <MenuBar VerticalAlignment="Center">
         <MenuBarItem Title="File" AccessKey="F">
-          <MenuFlyoutItem Text="Save" AccessKey="S" Command="{x:Bind Model.SaveProjectCommand}" Icon="{fi:SymbolIcon Symbol=Save}">
+          <MenuFlyoutItem Text="Save" AccessKey="S" Command="{x:Bind Model.SaveProjectCommand}">
+            <MenuFlyoutItem.Icon>
+              <FontIcon Glyph="&#xF03E4;" FontFamily="{StaticResource SeagullIconFont}" />
+            </MenuFlyoutItem.Icon>
             <MenuFlyoutItem.KeyboardAccelerators>
               <KeyboardAccelerator Key="S" Modifiers="Control" />
             </MenuFlyoutItem.KeyboardAccelerators>
           </MenuFlyoutItem>
-          <MenuFlyoutItem Text="Export" AccessKey="E" Command="{x:Bind Model.ExportProjectCommand}" Icon="{fi:SymbolIcon Symbol=ArrowSquareUpRight}" />
-          <MenuFlyoutItem Text="Preview" AccessKey="P" Command="{x:Bind Model.PreviewIconPackCommand}" Icon="{fi:SymbolIcon Symbol=Eye}" />
+          <MenuFlyoutItem Text="Export" AccessKey="E" Command="{x:Bind Model.ExportProjectCommand}">
+            <MenuFlyoutItem.Icon>
+              <FontIcon Glyph="&#xF2400;" FontFamily="{StaticResource SeagullIconFont}" />
+            </MenuFlyoutItem.Icon>
+          </MenuFlyoutItem>
+          <MenuFlyoutItem Text="Preview" AccessKey="P" Command="{x:Bind Model.PreviewIconPackCommand}">
+            <MenuFlyoutItem.Icon>
+              <FontIcon Glyph="&#xF1C80;" FontFamily="{StaticResource SeagullIconFont}" />
+            </MenuFlyoutItem.Icon>
+          </MenuFlyoutItem>
           <MenuFlyoutSeparator />
-          <MenuFlyoutItem Text="Close" AccessKey="C" Command="{x:Bind Model.CloseCommand}" Icon="{fi:SymbolIcon Symbol=SignOut}" />
+          <MenuFlyoutItem Text="Close" AccessKey="C" Command="{x:Bind Model.CloseCommand}">
+            <MenuFlyoutItem.Icon>
+              <FontIcon Glyph="&#xF0428;" FontFamily="{StaticResource SeagullIconFont}" />
+            </MenuFlyoutItem.Icon>
+          </MenuFlyoutItem>
           <MenuFlyoutSeparator />
-          <MenuFlyoutItem Text="Exit" AccessKey="X" Command="{x:Bind Model.ExitCommand}" Icon="{fi:SymbolIcon Symbol=Dismiss}" />
+          <MenuFlyoutItem Text="Exit" AccessKey="X" Command="{x:Bind Model.ExitCommand}">
+            <MenuFlyoutItem.Icon>
+              <FontIcon Glyph="&#xF01C0;" FontFamily="{StaticResource SeagullIconFont}" />
+            </MenuFlyoutItem.Icon>
+          </MenuFlyoutItem>
         </MenuBarItem>
       </MenuBar>
       <TextBox PlaceholderText="Filter" VerticalAlignment="Center" Width="200"
@@ -38,36 +68,44 @@
       </Grid>
     </StackPanel>
 
-    <GridView Grid.Row="1" Grid.Column="0" ItemsSource="{x:Bind Model.FilteredIconGroups, Mode=OneWay}" SelectionMode="Single"
-              SelectedItem="{x:Bind Model.SelectedIconGroup, Mode=TwoWay}" HorizontalAlignment="Center">
-      <GridView.ItemContainerStyle>
-        <Style TargetType="GridViewItem" BasedOn="{StaticResource DefaultGridViewItemStyle}">
-          <Setter Property="Margin" Value="0,0,8,4" />
-        </Style>
-      </GridView.ItemContainerStyle>
-      <GridView.ItemTemplate>
-        <DataTemplate x:DataType="vm:IconGroupModel">
-          <Grid Background="#111111">
-            <Grid Background="#2235C759" Visibility="{x:Bind suxc:Visible.IfTrue(HasSelectedIcons), Mode=OneWay}">
-              <Ellipse Width="8" Height="8" Fill="#35C759" StrokeThickness="0" Margin="4"
-                       HorizontalAlignment="Right" VerticalAlignment="Top" />
-            </Grid>
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,4,14,4">
-              <FontIcon Glyph="{x:Bind ActiveIconInfo.Glyph, Mode=OneWay}" FontSize="32" Width="32" Height="32"
-                        FontFamily="{utu:AncestorBinding AncestorType=UserControl, Path=IconFontFamily}" />
-              <TextBlock Text="{x:Bind Info.Name}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2"
-                         Width="110" FontSize="10" VerticalAlignment="Center" />
-            </StackPanel>
-          </Grid>
-        </DataTemplate>
-      </GridView.ItemTemplate>
-    </GridView>
+    <ScrollViewer x:Name="IconGroupsScrollViewer" Grid.Row="1" Grid.Column="0" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+      <!-- ItemsRepeater is used instead of GridView because GridView does not virtualize on Skia. -->
+      <ItemsRepeater ItemsSource="{x:Bind Model.FilteredIconGroups, Mode=OneWay}" Margin="10,0,10,10" XYFocusKeyboardNavigation="Enabled">
+        <ItemsRepeater.Layout>
+          <UniformGridLayout MinItemWidth="168" MinItemHeight="40" MinRowSpacing="4" MinColumnSpacing="8" ItemsStretch="None" />
+        </ItemsRepeater.Layout>
+        <ItemsRepeater.ItemTemplate>
+          <DataTemplate x:DataType="vm:IconGroupModel">
+            <Button Style="{StaticResource IconGroupTileStyle}" Click="OnIconGroupClick" ToolTipService.ToolTip="{x:Bind Info.Description}">
+              <Grid Background="#111111" Width="168" Height="40">
+                <Grid Background="#2235C759" Visibility="{x:Bind suxc:Visible.IfTrue(HasSelectedIcons), Mode=OneWay}">
+                  <Ellipse Width="8" Height="8" Fill="#35C759" StrokeThickness="0" Margin="4"
+                           HorizontalAlignment="Right" VerticalAlignment="Top" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,4,14,4">
+                  <FontIcon Glyph="{x:Bind ActiveIconInfo.Glyph, Mode=OneWay}" FontSize="32" Width="32" Height="32"
+                            FontFamily="{utu:AncestorBinding AncestorType=UserControl, Path=IconFontFamily}" />
+                  <TextBlock Text="{x:Bind Info.Name}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2"
+                             Width="110" FontSize="10" VerticalAlignment="Center" />
+                </StackPanel>
+                <Border BorderBrush="{ThemeResource SystemControlHighlightAccentBrush}" BorderThickness="2"
+                        Visibility="{x:Bind suxc:Visible.IfTrue(IsSelected), Mode=OneWay}" />
+              </Grid>
+            </Button>
+          </DataTemplate>
+        </ItemsRepeater.ItemTemplate>
+      </ItemsRepeater>
+    </ScrollViewer>
 
     <ContentControl Grid.Row="1" Grid.Column="1" Content="{x:Bind Model.SelectedIconGroup, Mode=OneWay}" HorizontalContentAlignment="Stretch">
       <ContentControl.ContentTemplate>
         <DataTemplate x:DataType="vm:IconGroupModel">
           <StackPanel Padding="8" Spacing="8">
             <TextBlock Text="{x:Bind Info.Name}" FontWeight="Bold" FontSize="16" TextWrapping="Wrap" />
+            <TextBlock Text="{x:Bind Info.Description}" Visibility="{x:Bind suxc:Visible.IfNotNull(Info.Description)}"
+                       TextWrapping="Wrap" FontSize="12" Opacity="0.8" />
+            <TextBlock Text="{x:Bind KeywordsText}" Visibility="{x:Bind suxc:Visible.IfNotNull(KeywordsText)}"
+                       TextWrapping="Wrap" FontSize="11" Opacity="0.6" />
             <TextBox Header="Export name" PlaceholderText="{x:Bind Info.Id}" Text="{x:Bind ExportName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             <ItemsRepeater ItemsSource="{x:Bind Icons}">
               <ItemsRepeater.ItemTemplate>

@@ -46,5 +46,6 @@
     <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.WinUI\Singulink.UI.Navigation.WinUI.csproj" />
     <ProjectReference Include="..\..\Source\Singulink.UI.Tasks\Singulink.UI.Tasks.csproj" />
     <ProjectReference Include="..\..\Source\Singulink.UI.Xaml.WinUI\Singulink.UI.Xaml.WinUI.csproj" />
+    <ProjectReference Include="..\..\Source\Singulink.UI.Icons.WinUI\Singulink.UI.Icons.WinUI.csproj" />
   </ItemGroup>
 </Project>

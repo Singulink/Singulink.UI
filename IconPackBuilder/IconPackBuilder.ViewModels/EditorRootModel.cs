@@ -1,5 +1,6 @@
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,7 +15,7 @@ using Timer = System.Timers.Timer;
 
 namespace IconPackBuilder.ViewModels;
 
-public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string>, IRoutedViewModelBase
+public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string>, IRoutedViewModelBase, IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -23,9 +24,15 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
     private readonly IWindow _window;
     private readonly IFontSubsetter _fontSubsetter;
     private readonly IReadOnlyList<IExporter> _exporters;
+    private readonly IRecentProjectsStore _recentProjects;
 
-    private FileStream? _projectStream;
+    private readonly Lock _reloadTimerLock = new();
+
     private Timer? _nameFilterDebounceTimer;
+    private Timer? _reloadDebounceTimer;
+    private FileSystemWatcher? _projectFileWatcher;
+    private byte[]? _projectFileHash;
+    private bool _isHandlingExternalChange;
 
     public bool CanBeCached => false;
 
@@ -77,8 +84,19 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
     [ObservableProperty]
     public partial IconGroupModel? SelectedIconGroup { get; set; }
 
-    public EditorRootModel(IWindow window, IconsSource iconsSource, IFontSubsetter fontSubsetter, IEnumerable<IExporter> exporters)
+    partial void OnSelectedIconGroupChanged(IconGroupModel? oldValue, IconGroupModel? newValue)
     {
+        if (oldValue is not null)
+            oldValue.IsSelected = false;
+
+        if (newValue is not null)
+            newValue.IsSelected = true;
+    }
+
+    public EditorRootModel(
+        IWindow window, IconsSource iconsSource, IFontSubsetter fontSubsetter, IEnumerable<IExporter> exporters, IRecentProjectsStore recentProjects)
+    {
+        _recentProjects = recentProjects;
         _window = window;
         IconsSource = iconsSource;
         _fontSubsetter = fontSubsetter;
@@ -121,17 +139,24 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
         }
     }
 
-    public async Task OnNavigatedAwayAsync()
+    /// <summary>
+    /// Releases the project file watcher and timers. Called by the navigator when the view model is discarded after navigating away.
+    /// </summary>
+    public void Dispose()
     {
-        if (_projectStream is not null)
+        _projectFileWatcher?.Dispose();
+        _projectFileWatcher = null;
+
+        lock (_reloadTimerLock)
         {
-            await _projectStream.DisposeAsync();
-            _projectStream = null;
+            _reloadDebounceTimer?.Dispose();
+            _reloadDebounceTimer = null;
         }
 
-        _nameFilterDebounceTimer?.Stop();
         _nameFilterDebounceTimer?.Dispose();
         _nameFilterDebounceTimer = null;
+
+        GC.SuppressFinalize(this);
     }
 
     [RelayCommand]
@@ -257,12 +282,15 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
 
         if (!string.IsNullOrWhiteSpace(NameFilter))
         {
-            filtered = filtered.Filter(NameFilter, ig => {
-                if (string.IsNullOrWhiteSpace(ig.ExportName))
-                    return ig.Info.Name;
+            // Name matches rank above keyword-only matches; OrderBy is stable so groups keep their name order within each rank.
 
-                return $"{ig.Info.Name} {ig.ExportName}";
-            });
+            string[] filterParts = FilterExtensions.SplitFilter(NameFilter);
+
+            filtered = filtered
+                .Select(ig => (Group: ig, Rank: ig.GetFilterRank(filterParts)))
+                .Where(x => x.Rank > 0)
+                .OrderByDescending(x => x.Rank)
+                .Select(x => x.Group);
         }
 
         if (RtlVersionsOnlyFilter)
@@ -287,11 +315,11 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
         }
 
         Project? project;
+        byte[] hash;
 
         try
         {
-            _projectStream = ProjectFile.OpenAsyncStream(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            project = await JsonSerializer.DeserializeAsync<Project>(_projectStream, JsonOptions);
+            (project, hash) = await ReadProjectFileAsync();
         }
         catch (Exception ex)
         {
@@ -315,6 +343,41 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
             return;
         }
 
+        var warnings = ApplyProject(project);
+        _projectFileHash = hash;
+        StartWatchingProjectFile();
+        await _recentProjects.AddOrUpdateAsync(ProjectFile.PathDisplay, ProjectName);
+
+        if (warnings.Count > 0)
+            await this.Navigator.ShowMessageDialogAsync(string.Join("\n", warnings), "Project Load Warnings");
+    }
+
+    /// <summary>
+    /// Reads and deserializes the project file without holding it open, so other programs (e.g. git) can read and replace it while the editor is
+    /// open. Retries briefly if another process is still writing the file.
+    /// </summary>
+    private async Task<(Project? Project, byte[] Hash)> ReadProjectFileAsync()
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            try
+            {
+                byte[] bytes = await File.ReadAllBytesAsync(ProjectFile.PathExport);
+                var project = JsonSerializer.Deserialize<Project>(new MemoryStream(bytes), JsonOptions);
+                return (project, SHA256.HashData(bytes));
+            }
+            catch (IOException) when (attempt < 5)
+            {
+                await Task.Delay(100);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resets the editor state and applies the given project to it. Returns warnings to show the user, if any.
+    /// </summary>
+    private List<string> ApplyProject(Project project)
+    {
         var warnings = new List<string>();
         bool hasVersionDowngrade = project.IconsSourceVersion > IconsSource.Version;
 
@@ -328,9 +391,15 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
 
         ProjectName = project.Name;
 
-        bool hasMissingIcons = false;
+        foreach (var iconGroup in _iconGroups)
+        {
+            iconGroup.ExportName = string.Empty;
 
-        // Apply icon exports
+            foreach (var icon in iconGroup.Icons)
+                icon.IsSelected = false;
+        }
+
+        bool hasMissingIcons = false;
 
         foreach (var export in project.IconExports)
         {
@@ -362,7 +431,7 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
         {
             warnings.Add("\nWARNING: Missing icons were not loaded and will be removed if you save the project.");
         }
-        else if (hasVersionDowngrade && !hasMissingIcons)
+        else if (hasVersionDowngrade)
         {
             warnings.Add(
                 $"No icons were missing despite the version downgrade. " +
@@ -370,22 +439,108 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
         }
 
         IsDirty = false;
+        return warnings;
+    }
 
-        if (warnings.Count > 0)
+    private void StartWatchingProjectFile()
+    {
+        _projectFileWatcher = new FileSystemWatcher(ProjectFile.ParentDirectory.PathExport, Path.GetFileName(ProjectFile.PathExport)) {
+            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.CreationTime,
+        };
+
+        // Most programs (including git) write a new file and rename it into place, so renames and creations matter as much as writes.
+        _projectFileWatcher.Changed += OnProjectFileChanged;
+        _projectFileWatcher.Created += OnProjectFileChanged;
+        _projectFileWatcher.Renamed += OnProjectFileChanged;
+        _projectFileWatcher.EnableRaisingEvents = true;
+    }
+
+    private void OnProjectFileChanged(object sender, FileSystemEventArgs e) => ScheduleExternalChangeCheck(300);
+
+    /// <summary>
+    /// Debounces file change notifications (writers typically raise several per save) and moves handling to the UI thread. Called from watcher
+    /// and timer threads.
+    /// </summary>
+    private void ScheduleExternalChangeCheck(double delayMs)
+    {
+        lock (_reloadTimerLock)
         {
-            string message = string.Join("\n", warnings);
-            await this.Navigator.ShowMessageDialogAsync(message, "Project Load Warnings");
+            if (_projectFileWatcher is null)
+                return;
+
+            _reloadDebounceTimer?.Dispose();
+            _reloadDebounceTimer = new Timer(delayMs) { AutoReset = false };
+            _reloadDebounceTimer.Elapsed += (s, e) => this.TaskRunner.Post(() => _ = HandleExternalChangeAsync());
+            _reloadDebounceTimer.Start();
+        }
+    }
+
+    private async Task HandleExternalChangeAsync()
+    {
+        if (_projectFileWatcher is null)
+            return;
+
+        // Only the top dialog can show dialogs, so wait until nothing is showing (including our own reload prompt) before handling the change.
+        if (_isHandlingExternalChange || !this.Navigator.CanShowDialog)
+        {
+            ScheduleExternalChangeCheck(1000);
+            return;
+        }
+
+        _isHandlingExternalChange = true;
+
+        try
+        {
+            // Deleted (e.g. by a branch switch): keep the editor state and let the next save recreate the file.
+            if (!ProjectFile.Exists)
+                return;
+
+            var (project, hash) = await ReadProjectFileAsync();
+
+            if (_projectFileHash is not null && hash.AsSpan().SequenceEqual(_projectFileHash))
+                return;
+
+            if (project is null || project.IconsSourceId != IconsSource.Id)
+            {
+                _projectFileHash = hash;
+                await this.Navigator.ShowMessageDialogAsync(
+                    "The project file was changed outside the editor but is no longer a valid project for this icon source. " +
+                    "The editor state was left unchanged.", "Project Changed On Disk");
+                return;
+            }
+
+            if (IsDirty)
+            {
+                int result = await this.Navigator.ShowMessageDialogAsync(
+                    "The project file was changed outside the editor. Do you want to reload it and discard your unsaved changes?",
+                    "Project Changed On Disk", ["Reload", "Keep My Changes"]);
+
+                if (result is 1)
+                {
+                    // Remember the on-disk content so the same change is not prompted for again. Saving will overwrite it.
+                    _projectFileHash = hash;
+                    return;
+                }
+            }
+
+            var warnings = ApplyProject(project);
+            _projectFileHash = hash;
+
+            if (warnings.Count > 0)
+                await this.Navigator.ShowMessageDialogAsync(string.Join("\n", warnings), "Project Reload Warnings");
+        }
+        catch (Exception ex)
+        {
+            await this.Navigator.ShowMessageDialogAsync($"Failed to reload project file:\n{ex.Message}");
+        }
+        finally
+        {
+            _isHandlingExternalChange = false;
         }
     }
 
     private async Task<bool> SaveProjectInternalAsync()
     {
-        if (_projectStream is null)
-        {
-            await this.Navigator.ShowMessageDialogAsync("Project file stream is not available.");
-            return false;
-        }
-
         try
         {
             var exports = new List<IconExport>();
@@ -408,11 +563,15 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
                 IconExports = exports,
             };
 
-            _projectStream.SetLength(0);
-            _projectStream.Position = 0;
+            byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(project, JsonOptions);
 
-            await JsonSerializer.SerializeAsync(_projectStream, project, JsonOptions);
-            await _projectStream.FlushAsync();
+            // Write to a temporary file and move it into place so the project file is never observed half-written. The hash is recorded first so
+            // the watcher recognizes the resulting change as our own.
+            _projectFileHash = SHA256.HashData(bytes);
+
+            string tempPath = ProjectFile.PathExport + ".tmp";
+            await File.WriteAllBytesAsync(tempPath, bytes);
+            File.Move(tempPath, ProjectFile.PathExport, overwrite: true);
 
             IsDirty = false;
             return true;
