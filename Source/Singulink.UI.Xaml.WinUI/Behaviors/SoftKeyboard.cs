@@ -5,6 +5,9 @@ namespace Singulink.UI.Xaml.Behaviors;
 
 /// <summary>
 /// Provides attached properties and methods for soft keyboard behavior.
+/// Accessors take a <see cref="DependencyObject"/> rather than the supported element type because the WinUI x:Bind code generator passes attached
+/// property targets as <see cref="DependencyObject"/>, so narrower parameter types fail to compile when the property is set with x:Bind. Unsupported
+/// targets throw when the property is set.
 /// </summary>
 public static class SoftKeyboard
 {
@@ -24,12 +27,12 @@ public static class SoftKeyboard
     /// <summary>
     /// Gets a value indicating whether the control shows a "Done" button above the iOS soft keyboard that dismisses it.
     /// </summary>
-    public static bool GetDismissable(Control control) => (bool)control.GetValue(DismissableProperty);
+    public static bool GetDismissable(DependencyObject control) => (bool)control.GetValue(DismissableProperty);
 
     /// <summary>
     /// Sets a value indicating whether the control shows a "Done" button above the iOS soft keyboard that dismisses it.
     /// </summary>
-    public static void SetDismissable(Control control, bool value) => control.SetValue(DismissableProperty, value);
+    public static void SetDismissable(DependencyObject control, bool value) => control.SetValue(DismissableProperty, value);
 
     /// <summary>
     /// Dismisses the soft keyboard by moving focus off the specified control (so that pending focus-loss updates like <c>LostFocus</c>-triggered bindings are
@@ -70,8 +73,10 @@ public static class SoftKeyboard
 
     private static void OnDismissableChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is Control control)
-            UpdateHooks(control);
+        if (d is not Control control)
+            throw new InvalidOperationException($"The element type '{d.GetType()}' is not supported by the Dismissable attached property.");
+
+        UpdateHooks(control);
     }
 
     /// <summary>

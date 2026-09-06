@@ -5,6 +5,9 @@ namespace Singulink.UI.Xaml.Behaviors;
 
 /// <summary>
 /// Provides attached properties for working with flyouts.
+/// Accessors take a <see cref="DependencyObject"/> rather than the supported element type because the WinUI x:Bind code generator passes attached
+/// property targets as <see cref="DependencyObject"/>, so narrower parameter types fail to compile when the property is set with x:Bind. Unsupported
+/// targets throw when the property is set.
 /// </summary>
 public static class Flyouts
 {
@@ -24,7 +27,7 @@ public static class Flyouts
     /// Gets a value indicating whether all open flyouts should be closed when the specified control inheriting from <see cref="ButtonBase"/> or <see
     /// cref="MenuFlyoutItem"/> is clicked.
     /// </summary>
-    public static bool GetCloseAllOnClick(Control element)
+    public static bool GetCloseAllOnClick(DependencyObject element)
     {
         return (bool)element.GetValue(CloseAllOnClickProperty);
     }
@@ -33,7 +36,7 @@ public static class Flyouts
     /// Sets a value indicating whether all open flyouts should be closed when the specified control inheriting from <see cref="ButtonBase"/> or <see
     /// cref="MenuFlyoutItem"/> is clicked.
     /// </summary>
-    public static void SetCloseAllOnClick(Control element, bool value)
+    public static void SetCloseAllOnClick(DependencyObject element, bool value)
     {
         element.SetValue(CloseAllOnClickProperty, value);
     }
@@ -85,7 +88,7 @@ public static class Flyouts
     /// <summary>
     /// Gets the <see cref="Flyout"/> that should be shown when the specified <see cref="Hyperlink"/> is clicked.
     /// </summary>
-    public static Flyout GetHyperlinkFlyout(Hyperlink element)
+    public static Flyout GetHyperlinkFlyout(DependencyObject element)
     {
         return (Flyout)element.GetValue(HyperlinkFlyoutProperty);
     }
@@ -93,14 +96,15 @@ public static class Flyouts
     /// <summary>
     /// Sets the <see cref="Flyout"/> that should be shown when the specified <see cref="Hyperlink"/> is clicked.
     /// </summary>
-    public static void SetHyperlinkFlyout(Hyperlink element, Flyout value)
+    public static void SetHyperlinkFlyout(DependencyObject element, Flyout value)
     {
         element.SetValue(HyperlinkFlyoutProperty, value);
     }
 
     private static void OnHyperlinkFlyoutChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
     {
-        var hyperlink = (Hyperlink)obj;
+        if (obj is not Hyperlink hyperlink)
+            throw new InvalidOperationException($"The element type '{obj.GetType()}' is not supported by the HyperlinkFlyout attached property.");
 
         hyperlink.Click -= OnHyperlinkFlyoutClick;
 

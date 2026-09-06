@@ -9,6 +9,9 @@ namespace Singulink.UI.Xaml.Behaviors;
 
 /// <summary>
 /// Provides attached properties for handling key actions on controls.
+/// Accessors take a <see cref="DependencyObject"/> rather than the supported element type because the WinUI x:Bind code generator passes attached
+/// property targets as <see cref="DependencyObject"/>, so narrower parameter types fail to compile when the property is set with x:Bind. Unsupported
+/// targets throw when the property is set.
 /// </summary>
 public static class KeyActions
 {
@@ -23,12 +26,12 @@ public static class KeyActions
     /// <summary>
     /// Gets the enter key action for the specified <see cref="TextBox"/> or <see cref="PasswordBox"/> control.
     /// </summary>
-    public static EnterKeyAction GetEnter(Control control) => (EnterKeyAction)control.GetValue(EnterProperty);
+    public static EnterKeyAction GetEnter(DependencyObject control) => (EnterKeyAction)control.GetValue(EnterProperty);
 
     /// <summary>
     /// Sets the enter key action for the specified <see cref="TextBox"/> or <see cref="PasswordBox"/> control.
     /// </summary>
-    public static void SetEnter(Control control, EnterKeyAction action) => control.SetValue(EnterProperty, action);
+    public static void SetEnter(DependencyObject control, EnterKeyAction action) => control.SetValue(EnterProperty, action);
 
     private static void OnEnterChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -62,7 +65,7 @@ public static class KeyActions
         }
         else
         {
-            throw new ArgumentException($"Unsupported control type '{d.GetType()}'.", nameof(d));
+            throw new InvalidOperationException($"The control type '{d.GetType()}' is not supported by the Enter attached property.");
         }
 
         // A "Next" return key cannot dismiss the soft keyboard on iOS, so SoftKeyboard implies dismissability for it unless SoftKeyboard.Dismissable is

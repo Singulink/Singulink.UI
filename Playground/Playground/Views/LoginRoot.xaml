@@ -11,8 +11,9 @@
     <StackPanel Spacing="10" MaxWidth="400" HorizontalAlignment="Center" VerticalAlignment="Center">
       <sl:PushBounds/>
       <TextBlock Text="Enter anything (or nothing) here:"/>
-      <TextBox PlaceholderText="Email" Text="{x:Bind Model.Email, Mode=TwoWay}"  />
-      <PasswordBox PlaceholderText="Password" Password="{x:Bind Model.Password, Mode=TwoWay}"/>
+      <!-- x:Bind on attached properties requires DependencyObject-typed accessors on WinUI; keep these bound so that regression is caught. -->
+      <TextBox PlaceholderText="Email" Text="{x:Bind Model.Email, Mode=TwoWay}" sb:KeyActions.Enter="{x:Bind sb:EnterKeyAction.Next}" />
+      <PasswordBox PlaceholderText="Password" Password="{x:Bind Model.Password, Mode=TwoWay}" sb:KeyActions.Enter="{x:Bind sb:EnterKeyAction.Done}" />
       <Button Content="Login" Command="{x:Bind Model.LoginCommand}" Margin="0,10,0,0" HorizontalAlignment="Right"/>
     </StackPanel>
   </Grid>
