@@ -10,6 +10,7 @@
             "Singulink.UI.Icons/Singulink.UI.Icons.csproj",
             "Singulink.UI.Navigation/Singulink.UI.Navigation.csproj",
             "Singulink.UI.Navigation.WinUI/Singulink.UI.Navigation.WinUI.csproj",
+            "Singulink.UI.Navigation.Testing/Singulink.UI.Navigation.Testing.csproj",
             "Singulink.UI.Tasks/Singulink.UI.Tasks.csproj",
             "Singulink.UI.Xaml.WinUI/Singulink.UI.Xaml.WinUI.csproj"
           ],

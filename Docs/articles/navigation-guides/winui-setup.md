@@ -98,11 +98,11 @@ Three optional hooks integrate the navigator with OS-level and window lifetime b
 
 #### HookSystemNavigationRequests()
 
-Subscribes to `SystemNavigationManager.BackRequested` on platforms that provide it (Uno mobile, WASM), translating system back gestures into <xref:Singulink.UI.Navigation.INavigator.HandleSystemBackRequest> calls on the navigator. On Windows it's a no-op since Windows does not expose a system back button.
+Subscribes to `SystemNavigationManager.BackRequested` on platforms that provide it (Uno mobile, WASM), translating system back gestures into <xref:Singulink.UI.Navigation.NavigatorCore.HandleSystemBackRequest> calls on the navigator. On Windows it's a no-op since Windows does not expose a system back button.
 
 #### HookWindowClosedEvents(Window window)
 
-Intercepts the window close event and runs <xref:Singulink.UI.Navigation.INavigator.TryShutDownAsync> before letting the window actually close. This gives active view models a chance to cancel (e.g. unsaved changes prompts). See [Guards and Redirects](guards-and-redirects.md) for more detail.
+Intercepts the window close event and runs <xref:Singulink.UI.Navigation.NavigatorCore.TryShutDownAsync> before letting the window actually close. This gives active view models a chance to cancel (e.g. unsaved changes prompts). See [Guards and Redirects](guards-and-redirects.md) for more detail.
 
 On WebAssembly this hook installs a browser `beforeunload` guard so that closing the tab, refreshing the page, or navigating to an external URL still consults active-route guards. Because `beforeunload` requires a synchronous decision, asynchronous guard implementations fall back to the browser's native "Leave Site?" prompt - see [Guards and Redirects: WebAssembly](guards-and-redirects.md#webassembly-browser-tab-close-refresh-and-external-navigation) for details.
 
@@ -116,7 +116,7 @@ Most applications want all three hooks enabled in their main window.
 
 #### Mouse Back / Forward Buttons
 
-XButton1 / XButton2 (the thumb buttons on most mice) are handled automatically by the navigator; no configuration is needed. Pressing them dispatches to <xref:Singulink.UI.Navigation.INavigator.HandleSystemBackRequest> / <xref:Singulink.UI.Navigation.INavigator.HandleSystemForwardRequest> respectively.
+XButton1 / XButton2 (the thumb buttons on most mice) are handled automatically by the navigator; no configuration is needed. Pressing them dispatches to <xref:Singulink.UI.Navigation.NavigatorCore.HandleSystemBackRequest> / <xref:Singulink.UI.Navigation.NavigatorCore.HandleSystemForwardRequest> respectively.
 
 ## WebAssembly / Browser Deep Links
 

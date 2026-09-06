@@ -16,6 +16,7 @@
   <Folder Name="/Source/">
     <Project Path="Source/Singulink.UI.Icons/Singulink.UI.Icons.csproj" />
     <Project Path="Source/Singulink.UI.Navigation.WinUI/Singulink.UI.Navigation.WinUI.csproj" />
+    <Project Path="Source/Singulink.UI.Navigation.Testing/Singulink.UI.Navigation.Testing.csproj" />
     <Project Path="Source/Singulink.UI.Navigation/Singulink.UI.Navigation.csproj" />
     <Project Path="Source/Singulink.UI.Navigation.Generators/Singulink.UI.Navigation.Generators.csproj" />
     <Project Path="Source/Singulink.UI.Tasks/Singulink.UI.Tasks.csproj" />

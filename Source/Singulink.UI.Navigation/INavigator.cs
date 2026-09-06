@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using Singulink.UI.Tasks;
 
 namespace Singulink.UI.Navigation;
 
@@ -56,19 +55,6 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     public bool IsShowingDialog { get; }
 
     /// <summary>
-    /// Gets the root service provider for this navigator. This property can be accessed from any thread.
-    /// </summary>
-    /// <remarks>
-    /// This service provider is the root provider used to resolve services other than those provided directly by view models in a route.
-    /// </remarks>
-    public IServiceProvider RootServices { get; }
-
-    /// <summary>
-    /// Gets the task runner for this navigator. This property can be accessed from any thread.
-    /// </summary>
-    public ITaskRunner TaskRunner { get; }
-
-    /// <summary>
     /// Clears back and forward navigation history.
     /// </summary>
     public ValueTask ClearHistoryAsync();
@@ -99,44 +85,17 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     public Task<NavigationResult> GoForwardAsync();
 
     /// <summary>
-    /// Handles a system back request, such as when the user presses the back button on a mobile device, a hardware back button on a desktop or the back button
-    /// in a web browser. Returns <see langword="true"/> if there is a dialog showing, a light dismiss popup was closed, a navigation is currently in progress
-    /// or if a back navigation was initiated; otherwise <see langword="false"/> (meaning there was no back history).
-    /// </summary>
-    /// <remarks>
-    /// If a dialog is showing and it implements <see cref="IDismissibleDialogViewModel"/>, the <see
-    /// cref="IDismissibleDialogViewModel.OnDismissRequestedAsync"/> method will be called to allow the dialog to handle the back request. If the dialog is not
-    /// dismissible or if a navigation is currently in progress then the back request will still be marked as handled but the request will be ignored and no
-    /// navigation will occur.
-    /// </remarks>
-    public bool HandleSystemBackRequest();
-
-    /// <summary>
-    /// Handles a system forward request, such as when the user presses the forward button on a mobile device, a hardware forward button on a desktop or the
-    /// forward button in a web browser. Returns <see langword="true"/> if there is a dialog showing, a navigation is currently in progress or if a forward
-    /// navigation was initiated; otherwise <see langword="false"/> (meaning there was no forward history).
-    /// </summary>
-    /// <remarks>
-    /// If a dialog is showing or if a navigation is currently in progress then the forward request will still be marked as handled but the request will be
-    /// ignored and no navigation will occur.
-    /// </remarks>
-    public bool HandleSystemForwardRequest();
-
-    /// <summary>
     /// Determines whether the current route contains a parent view with the specified view model type.
     /// </summary>
     public bool CurrentRouteHasParent<TViewModel>();
 
     /// <summary>
-    /// Determines whether the current route path starts with the same path as the specified route.
+    /// Determines whether the current route path starts with the same path as the specified root route part.
     /// </summary>
     /// <remarks>
     /// This method does not require the mapped views or view models on the current and specified routes to match, only the route paths.
     /// </remarks>
-    public bool CurrentPathStartsWith<TRootViewModel>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel> childRoutePart)
-        where TRootViewModel : class;
+    public bool CurrentPathStartsWith(IConcreteRootRoutePart rootRoutePart);
 
     /// <summary>
     /// Determines whether the current route path starts with the same path as the specified route.
@@ -144,27 +103,7 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// <remarks>
     /// This method does not require the mapped views or view models on the current and specified routes to match, only the route paths.
     /// </remarks>
-    public bool CurrentPathStartsWith<TRootViewModel, TChildViewModel1>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2)
-        where TRootViewModel : class
-        where TChildViewModel1 : class;
-
-    /// <summary>
-    /// Determines whether the current route path starts with the same path as the specified route.
-    /// </summary>
-    /// <remarks>
-    /// This method does not require the mapped views or view models on the current and specified routes to match, only the route paths.
-    /// </remarks>
-    public bool CurrentPathStartsWith<TRootViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
-        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3)
-        where TRootViewModel : class
-        where TChildViewModel1 : class
-        where TChildViewModel2 : class;
+    public bool CurrentPathStartsWith(ConcreteRoute route);
 
     /// <summary>
     /// Navigates to the specified route.
@@ -172,42 +111,14 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     public Task<NavigationResult> NavigateAsync(string route);
 
     /// <summary>
-    /// Navigates to the specified route.
+    /// Navigates to the specified root route.
     /// </summary>
     public Task<NavigationResult> NavigateAsync(IConcreteRootRoutePart rootRoutePart, string? anchor = null);
 
     /// <summary>
     /// Navigates to the specified route.
     /// </summary>
-    public Task<NavigationResult> NavigateAsync<TRootViewModel>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel> childRoutePart,
-        string? anchor = null)
-        where TRootViewModel : class;
-
-    /// <summary>
-    /// Navigates to the specified route.
-    /// </summary>
-    public Task<NavigationResult> NavigateAsync<TRootViewModel, TChildViewModel1>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
-        string? anchor = null)
-        where TRootViewModel : class
-        where TChildViewModel1 : class;
-
-    /// <summary>
-    /// Navigates to the specified route.
-    /// </summary>
-    public Task<NavigationResult> NavigateAsync<TRootViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
-        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        string? anchor = null)
-        where TRootViewModel : class
-        where TChildViewModel1 : class
-        where TChildViewModel2 : class;
+    public Task<NavigationResult> NavigateAsync(ConcreteRoute route, string? anchor = null);
 
     /// <summary>
     /// Navigates to a partial route that has the same path as the current route but with the specified options.
@@ -215,8 +126,8 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     public Task<NavigationResult> NavigatePartialAsync(string? anchor);
 
     /// <summary>
-    /// Navigates to the specified partial route. The current route must contain a view with the specified parent view model type otherwise an <see
-    /// cref="InvalidOperationException"/> is thrown.
+    /// Navigates to the specified child route beneath the parent view model type in the current route. The current route must contain a view with the
+    /// specified parent view model type otherwise an <see cref="InvalidOperationException"/> is thrown.
     /// </summary>
     public Task<NavigationResult> NavigatePartialAsync<TParentViewModel>(
         IConcreteChildRoutePart<TParentViewModel> childRoutePart,
@@ -224,28 +135,13 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
         where TParentViewModel : class;
 
     /// <summary>
-    /// Navigates to the specified partial route. The current route must contain a view with the specified parent view model type otherwise an <see
-    /// cref="InvalidOperationException"/> is thrown.
+    /// Navigates to the specified partial route beneath the parent view model type in the current route. The current route must contain a view with the
+    /// specified parent view model type otherwise an <see cref="InvalidOperationException"/> is thrown.
     /// </summary>
-    public Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TChildViewModel1>(
-        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
+    public Task<NavigationResult> NavigatePartialAsync<TParentViewModel>(
+        ConcretePartialRoute<TParentViewModel> route,
         string? anchor = null)
-        where TParentViewModel : class
-        where TChildViewModel1 : class;
-
-    /// <summary>
-    /// Navigates to the specified partial route. The current route must contain a view with the specified parent view model type otherwise an <see
-    /// cref="InvalidOperationException"/> is thrown.
-    /// </summary>
-    public Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
-        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        string? anchor = null)
-        where TParentViewModel : class
-        where TChildViewModel1 : class
-        where TChildViewModel2 : class;
+        where TParentViewModel : class;
 
     /// <summary>
     /// Navigates to the parent view in the current route that has the specified view model type.
@@ -276,24 +172,4 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// <exception cref="InvalidOperationException">The navigator does not have a current route or a navigation is currently in progress.</exception>
     /// <exception cref="ArgumentException">The view model type of the specified route part does not match the last route part of the current route.</exception>
     public void UpdateCurrentRoute(IConcreteRoutePart concreteRoutePart, string? anchor = null);
-
-    /// <summary>
-    /// Shuts down the navigator by releasing all views and view model resources. Returns <see langword="false"/> if shutdown, navigation or busy tasks are in
-    /// progress, dialogs are showing, or any view models are preventing navigating away from the current view; otherwise returns <see langword="true"/> after
-    /// successfully shutting down.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This method should only be called when the navigator is no longer needed (e.g. when the window hosting it is being closed) to ensure that all resources
-    /// are properly released. This is important in multi-window applications to prevent memory leaks but is not strictly necessary in single-window
-    /// applications since all resources should be released when the application exits. Navigating or showing dialogs is blocked after the shutdown completes
-    /// and attempting to do so will result in an <see cref="InvalidOperationException"/> being thrown.</para>
-    /// <para>
-    /// It may still be beneficial to call this method in single-window applications when the window should be prevented from being closed when dialogs are
-    /// showing or navigating away from the current view is blocked by a view model (e.g. if the user has unsaved changes). The navigator queries active view
-    /// models to see if they allow navigating away by calling <see cref="IRoutedViewModelBase.OnNavigatingAwayAsync(NavigatingArgs)"/>.</para>
-    /// <para>
-    /// If the shutdown process is aborted and the method returns <see langword="false"/> then closing the window should be cancelled.</para>
-    /// </remarks>
-    public Task<bool> TryShutDownAsync();
 }

@@ -7,7 +7,7 @@ namespace Singulink.UI.Navigation;
 /// <remarks>
 /// A dismiss request is raised in the following situations:
 /// <list type="bullet">
-///   <item>A system back navigation is requested while the dialog is showing (e.g. via <see cref="INavigator.HandleSystemBackRequest"/>).</item>
+///   <item>A system back navigation is requested while the dialog is showing (e.g. via <see cref="NavigatorCore.HandleSystemBackRequest"/>).</item>
 ///   <item>The close button is clicked (or activated by the escape key) and no command is wired to it. If a command is wired to the close button, the command
 ///     is invoked instead and no dismiss request is raised.</item>
 /// </list>

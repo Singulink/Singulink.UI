@@ -104,6 +104,15 @@ public abstract partial class NavigatorCore : INavigator
     }
 
     /// <inheritdoc/>
+    public bool CanShowDialog
+    {
+        get {
+            EnsureThreadAccess();
+            return !_blockDialogs && !IsShowingDialogCore;
+        }
+    }
+
+    /// <inheritdoc/>
     public NavigatorRoute CurrentRoute
     {
         get {
@@ -212,6 +221,21 @@ public abstract partial class NavigatorCore : INavigator
     /// <param name="result">The result of the navigation.</param>
     /// <param name="state">The state object returned from <see cref="OnNavigationStarting"/> for this navigation.</param>
     protected virtual void OnNavigationCompleted(NavigationType navigationType, NavigatorRoute targetRoute, NavigationResult result, object? state) { }
+
+    /// <summary>
+    /// Called immediately before a lifecycle method is invoked on a routed view model during navigation. The default implementation does nothing.
+    /// </summary>
+    /// <param name="viewModel">The view model the lifecycle method is invoked on.</param>
+    /// <param name="stage">The lifecycle method being invoked.</param>
+    protected virtual void OnViewModelLifecycleInvoking(IRoutedViewModelBase viewModel, ViewModelLifecycleStage stage) { }
+
+    /// <summary>
+    /// Called when a routed view model requested a redirect during navigation, immediately before the redirect is executed. The default implementation
+    /// does nothing.
+    /// </summary>
+    /// <param name="viewModel">The view model that requested the redirect.</param>
+    /// <param name="redirect">The requested redirect.</param>
+    protected virtual void OnNavigationRedirecting(IRoutedViewModelBase viewModel, Redirect redirect) { }
 
     /// <summary>
     /// Called once on the UI thread after a successful <see cref="TryShutDownAsync"/> has torn down the navigator. Implementations should release any

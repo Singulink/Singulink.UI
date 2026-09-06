@@ -18,6 +18,12 @@ public partial class DismissibleDialogViewModel : IDismissibleDialogViewModel
     }
 
     [RelayCommand]
+    public async Task ShowChildDialogAsync()
+    {
+        await this.Navigator.ShowDialogAsync(new DismissibleDialogViewModel());
+    }
+
+    [RelayCommand]
     public async Task SaveAsync()
     {
         using (this.TaskRunner.EnterBusyScope())

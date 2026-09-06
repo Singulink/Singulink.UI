@@ -6,10 +6,11 @@
 
 ### Packages
 
-The framework is split into two NuGet packages:
+The framework is split into three NuGet packages:
 
 - **Singulink.UI.Navigation**: the UI framework-agnostic core. Reference this from your view model project.
 - **Singulink.UI.Navigation.WinUI**: the WinUI/Uno implementation. Reference this from your client (UI) project.
+- **Singulink.UI.Navigation.Testing**: an in-memory navigator for unit testing view models without a UI framework. Reference this from your test projects (see [Testing View Models](testing.md)).
 
 This separation means view models never directly depend on WinUI types, which keeps view models fully testable without any UI framework dependencies.
 

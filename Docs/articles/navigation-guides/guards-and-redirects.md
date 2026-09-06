@@ -95,7 +95,7 @@ The <xref:Singulink.UI.Navigation.Redirect> class provides static factory method
 | Factory | Equivalent |
 |---|---|
 | <xref:Singulink.UI.Navigation.Redirect.Navigate(System.String)> | <xref:Singulink.UI.Navigation.INavigator.NavigateAsync*> (string) |
-| <xref:Singulink.UI.Navigation.Redirect.Navigate*> with route parts | <xref:Singulink.UI.Navigation.INavigator.NavigateAsync*> with route parts |
+| <xref:Singulink.UI.Navigation.Redirect.Navigate*> with a route part or chained route | <xref:Singulink.UI.Navigation.INavigator.NavigateAsync*> with a route part or chained route |
 | <xref:Singulink.UI.Navigation.Redirect.NavigatePartial*> | <xref:Singulink.UI.Navigation.INavigator.NavigatePartialAsync*> |
 | <xref:Singulink.UI.Navigation.Redirect.NavigateToParent``1(System.String)> | <xref:Singulink.UI.Navigation.INavigator.NavigateToParentAsync*> |
 | <xref:Singulink.UI.Navigation.Redirect.GoBack> | <xref:Singulink.UI.Navigation.INavigator.GoBackAsync> |
@@ -121,13 +121,13 @@ public override Task OnRouteNavigatedAsync(NavigationArgs args)
 
 ## Graceful Shutdown
 
-The guard methods are also consulted by <xref:Singulink.UI.Navigation.INavigator.TryShutDownAsync> (see [Navigating](navigating.md#graceful-shutdown)). The WinUI navigator provides <xref:Singulink.UI.Navigation.WinUI.Navigator.HookWindowClosedEvents*> which ties everything together:
+The guard methods are also consulted by <xref:Singulink.UI.Navigation.NavigatorCore.TryShutDownAsync> (see [Navigating](navigating.md#graceful-shutdown)). The WinUI navigator provides <xref:Singulink.UI.Navigation.WinUI.Navigator.HookWindowClosedEvents*> which ties everything together:
 
 ```csharp
 var navigator = new Navigator(MainContent, ConfigureNavigator);
 navigator.HookWindowClosedEvents(this);   // 'this' is the Window
 ```
 
-When the user closes the window, the navigator intercepts the close event, runs <xref:Singulink.UI.Navigation.INavigator.TryShutDownAsync> (which calls guards on each active view model), and only actually closes the window if all guards allow. This provides unsaved-changes prompts on window close without any extra manaul wiring.
+When the user closes the window, the navigator intercepts the close event, runs <xref:Singulink.UI.Navigation.NavigatorCore.TryShutDownAsync> (which calls guards on each active view model), and only actually closes the window if all guards allow. This provides unsaved-changes prompts on window close without any extra manaul wiring.
 
 </div>

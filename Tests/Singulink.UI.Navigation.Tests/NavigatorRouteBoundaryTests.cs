@@ -1,6 +1,6 @@
 using PrefixClassName.MsTest;
 using Shouldly;
-using Singulink.UI.Navigation.Tests.TestSupport;
+using Singulink.UI.Navigation.Testing;
 
 namespace Singulink.UI.Navigation.Tests;
 
@@ -10,30 +10,30 @@ public class NavigatorRouteBoundaryTests
     [TestMethod]
     public void Navigate_ParentA_ChildB_DoesNotMatchConcatenatedUrl()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<ParentVm, ParentView>();
-                b.MapRoutedView<ChildVm, FakeView>();
+                b.MapViewModel<ParentVm>();
+                b.MapViewModel<ChildVm>();
                 b.AddRoute(Route.Build("a").Root<ParentVm>());
                 b.AddRoute(Route.Build("b").Child<ParentVm, ChildVm>());
             });
 
             // "ab" must NOT match parent literal "a" + child literal "b"; a segment boundary is required.
-            await Should.ThrowAsync<ArgumentException>(() => nav.NavigateAsync("ab"));
+            await Should.ThrowAsync<NavigationRouteException>(() => nav.NavigateAsync("ab"));
         });
     }
 
     [TestMethod]
     public void Navigate_ParentA_ChildB_MatchesProperlySeparatedUrl()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<ParentVm, ParentView>();
-                b.MapRoutedView<ChildVm, FakeView>();
+                b.MapViewModel<ParentVm>();
+                b.MapViewModel<ChildVm>();
                 b.AddRoute(Route.Build("a").Root<ParentVm>());
                 b.AddRoute(Route.Build("b").Child<ParentVm, ChildVm>());
             });
@@ -47,5 +47,4 @@ public class NavigatorRouteBoundaryTests
 
     public class ChildVm : IRoutedViewModel { }
 
-    public class ParentView : FakeParentView { }
 }

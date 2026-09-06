@@ -1,6 +1,6 @@
 using PrefixClassName.MsTest;
 using Shouldly;
-using Singulink.UI.Navigation.Tests.TestSupport;
+using Singulink.UI.Navigation.Testing;
 
 namespace Singulink.UI.Navigation.Tests;
 
@@ -10,13 +10,13 @@ public partial class NavigatorParamsModelTests
     [TestMethod]
     public void Navigate_ParamsModel_ParsesPathAndQuery()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, _) = BuildNavWithRoute();
 
             await nav.NavigateAsync("show/42?StringValue=hello");
 
-            var vm = (ShowVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<ShowVm>();
             vm.IntValue.ShouldBe(42);
             vm.StringValue.ShouldBe("hello");
         });
@@ -25,12 +25,12 @@ public partial class NavigatorParamsModelTests
     [TestMethod]
     public void Navigate_ParamsModel_NoOptional()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, _) = BuildNavWithRoute();
             await nav.NavigateAsync("show/7");
 
-            var vm = (ShowVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<ShowVm>();
             vm.IntValue.ShouldBe(7);
             vm.StringValue.ShouldBeNull();
         });
@@ -39,7 +39,7 @@ public partial class NavigatorParamsModelTests
     [TestMethod]
     public void ToConcrete_ParamsModel_RoundTripsThroughString()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, route) = BuildNavWithRoute();
             var concrete = route.ToConcrete(new ShowVm.Params { IntValue = 9, StringValue = "abc" });
@@ -54,12 +54,12 @@ public partial class NavigatorParamsModelTests
     [TestMethod]
     public void Navigate_ParamsModel_RemainingQuery_Captured()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, _) = BuildNavWithRoute();
             await nav.NavigateAsync("show/3?StringValue=x&extra=1&also=2");
 
-            var vm = (ShowVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<ShowVm>();
             vm.Rest.ContainsKey("extra").ShouldBeTrue();
             vm.Rest.ContainsKey("also").ShouldBeTrue();
             vm.Rest.ContainsKey("StringValue").ShouldBeFalse();
@@ -69,7 +69,7 @@ public partial class NavigatorParamsModelTests
     [TestMethod]
     public void RouteGroup_ParamsModel_PicksMostSatisfiedPattern()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var route = Route.BuildGroup<ShowVm.Params>()
                 .Add(p => $"show/{p.IntValue}")
@@ -78,7 +78,7 @@ public partial class NavigatorParamsModelTests
 
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<ShowVm, FakeView>();
+                b.MapViewModel<ShowVm>();
                 b.AddRoute(route);
             });
 
@@ -99,7 +99,7 @@ public partial class NavigatorParamsModelTests
         var route = Route.Build<ShowVm.Params>(p => $"show/{p.IntValue}").Root<ShowVm>();
         var nav = new TestNavigator(b =>
         {
-            b.MapRoutedView<ShowVm, FakeView>();
+            b.MapViewModel<ShowVm>();
             b.AddRoute(route);
         });
         return (nav, route);

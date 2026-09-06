@@ -1,6 +1,6 @@
 using PrefixClassName.MsTest;
 using Shouldly;
-using Singulink.UI.Navigation.Tests.TestSupport;
+using Singulink.UI.Navigation.Testing;
 
 namespace Singulink.UI.Navigation.Tests;
 
@@ -10,7 +10,7 @@ public class NavigatorDIServicesTests
     [TestMethod]
     public void RootServices_InjectedIntoViewModelConstructor()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var service = new MyService("hello");
             var sp = new DictionaryServiceProvider { [typeof(MyService)] = service };
@@ -18,13 +18,13 @@ public class NavigatorDIServicesTests
             var nav = new TestNavigator(b =>
             {
                 b.Services = sp;
-                b.MapRoutedView<ConsumerVm, FakeView>();
+                b.MapViewModel<ConsumerVm>();
                 b.AddRoute(Route.Build("c").Root<ConsumerVm>());
             });
 
             await nav.NavigateAsync("c");
 
-            var vm = (ConsumerVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<ConsumerVm>();
             vm.Service.ShouldBeSameAs(service);
         });
     }
@@ -32,11 +32,11 @@ public class NavigatorDIServicesTests
     [TestMethod]
     public void RootServices_MissingRequiredService_Throws()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<ConsumerVm, FakeView>();
+                b.MapViewModel<ConsumerVm>();
                 b.AddRoute(Route.Build("c").Root<ConsumerVm>());
             });
 
@@ -47,16 +47,16 @@ public class NavigatorDIServicesTests
     [TestMethod]
     public void RootServices_MissingNullableService_PassedAsNull()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<NullableConsumerVm, FakeView>();
+                b.MapViewModel<NullableConsumerVm>();
                 b.AddRoute(Route.Build("c").Root<NullableConsumerVm>());
             });
 
             await nav.NavigateAsync("c");
-            var vm = (NullableConsumerVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<NullableConsumerVm>();
             vm.Service.ShouldBeNull();
         });
     }
@@ -64,21 +64,20 @@ public class NavigatorDIServicesTests
     [TestMethod]
     public void ChildService_FromParentVm_InjectedIntoChildVm()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<ParentVm, ParentView>();
-                b.MapRoutedView<ChildConsumerVm, FakeView>();
+                b.MapViewModel<ParentVm>();
+                b.MapViewModel<ChildConsumerVm>();
                 b.AddRoute(Route.Build("p").Root<ParentVm>());
                 b.AddRoute(Route.Build("c").Child<ParentVm, ChildConsumerVm>());
             });
 
             await nav.NavigateAsync("p/c");
 
-            var parentView = (ParentView)nav.RootViewNavigator.ActiveView!;
-            var parent = (ParentVm)parentView.DataContext!;
-            var child = (ChildConsumerVm)((FakeView)parentView.ChildNavigator.ActiveView!).DataContext!;
+            var parent = nav.ActiveViewModel<ParentVm>();
+            var child = nav.ActiveViewModel<ChildConsumerVm>();
 
             child.ChildSrv.ShouldBeSameAs(parent.ChildSrv);
         });
@@ -87,16 +86,16 @@ public class NavigatorDIServicesTests
     [TestMethod]
     public void Navigator_PropertyOnVm_ReturnsOwningNavigator()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<HomeVm, FakeView>();
+                b.MapViewModel<HomeVm>();
                 b.AddRoute(Route.Build("h").Root<HomeVm>());
             });
 
             await nav.NavigateAsync("h");
-            var vm = (HomeVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<HomeVm>();
             vm.Navigator.ShouldBeSameAs(nav);
             vm.TaskRunner.ShouldNotBeNull();
         });
@@ -136,7 +135,6 @@ public class NavigatorDIServicesTests
         public ChildSrvType ChildSrv { get; } = childSrv;
     }
 
-    public class ParentView : FakeParentView { }
 
     private sealed class DictionaryServiceProvider : Dictionary<Type, object>, IServiceProvider
     {

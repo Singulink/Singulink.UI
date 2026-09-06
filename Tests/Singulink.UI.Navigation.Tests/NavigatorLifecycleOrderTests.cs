@@ -1,5 +1,6 @@
 using PrefixClassName.MsTest;
 using Shouldly;
+using Singulink.UI.Navigation.Testing;
 using Singulink.UI.Navigation.Tests.TestSupport;
 
 namespace Singulink.UI.Navigation.Tests;
@@ -10,12 +11,12 @@ public class NavigatorLifecycleOrderTests
     [TestMethod]
     public void FirstNavigation_FiresOnNavigatedTo_ThenOnRouteNavigated()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
 
-            var vm = (AVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<AVm>();
             vm.Events.Select(e => e.Kind).ShouldBe(new[]
             {
                 LifecycleEventKind.NavigatedTo,
@@ -27,15 +28,15 @@ public class NavigatorLifecycleOrderTests
     [TestMethod]
     public void NavigateBetweenRoots_FiresAwayThenTo()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
-            var aVm = (AVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var aVm = nav.ActiveViewModel<AVm>();
             aVm.Events.Clear();
 
             await nav.NavigateAsync("b");
-            var bVm = (BVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var bVm = nav.ActiveViewModel<BVm>();
 
             // Navigating-away on previous VM
             aVm.Events.Select(e => e.Kind).ShouldContain(LifecycleEventKind.RouteNavigating);
@@ -54,11 +55,11 @@ public class NavigatorLifecycleOrderTests
     [TestMethod]
     public void Refresh_FiresRouteNavigating_ThenRouteNavigated_OnSameInstance()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
-            var vm = (AVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<AVm>();
             vm.Events.Clear();
 
             await nav.RefreshAsync();
@@ -75,7 +76,7 @@ public class NavigatorLifecycleOrderTests
     [TestMethod]
     public void GoBack_NavigationType_IsBack()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
@@ -83,7 +84,7 @@ public class NavigatorLifecycleOrderTests
 
             await nav.GoBackAsync();
 
-            var current = (AVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var current = nav.ActiveViewModel<AVm>();
             current.Events[^1].NavigationType.ShouldBe(NavigationType.Back);
         });
     }
@@ -91,14 +92,13 @@ public class NavigatorLifecycleOrderTests
     [TestMethod]
     public void HasChildNavigation_TrueOnParent_FalseOnChild()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("p/c");
 
-            var parentVm = (ParentVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
-            var parentView = (ParentView)nav.RootViewNavigator.ActiveView!;
-            var childVm = (ChildVm)((FakeView)parentView.ChildNavigator.ActiveView!).DataContext!;
+            var parentVm = nav.ActiveViewModel<ParentVm>();
+            var childVm = nav.ActiveViewModel<ChildVm>();
 
             parentVm.Events.First(e => e.Kind == LifecycleEventKind.NavigatedTo).HasChildNavigation.ShouldBeTrue();
             childVm.Events.First(e => e.Kind == LifecycleEventKind.NavigatedTo).HasChildNavigation.ShouldBeFalse();
@@ -108,29 +108,29 @@ public class NavigatorLifecycleOrderTests
     [TestMethod]
     public void CancelOnNavigatingAway_BlocksNavigation()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
-            var aVm = (AVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var aVm = nav.ActiveViewModel<AVm>();
             aVm.CancelOnNavigatingAway = true;
 
             var result = await nav.NavigateAsync("b");
 
             result.ShouldBe(NavigationResult.Cancelled);
             nav.CurrentRoute.ToString().ShouldBe("a");
-            ((FakeView)nav.RootViewNavigator.ActiveView!).DataContext.ShouldBeSameAs(aVm);
+            nav.ActiveViewModels[0].ShouldBeSameAs(aVm);
         });
     }
 
     [TestMethod]
     public void CancelOnRouteNavigating_BlocksRefresh()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
-            var vm = (AVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<AVm>();
             vm.CancelOnRouteNavigating = true;
 
             (await nav.RefreshAsync()).ShouldBe(NavigationResult.Cancelled);
@@ -140,12 +140,12 @@ public class NavigatorLifecycleOrderTests
     [TestMethod]
     public void RedirectOnNavigatedTo_TriggersAlternateRoute()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<RedirectVm, FakeView>();
-                b.MapRoutedView<TargetVm, FakeView>();
+                b.MapViewModel<RedirectVm>();
+                b.MapViewModel<TargetVm>();
                 b.AddRoute(Route.Build("source").Root<RedirectVm>());
                 b.AddRoute(Route.Build("target").Root<TargetVm>());
             });
@@ -153,16 +153,16 @@ public class NavigatorLifecycleOrderTests
             await nav.NavigateAsync("source");
 
             nav.CurrentRoute.ToString().ShouldBe("target");
-            ((FakeView)nav.RootViewNavigator.ActiveView!).DataContext.ShouldBeOfType<TargetVm>();
+            nav.ActiveViewModels[0].ShouldBeOfType<TargetVm>();
         });
     }
 
     private static TestNavigator BuildNav() => new(b =>
     {
-        b.MapRoutedView<AVm, FakeView>();
-        b.MapRoutedView<BVm, FakeView>();
-        b.MapRoutedView<ParentVm, ParentView>();
-        b.MapRoutedView<ChildVm, FakeView>();
+        b.MapViewModel<AVm>();
+        b.MapViewModel<BVm>();
+        b.MapViewModel<ParentVm>();
+        b.MapViewModel<ChildVm>();
 
         b.AddRoute(Route.Build("a").Root<AVm>());
         b.AddRoute(Route.Build("b").Root<BVm>());
@@ -178,7 +178,6 @@ public class NavigatorLifecycleOrderTests
 
     public class ChildVm : RecordedLifecycleViewModel, IRoutedViewModel { }
 
-    public class ParentView : FakeParentView { }
 
     public class RedirectVm : RecordedLifecycleViewModel, IRoutedViewModel
     {

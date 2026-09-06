@@ -58,6 +58,12 @@ public static class ViewModelExtensions
                 throw new InvalidOperationException("View model is not associated with a dialog navigator.");
 
         /// <summary>
+        /// Registers a service that is provided to nested dialog view models created through
+        /// <see cref="IDialogPresenter.CreateDialogViewModel{TViewModel}(object?[])"/> from this dialog's navigator (or from dialogs nested beneath it).
+        /// </summary>
+        public void SetChildService<TService>(TService service) where TService : notnull => MixinManager.SetChildService(viewModel, service);
+
+        /// <summary>
         /// Gets the task runner for the view model.
         /// </summary>
         public ITaskRunner TaskRunner => viewModel.Navigator.TaskRunner;

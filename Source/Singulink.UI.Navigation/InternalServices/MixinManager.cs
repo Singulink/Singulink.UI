@@ -11,7 +11,7 @@ internal static class MixinManager
     private static readonly ConditionalWeakTable<IDialogViewModel, IDialogNavigator> _viewModelToDialogNavigatorTable = [];
     private static readonly ConditionalWeakTable<IRoutedViewModelBase, INavigator> _viewModelToNavigatorTable = [];
     private static readonly ConditionalWeakTable<IRoutedViewModelBase, object> _viewModelToParameterTable = [];
-    private static readonly ConditionalWeakTable<IRoutedViewModelBase, Dictionary<Type, object>> _viewModelToChildServicesTable = [];
+    private static readonly ConditionalWeakTable<object, Dictionary<Type, object>> _viewModelToChildServicesTable = [];
 
     /// <summary>
     /// Returns the dialog navigator associated with the specified view model.
@@ -85,7 +85,7 @@ internal static class MixinManager
     /// <summary>
     /// Gets a child view model service associated with the specified view model.
     /// </summary>
-    public static object? GetChildService(IRoutedViewModelBase viewModel, Type serviceType)
+    public static object? GetChildService(object viewModel, Type serviceType)
     {
         if (_viewModelToChildServicesTable.TryGetValue(viewModel, out var services) && services.TryGetValue(serviceType, out object service))
             return service;
@@ -93,7 +93,7 @@ internal static class MixinManager
         return null;
     }
 
-    internal static void SetChildService<TService>(IRoutedViewModelBase viewModel, TService service) where TService : notnull
+    internal static void SetChildService<TService>(object viewModel, TService service) where TService : notnull
     {
         var services = _viewModelToChildServicesTable.GetOrCreateValue(viewModel);
         services[typeof(TService)] = service;

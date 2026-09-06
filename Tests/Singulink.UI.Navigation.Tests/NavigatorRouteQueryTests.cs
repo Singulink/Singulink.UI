@@ -1,6 +1,6 @@
 using PrefixClassName.MsTest;
 using Shouldly;
-using Singulink.UI.Navigation.Tests.TestSupport;
+using Singulink.UI.Navigation.Testing;
 
 namespace Singulink.UI.Navigation.Tests;
 
@@ -10,13 +10,13 @@ public partial class NavigatorRouteQueryTests
     [TestMethod]
     public void Navigate_RouteQueryParam_FromUrlString()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, _) = BuildNavWithQueryRoute();
 
             await nav.NavigateAsync("/search?q=hello&page=2");
 
-            var vm = (SearchVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<SearchVm>();
             vm.Query.GetValue<string>("q").ShouldBe("hello");
             vm.Query.GetValue<int>("page").ShouldBe(2);
         });
@@ -25,7 +25,7 @@ public partial class NavigatorRouteQueryTests
     [TestMethod]
     public void Navigate_RouteQueryParam_ToConcrete_WithBuilder()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, route) = BuildNavWithQueryRoute();
 
@@ -36,7 +36,7 @@ public partial class NavigatorRouteQueryTests
 
             await nav.NavigateAsync(route.ToConcrete(query));
 
-            var vm = (SearchVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<SearchVm>();
             vm.Query.GetValue<string>("q").ShouldBe("hello");
             vm.Query.GetValue<int>("page").ShouldBe(2);
 
@@ -50,7 +50,7 @@ public partial class NavigatorRouteQueryTests
     [TestMethod]
     public void Navigate_RouteQueryParam_ToConcrete_WithDirectQuery()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, route) = BuildNavWithQueryRoute();
 
@@ -58,7 +58,7 @@ public partial class NavigatorRouteQueryTests
 
             await nav.NavigateAsync(route.ToConcrete(query));
 
-            var vm = (SearchVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<SearchVm>();
             vm.Query.GetValue<string>("q").ShouldBe("abc");
             vm.Query.GetValue<int>("count").ShouldBe(5);
         });
@@ -67,13 +67,13 @@ public partial class NavigatorRouteQueryTests
     [TestMethod]
     public void Navigate_RouteQueryParam_ToConcrete_EmptyQuery()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, route) = BuildNavWithQueryRoute();
 
             await nav.NavigateAsync(route.ToConcrete(RouteQuery.Empty));
 
-            var vm = (SearchVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<SearchVm>();
             vm.Query.Count.ShouldBe(0);
             nav.CurrentRoute.ToString().ShouldNotContain("?");
         });
@@ -82,7 +82,7 @@ public partial class NavigatorRouteQueryTests
     [TestMethod]
     public void Navigate_ParamsModelWithQueryProperty_ToConcrete_QueryValuesPreserved()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, route) = BuildNavWithParamsModelRoute();
 
@@ -99,7 +99,7 @@ public partial class NavigatorRouteQueryTests
 
             await nav.NavigateAsync(concrete);
 
-            var vm = (SearchParamsVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<SearchParamsVm>();
             vm.IntValue.ShouldBe(42);
             vm.Rest.GetValue<string>("filter").ShouldBe("active");
             vm.Rest.GetValue<int>("page").ShouldBe(3);
@@ -109,7 +109,7 @@ public partial class NavigatorRouteQueryTests
     [TestMethod]
     public void Navigate_ParamsModelWithQueryProperty_ToConcrete_RoundTripsThroughString()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, route) = BuildNavWithParamsModelRoute();
 
@@ -131,7 +131,7 @@ public partial class NavigatorRouteQueryTests
     [TestMethod]
     public void Navigate_ParamsModelWithQueryProperty_ToConcrete_QueryValuesDoNotShadowDeclaredProperties()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var (nav, route) = BuildNavWithParamsModelRoute();
 
@@ -146,7 +146,7 @@ public partial class NavigatorRouteQueryTests
 
             await nav.NavigateAsync(concrete);
 
-            var vm = (SearchParamsVm)((FakeView)nav.RootViewNavigator.ActiveView!).DataContext!;
+            var vm = nav.ActiveViewModel<SearchParamsVm>();
             vm.IntValue.ShouldBe(100);
             vm.Rest.GetValue<string>("extra").ShouldBe("x");
             vm.Rest.ContainsKey("IntValue").ShouldBeFalse();
@@ -158,7 +158,7 @@ public partial class NavigatorRouteQueryTests
         var route = Route.Build<RouteQuery>("/search").Root<SearchVm>();
         var nav = new TestNavigator(b =>
         {
-            b.MapRoutedView<SearchVm, FakeView>();
+            b.MapViewModel<SearchVm>();
             b.AddRoute(route);
         });
         return (nav, route);
@@ -169,7 +169,7 @@ public partial class NavigatorRouteQueryTests
         var route = Route.Build<SearchParamsVm.Params>(p => $"show/{p.IntValue}").Root<SearchParamsVm>();
         var nav = new TestNavigator(b =>
         {
-            b.MapRoutedView<SearchParamsVm, FakeView>();
+            b.MapViewModel<SearchParamsVm>();
             b.AddRoute(route);
         });
         return (nav, route);

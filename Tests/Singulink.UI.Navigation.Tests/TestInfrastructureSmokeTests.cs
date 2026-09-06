@@ -1,12 +1,13 @@
 using PrefixClassName.MsTest;
 using Shouldly;
+using Singulink.UI.Navigation.Testing;
 using Singulink.UI.Navigation.Tests.TestSupport;
 
 namespace Singulink.UI.Navigation.Tests;
 
 /// <summary>
-/// Smoke test that proves the <see cref="TestNavigator"/> infrastructure works end-to-end:
-/// build → navigate → view materialization → lifecycle hooks → dialog show/close.
+/// Smoke test that proves the <see cref="TestNavigator"/> from the testing package works end-to-end:
+/// build → navigate → view model materialization → lifecycle hooks → dialog show/close.
 /// </summary>
 [PrefixTestClass]
 public class TestInfrastructureSmokeTests
@@ -14,23 +15,22 @@ public class TestInfrastructureSmokeTests
     [TestMethod]
     public void Navigate_RootRoute_MaterializesViewAndCallsLifecycle()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<HomeVm, HomeView>();
+                b.MapViewModel<HomeVm>();
                 b.AddRoute(Route.Build("home").Root<HomeVm>());
             });
 
             var result = await nav.NavigateAsync("home");
 
             result.ShouldBe(NavigationResult.Success);
-            nav.WiredViews.Count.ShouldBe(1);
-            nav.WiredViews[0].View.ShouldBeOfType<HomeView>();
-            nav.WiredViews[0].ViewModel.ShouldBeOfType<HomeVm>();
-            nav.RootViewNavigator.ActiveView.ShouldBeOfType<HomeView>();
+            nav.Events.OfType<ViewModelCreatedEvent>().Count().ShouldBe(1);
+            nav.Events.OfType<ViewModelCreatedEvent>().ElementAt(0).ViewModel.ShouldBeOfType<HomeVm>();
+            nav.ActiveViewModels[0].ShouldBeOfType<HomeVm>();
 
-            var vm = (HomeVm)nav.WiredViews[0].ViewModel;
+            var vm = nav.ActiveViewModel<HomeVm>();
             vm.Events.Select(e => e.Kind).ShouldBe([LifecycleEventKind.NavigatedTo, LifecycleEventKind.RouteNavigated]);
             vm.Events[0].NavigationType.ShouldBe(NavigationType.New);
             vm.Events[0].HasChildNavigation.ShouldBeFalse();
@@ -40,13 +40,12 @@ public class TestInfrastructureSmokeTests
     [TestMethod]
     public void ShowDialogAsync_ResolvesResult()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<HomeVm, HomeView>();
+                b.MapViewModel<HomeVm>();
                 b.AddRoute(Route.Build("home").Root<HomeVm>());
-                b.MapDialog<TestDialogVm, FakeDialog>();
             });
 
             await nav.NavigateAsync("home");
@@ -57,16 +56,21 @@ public class TestInfrastructureSmokeTests
             if (showTask.IsFaulted)
                 throw showTask.Exception!;
 
-            nav.ShownDialogs.Count.ShouldBe(1);
+            nav.ShowingDialogs.Count.ShouldBe(1);
             nav.IsShowingDialog.ShouldBeTrue();
 
-            // Close from inside the AsyncContext loop:
-            ((IDialogNavigator)nav.TryGetTopDialog()!.Value.Navigator).Close();
+            // Close from inside the test context loop:
+            nav.TopDialog!.Navigator.Close();
             await showTask;
 
-            nav.ShownDialogs.Count.ShouldBe(0);
+            nav.ShowingDialogs.Count.ShouldBe(0);
             nav.IsShowingDialog.ShouldBeFalse();
-            nav.DialogEvents.Select(e => e.Kind).ShouldBe([DialogEventKind.Show, DialogEventKind.Hide]);
+            nav.Events.Where(e => e is DialogShownEvent or DialogClosedEvent or LayerCoveredEvent).ShouldBe([
+                new LayerCoveredEvent(null, true),
+                new DialogShownEvent(dialogVm, null),
+                new DialogClosedEvent(dialogVm),
+                new LayerCoveredEvent(null, false),
+            ]);
         });
     }
 
@@ -74,9 +78,6 @@ public class TestInfrastructureSmokeTests
     {
     }
 
-    public class HomeView : FakeView
-    {
-    }
 
     public class TestDialogVm : IDialogViewModel
     {

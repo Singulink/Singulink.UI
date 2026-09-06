@@ -1,5 +1,6 @@
 using PrefixClassName.MsTest;
 using Shouldly;
+using Singulink.UI.Navigation.Testing;
 using Singulink.UI.Navigation.Tests.TestSupport;
 
 namespace Singulink.UI.Navigation.Tests;
@@ -10,7 +11,7 @@ public class NavigatorPartialNavigationTests
     [TestMethod]
     public void NavigatePartialAsync_AnchorOnly_UpdatesAnchor()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("home");
@@ -24,19 +25,18 @@ public class NavigatorPartialNavigationTests
     [TestMethod]
     public void NavigatePartialAsync_FromParent_SwapsChildOnly()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("p/c1");
-            var parentBefore = ((FakeView)nav.RootViewNavigator.ActiveView!).DataContext;
+            var parentBefore = nav.ActiveViewModels[0];
 
             await nav.NavigatePartialAsync<ParentVm>(C2);
 
-            var parentAfter = ((FakeView)nav.RootViewNavigator.ActiveView!).DataContext;
+            var parentAfter = nav.ActiveViewModels[0];
             parentAfter.ShouldBeSameAs(parentBefore);
 
-            var pView = (ParentView)nav.RootViewNavigator.ActiveView!;
-            ((FakeView)pView.ChildNavigator.ActiveView!).DataContext.ShouldBeOfType<C2Vm>();
+            nav.ActiveViewModels[1].ShouldBeOfType<C2Vm>();
             nav.CurrentRoute.ToString().ShouldBe("p/c2");
         });
     }
@@ -44,7 +44,7 @@ public class NavigatorPartialNavigationTests
     [TestMethod]
     public void NavigatePartialAsync_NoMatchingParent_Throws()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("home");
@@ -57,7 +57,7 @@ public class NavigatorPartialNavigationTests
     [TestMethod]
     public void NavigateToParentAsync_TruncatesToParent()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("p/c1");
@@ -70,12 +70,12 @@ public class NavigatorPartialNavigationTests
     [TestMethod]
     public void CurrentPathStartsWith_TruePath()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("p/c1");
 
-            nav.CurrentPathStartsWith(P, C1).ShouldBeTrue();
+            nav.CurrentPathStartsWith(P.Then(C1)).ShouldBeTrue();
             nav.CurrentRouteHasParent<ParentVm>().ShouldBeTrue();
         });
     }
@@ -83,12 +83,12 @@ public class NavigatorPartialNavigationTests
     [TestMethod]
     public void CurrentPathStartsWith_FalsePath()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("home");
 
-            nav.CurrentPathStartsWith(P, C1).ShouldBeFalse();
+            nav.CurrentPathStartsWith(P.Then(C1)).ShouldBeFalse();
             nav.CurrentRouteHasParent<ParentVm>().ShouldBeFalse();
         });
     }
@@ -100,10 +100,10 @@ public class NavigatorPartialNavigationTests
 
     private static TestNavigator BuildNav() => new(b =>
     {
-        b.MapRoutedView<HomeVm, FakeView>();
-        b.MapRoutedView<ParentVm, ParentView>();
-        b.MapRoutedView<C1Vm, FakeView>();
-        b.MapRoutedView<C2Vm, FakeView>();
+        b.MapViewModel<HomeVm>();
+        b.MapViewModel<ParentVm>();
+        b.MapViewModel<C1Vm>();
+        b.MapViewModel<C2Vm>();
 
         b.AddRoute(Home);
         b.AddRoute(P);
@@ -119,5 +119,4 @@ public class NavigatorPartialNavigationTests
 
     public class C2Vm : RecordedLifecycleViewModel, IRoutedViewModel { }
 
-    public class ParentView : FakeParentView { }
 }

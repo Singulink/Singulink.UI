@@ -13,6 +13,8 @@
   <StackPanel Spacing="10">
     <TextBlock Text="This dialog can be dismissed by pressing the Escape key." TextWrapping="Wrap"/>
     <Button Content="Do TaskRunner Work" Command="{x:Bind Model.DoSomethingCommand}"/>
+    <Button Content="Show Child Dialog" Command="{x:Bind Model.ShowChildDialogCommand}"/>
+    <TextBox Header="Type something (should persist while a child dialog is open)"/>
     <Button Content="Dummy Button (does nothing)"/>
   </StackPanel>
 </ContentDialog>

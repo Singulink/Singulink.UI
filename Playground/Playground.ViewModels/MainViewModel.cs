@@ -32,7 +32,7 @@ public partial class MainViewModel : ObservableObject, IRoutedViewModel, IMessag
         // navigate to home.
 
         if (args.HasChildNavigation)
-            SelectedMenuItem = MainMenuItems.First(mi => Navigator.CurrentPathStartsWith(Routes.MainRoot, mi.ChildRoutePart!));
+            SelectedMenuItem = MainMenuItems.First(mi => Navigator.CurrentPathStartsWith(Routes.MainRoot.Then(mi.ChildRoutePart!)));
         else
             args.Redirect = Redirect.NavigatePartial(MainMenuItems[0].ChildRoutePart!);
 

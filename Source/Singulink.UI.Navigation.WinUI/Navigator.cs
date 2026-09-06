@@ -337,5 +337,5 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
     }
 
     private static TaskRunner CreateTaskRunner(ViewNavigator viewNavigator) =>
-        new(busy => viewNavigator.NavigationControl.IsEnabled = !busy);
+        new(busy => LayerPresentation.Get(viewNavigator.NavigationControl).IsBusy = busy);
 }

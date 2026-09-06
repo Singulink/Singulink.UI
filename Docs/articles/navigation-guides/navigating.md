@@ -18,13 +18,23 @@ Parameterized routes require a concrete instance created via <xref:Singulink.UI.
 await this.Navigator.NavigateAsync(Routes.RepoRoot.ToConcrete("my-repo"));
 ```
 
-You can compose root + child routes in a single call. The overloads match up to four levels deep:
+Multi-level routes are composed by chaining child route parts onto a root route part with <xref:Singulink.UI.Navigation.ConcreteRouteExtensions.Then*>. Each child must belong to the view model of the part before it, which the compiler enforces, and there is no limit on depth:
 
 ```csharp
 await this.Navigator.NavigateAsync(
-    Routes.RepoRoot.ToConcrete("my-repo"),
-    Routes.Repo.DocumentPage.ToConcrete(new DocumentParams { DocumentId = 42 }));
+    Routes.RepoRoot.ToConcrete("my-repo")
+        .Then(Routes.Repo.DocumentPage.ToConcrete(new DocumentParams { DocumentId = 42 })));
+
+await this.Navigator.NavigateAsync(
+    Routes.MainRoot
+        .Then(Routes.Main.Details)
+        .Then(Routes.Main.Details.History));
 ```
+
+Parameterless route parts are used directly; only parameterized parts need <xref:Singulink.UI.Navigation.RootRoutePart`2.ToConcrete*>.
+
+> [!NOTE]
+> Before 7.0, multi-level routes were passed as separate arguments to generic overloads limited to three levels. See [Upgrading to 7.0](upgrading-to-v7.md) for the old form.
 
 All <xref:Singulink.UI.Navigation.INavigator.NavigateAsync*> overloads accept an optional <xref:Singulink.UI.Navigation.NavigatorRoute.Anchor> argument for URL fragments:
 
@@ -52,6 +62,14 @@ private async Task ShowHomeAsync()
 {
     await this.Navigator.NavigatePartialAsync(Routes.Repo.HomePage);
 }
+```
+
+Deeper partial routes chain child route parts with <xref:Singulink.UI.Navigation.ConcreteRouteExtensions.Then*>, starting from the child of the parent view model:
+
+```csharp
+await this.Navigator.NavigatePartialAsync<RepoRootModel>(
+    Routes.Repo.DocumentPage.ToConcrete(documentParams)
+        .Then(Routes.Repo.DocumentPage.History));
 ```
 
 The route's generic parameters describe the parent view model the child is registered under; the navigator verifies at runtime that the current route actually contains that parent. If it doesn't, an <xref:System.InvalidOperationException> is thrown.
@@ -126,9 +144,11 @@ if (this.Navigator.CurrentRouteHasParent<RepoViewModel>())
 <xref:Singulink.UI.Navigation.INavigator.CurrentRouteHasParent``1> walks up the active route tree to check for a specific view model type.
 
 ```csharp
+bool inRepo = this.Navigator.CurrentPathStartsWith(Routes.RepoRoot.ToConcrete("my-repo"));
+
 bool inRepoHome = this.Navigator.CurrentPathStartsWith(
-    Routes.RepoRoot.ToConcrete("my-repo"),
-    Routes.Repo.HomePage);
+    Routes.RepoRoot.ToConcrete("my-repo")
+        .Then(Routes.Repo.HomePage));
 ```
 
 <xref:Singulink.UI.Navigation.INavigator.CurrentPathStartsWith*> only checks path equivalence; it does not require the current VM or view instances to match. This is useful for highlighting navigation items regardless of how the route was reached.
@@ -177,7 +197,7 @@ this.Navigator.UpdateCurrentRoute(
 
 ## System Back / Forward Handling
 
-On platforms where the OS or browser provides back / forward gestures (Android, iOS, WASM, some desktops), hook them via the WinUI navigator's <xref:Singulink.UI.Navigation.WinUI.Navigator.HookSystemNavigationRequests> method (see [WinUI / Uno Setup](winui-setup.md)). Under the hood these dispatch to <xref:Singulink.UI.Navigation.INavigator.HandleSystemBackRequest> and <xref:Singulink.UI.Navigation.INavigator.HandleSystemForwardRequest>:
+On platforms where the OS or browser provides back / forward gestures (Android, iOS, WASM, some desktops), hook them via the WinUI navigator's <xref:Singulink.UI.Navigation.WinUI.Navigator.HookSystemNavigationRequests> method (see [WinUI / Uno Setup](winui-setup.md)). Under the hood these dispatch to <xref:Singulink.UI.Navigation.NavigatorCore.HandleSystemBackRequest> and <xref:Singulink.UI.Navigation.NavigatorCore.HandleSystemForwardRequest> on the concrete navigator (these are host-level operations and are intentionally not part of <xref:Singulink.UI.Navigation.INavigator>, which view models use):
 
 ```csharp
 bool handled = _navigator.HandleSystemBackRequest();
@@ -188,7 +208,7 @@ A back request returns `true` if any of the following happened: a dialog was dis
 
 ## Graceful Shutdown
 
-<xref:Singulink.UI.Navigation.INavigator.TryShutDownAsync> attempts to close down the navigator gracefully by asking each active view model if it is ready to unload:
+<xref:Singulink.UI.Navigation.NavigatorCore.TryShutDownAsync> attempts to close down the navigator gracefully by asking each active view model if it is ready to unload:
 
 ```csharp
 if (await _navigator.TryShutDownAsync())

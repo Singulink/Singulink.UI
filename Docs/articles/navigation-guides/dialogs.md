@@ -131,7 +131,7 @@ From a routed view model:
 await this.Navigator.ShowDialogAsync(new InfoDialogViewModel("Saved."));
 ```
 
-`this.Navigator` on a dialog view model returns an <xref:Singulink.UI.Navigation.IDialogNavigator>, which exposes <xref:Singulink.UI.Navigation.IDialogNavigator.Close*>, <xref:Singulink.UI.Navigation.IDialogNavigator.TaskRunner>, and <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*> for nesting additional dialogs (see below).
+`this.Navigator` on a dialog view model returns an <xref:Singulink.UI.Navigation.IDialogNavigator>, which exposes <xref:Singulink.UI.Navigation.IDialogNavigator.Close*>, <xref:Singulink.UI.Navigation.IDialogPresenter.TaskRunner>, and <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*> for nesting additional dialogs (see below).
 
 > [!CAUTION]
 > Unlike routed view models (which the navigator constructs), **dialog view models are instantiated by your code** and only get wired up to a navigator immediately before <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> fires. This means `this.Navigator` and `this.TaskRunner` are **not available in the dialog view model's constructor**, and attempting to access them there will throw. Defer any work that needs them to <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> or to a command/method that runs after the dialog is shown.
@@ -199,7 +199,7 @@ public partial class ConfirmActionDialogViewModel(string prompt)
 
 ## Nested Dialogs
 
-A dialog can show another dialog from any method or command using the same <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*> API. The parent dialog is temporarily hidden while the nested dialog is shown, and restored when the nested dialog closes:
+A dialog can show another dialog from any method or command using the same <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*> API. The parent dialog stays visible underneath the nested dialog (dimmed and non-interactive) and keeps its state, and focus returns to it when the nested dialog closes. The parent is never shown as disabled while a nested dialog covers it, even if it is busy (e.g. it showed the nested dialog from inside a busy scope), since the nested dialog is what blocks interaction with it; the parent's busy state applies again as soon as the nested dialog closes:
 
 ```csharp
 [RelayCommand]
@@ -216,6 +216,48 @@ private async Task CreateNewItemAsync()
 ```
 
 There is no limit on dialog nesting depth.
+
+> [!NOTE]
+> Before 7.0, the parent dialog was hidden while a nested dialog was showing and re-shown when it closed. See [Upgrading to 7.0](upgrading-to-v7.md).
+
+## Creating Dialogs with Injected Services
+
+Dialog view models are normally constructed by the caller, which means every service the dialog needs has to be passed through by hand. <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> creates a dialog view model the same way the navigator creates routed view models, with constructor injection:
+
+```csharp
+public partial class EditItemDialogViewModel(Item item, IItemService items, IFilePickerService filePicker) : IDialogViewModel<bool>
+{
+    // ...
+}
+
+[RelayCommand]
+private async Task EditAsync(Item item)
+{
+    var dialog = this.Navigator.CreateDialogViewModel<EditItemDialogViewModel>(item);
+
+    if (await this.Navigator.ShowDialogAsync(dialog))
+        await ReloadAsync();
+}
+```
+
+Explicit arguments are matched to constructor parameters by type, positionally among parameters of the same type, and must not be `null`. The remaining parameters are resolved in this order:
+
+1. Child services registered by the dialogs the presenter is nested in, nearest first (see below).
+2. Child services registered by the active route's view models, from the leaf to the root (see [Dependency Injection](dependency-injection.md)).
+3. <xref:Singulink.UI.Navigation.IDialogPresenter.RootServices>.
+4. The parameter's default value, or `null` for nullable parameters.
+
+The view model's `Navigator` is available inside its constructor, just like a routed view model's.
+
+### Child services for nested dialogs
+
+Dialog view models can register child services with `this.SetChildService(...)` in their constructor or in <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync>. Nested dialogs created through the dialog's `Navigator` receive them, so an editor can share its working state with a picker it opens without passing it explicitly.
+
+### Rules
+
+- A dialog view model created by a presenter can only be shown by that presenter. Its services were resolved in that presenter's scope, so showing it from another level would give it the wrong services. Showing it from a different presenter throws.
+- If any service came from a view model that is no longer active when the dialog is shown (for example the page navigated away in the meantime), showing it throws. Create dialog view models immediately before showing them.
+- Dialog view models constructed with `new` are unaffected by these rules; they receive their `Navigator` when shown and can be shown by any presenter on the same navigator.
 
 ## Message Dialogs
 
@@ -274,12 +316,13 @@ public partial class LoadUsersDialogViewModel(IUserService userService)
 }
 ```
 
-Note <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> is not re-invoked when a nested dialog closes and the dialog is restored; it fires exactly once per <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*> call.
+Note <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> is not re-invoked when a nested dialog closes; it fires exactly once per <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*> call.
 
 ## Dialog Restrictions
 
 - Dialogs shown from <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*> or <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatedAsync*> must be closed before the task completes **or** the navigation must have no child (<xref:Singulink.UI.Navigation.NavigationArgs.HasChildNavigation> is `false`).
 - Dialogs cannot be shown from <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedAwayAsync>. Refer to the documentation of other navigation methods for other restrictions.
-- Nested dialogs must be shown using the top dialog's `Navigator`.
+- Nested dialogs must be shown using the top dialog's `Navigator`. Use <xref:Singulink.UI.Navigation.IDialogPresenter.CanShowDialog> to check whether a presenter is currently allowed to show a dialog (e.g. before showing a dialog in response to a background event).
+- Only the top dialog can be closed. Closing a dialog while it has a nested dialog showing throws <xref:System.InvalidOperationException>.
 
 </div>

@@ -44,7 +44,7 @@ private async Task SaveAsync()
 }
 ```
 
-While `SaveAsync` is in flight, <xref:Singulink.UI.Tasks.TaskRunner.IsBusy> is `true` and the root content is disabled, so buttons, text boxes, and child controls all become non-interactive automatically. Any exception thrown inside the lambda propagates normally to the awaiting caller.
+While `SaveAsync` is in flight, <xref:Singulink.UI.Tasks.TaskRunner.IsBusy> is `true` and the root content is disabled, so buttons, text boxes, and child controls all become non-interactive automatically. When the work completes, keyboard focus is restored to the element that had focus when it started (if that element is still available), so keyboard users do not lose their place. Any exception thrown inside the lambda propagates normally to the awaiting caller.
 
 > [!TIP]
 > <xref:Singulink.UI.Tasks.TaskRunnerExtensions.EnterBusyScope(Singulink.UI.Tasks.ITaskRunner)> is a flexible alternative to the lambda-based methods. The busy state ends when the scope is disposed, so you can wrap any block of code (sync or async, partial or full method body) without restructuring it as a lambda. Just make certain that the scope is disposed (*always* wrap `EnterBusyScope()` in `using`):

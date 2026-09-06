@@ -1,5 +1,6 @@
 using PrefixClassName.MsTest;
 using Shouldly;
+using Singulink.UI.Navigation.Testing;
 using Singulink.UI.Navigation.Tests.TestSupport;
 
 namespace Singulink.UI.Navigation.Tests;
@@ -10,7 +11,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void GoBack_ReturnsToPreviousRoute()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
@@ -29,7 +30,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void GoForward_AfterBack_RestoresRoute()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
@@ -45,7 +46,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void Refresh_RecreatesCurrentRoute()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
@@ -59,7 +60,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void GoBack_NoHistory_Throws()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await Should.ThrowAsync<InvalidOperationException>(() => nav.GoBackAsync());
@@ -69,7 +70,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void GoForward_NoHistory_Throws()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
@@ -80,7 +81,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void Navigate_AfterBack_DiscardsForwardStack()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
@@ -97,7 +98,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void GetBackStack_RecentFirst()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
@@ -114,7 +115,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void GetForwardStack_OrderedFromCurrentForward()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
@@ -133,7 +134,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void ClearHistoryAsync_LeavesOnlyCurrent()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
@@ -151,21 +152,21 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void CanBeCached_False_RecreatesOnBackForward()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = new TestNavigator(b =>
             {
-                b.MapRoutedView<UncachedVm, FakeView>();
-                b.MapRoutedView<OtherVm, FakeView>();
+                b.MapViewModel<UncachedVm>();
+                b.MapViewModel<OtherVm>();
                 b.AddRoute(Route.Build("u").Root<UncachedVm>());
                 b.AddRoute(Route.Build("o").Root<OtherVm>());
             });
 
             await nav.NavigateAsync("u");
-            var firstVm = ((FakeView)nav.RootViewNavigator.ActiveView!).DataContext;
+            var firstVm = nav.ActiveViewModels[0];
             await nav.NavigateAsync("o");
             await nav.GoBackAsync();
-            var secondVm = ((FakeView)nav.RootViewNavigator.ActiveView!).DataContext;
+            var secondVm = nav.ActiveViewModels[0];
 
             secondVm.ShouldNotBeSameAs(firstVm);
         });
@@ -174,14 +175,14 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void CanBeCached_True_ReusesOnBackForward()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             await nav.NavigateAsync("a");
-            var firstVm = ((FakeView)nav.RootViewNavigator.ActiveView!).DataContext;
+            var firstVm = nav.ActiveViewModels[0];
             await nav.NavigateAsync("b");
             await nav.GoBackAsync();
-            var secondVm = ((FakeView)nav.RootViewNavigator.ActiveView!).DataContext;
+            var secondVm = nav.ActiveViewModels[0];
 
             secondVm.ShouldBeSameAs(firstVm);
         });
@@ -190,7 +191,7 @@ public class NavigatorHistoryTests
     [TestMethod]
     public void CanGoBack_NotifiesPropertyChanged()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
             var changes = new List<string?>();
@@ -209,9 +210,9 @@ public class NavigatorHistoryTests
 
     private static TestNavigator BuildNav() => new(b =>
     {
-        b.MapRoutedView<AVm, FakeView>();
-        b.MapRoutedView<BVm, FakeView>();
-        b.MapRoutedView<CVm, FakeView>();
+        b.MapViewModel<AVm>();
+        b.MapViewModel<BVm>();
+        b.MapViewModel<CVm>();
         b.AddRoute(Route.Build("a").Root<AVm>());
         b.AddRoute(Route.Build("b").Root<BVm>());
         b.AddRoute(Route.Build("c").Root<CVm>());

@@ -25,7 +25,7 @@ public sealed class Redirect
     public static Redirect Navigate(string route) => new(n => n.NavigateAsync(route));
 
     /// <summary>
-    /// Navigates to the specified route.
+    /// Navigates to the specified root route.
     /// </summary>
     public static Redirect Navigate(IConcreteRootRoutePart rootRoutePart, string? anchor = null)
     {
@@ -35,42 +35,9 @@ public sealed class Redirect
     /// <summary>
     /// Navigates to the specified route.
     /// </summary>
-    public static Redirect Navigate<TRootViewModel>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel> childRoutePart,
-        string? anchor = null) where TRootViewModel : class
+    public static Redirect Navigate(ConcreteRoute route, string? anchor = null)
     {
-        return new(n => n.NavigateAsync(rootRoutePart, childRoutePart, anchor));
-    }
-
-    /// <summary>
-    /// Navigates to the specified route.
-    /// </summary>
-    public static Redirect Navigate<TRootViewModel, TChildViewModel1>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
-        string? anchor = null)
-        where TRootViewModel : class
-        where TChildViewModel1 : class
-    {
-        return new(n => n.NavigateAsync(rootRoutePart, childRoutePart1, childRoutePart2, anchor));
-    }
-
-    /// <summary>
-    /// Navigates to the specified route.
-    /// </summary>
-    public static Redirect Navigate<TRootViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
-        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        string? anchor = null)
-        where TRootViewModel : class
-        where TChildViewModel1 : class
-        where TChildViewModel2 : class
-    {
-        return new(n => n.NavigateAsync(rootRoutePart, childRoutePart1, childRoutePart2, childRoutePart3, anchor));
+        return new(n => n.NavigateAsync(route, anchor));
     }
 
     /// <summary>
@@ -82,8 +49,8 @@ public sealed class Redirect
     }
 
     /// <summary>
-    /// Navigates to the specified partial route. The current route must contain a view with the specified parent view model type otherwise an <see
-    /// cref="InvalidOperationException"/> is thrown.
+    /// Navigates to the specified child route beneath the parent view model type in the current route. The current route must contain a view with the
+    /// specified parent view model type otherwise an <see cref="InvalidOperationException"/> is thrown.
     /// </summary>
     public static Redirect NavigatePartial<TParentViewModel>(
         IConcreteChildRoutePart<TParentViewModel> childRoutePart,
@@ -94,33 +61,15 @@ public sealed class Redirect
     }
 
     /// <summary>
-    /// Navigates to the specified partial route. The current route must contain a view with the specified parent view model type otherwise an <see
-    /// cref="InvalidOperationException"/> is thrown.
+    /// Navigates to the specified partial route beneath the parent view model type in the current route. The current route must contain a view with the
+    /// specified parent view model type otherwise an <see cref="InvalidOperationException"/> is thrown.
     /// </summary>
-    public static Redirect NavigatePartial<TParentViewModel, TChildViewModel1>(
-        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
+    public static Redirect NavigatePartial<TParentViewModel>(
+        ConcretePartialRoute<TParentViewModel> route,
         string? anchor = null)
         where TParentViewModel : class
-        where TChildViewModel1 : class
     {
-        return new(n => n.NavigatePartialAsync(childRoutePart1, childRoutePart2, anchor));
-    }
-
-    /// <summary>
-    /// Navigates to the specified partial route. The current route must contain a view with the specified parent view model type otherwise an <see
-    /// cref="InvalidOperationException"/> is thrown.
-    /// </summary>
-    public static Redirect NavigatePartial<TParentViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
-        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        string? anchor = null)
-        where TParentViewModel : class
-        where TChildViewModel1 : class
-        where TChildViewModel2 : class
-    {
-        return new(n => n.NavigatePartialAsync(childRoutePart1, childRoutePart2, childRoutePart3, anchor));
+        return new(n => n.NavigatePartialAsync(route, anchor));
     }
 
     /// <summary>

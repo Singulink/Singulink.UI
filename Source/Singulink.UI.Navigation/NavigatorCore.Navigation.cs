@@ -44,43 +44,11 @@ partial class NavigatorCore
         return await NavigateNewWithRouteCheckAsync([rootRoutePart], anchor);
     }
 
-    /// <inheritdoc cref="INavigator.NavigateAsync{TRootViewModel}(IConcreteRootRoutePart{TRootViewModel}, IConcreteChildRoutePart{TRootViewModel}, string?)"/>
-    public async Task<NavigationResult> NavigateAsync<TRootViewModel>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel> childRoutePart,
-        string? anchor = null)
-        where TRootViewModel : class
+    /// <inheritdoc cref="INavigator.NavigateAsync(ConcreteRoute, string?)"/>
+    public async Task<NavigationResult> NavigateAsync(ConcreteRoute route, string? anchor = null)
     {
         EnsureThreadAccess();
-        return await NavigateNewWithRouteCheckAsync([rootRoutePart, childRoutePart], anchor);
-    }
-
-    /// <inheritdoc cref="INavigator.NavigateAsync{TRootViewModel, TChildViewModel1}(IConcreteRootRoutePart{TRootViewModel}, IConcreteChildRoutePart{TRootViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1}, string?)"/>
-    public async Task<NavigationResult> NavigateAsync<TRootViewModel, TChildViewModel1>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
-        string? anchor = null)
-        where TRootViewModel : class
-        where TChildViewModel1 : class
-    {
-        EnsureThreadAccess();
-        return await NavigateNewWithRouteCheckAsync([rootRoutePart, childRoutePart1, childRoutePart2], anchor);
-    }
-
-    /// <inheritdoc cref="INavigator.NavigateAsync{TRootViewModel, TChildViewModel1, TChildViewModel2}(IConcreteRootRoutePart{TRootViewModel}, IConcreteChildRoutePart{TRootViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1, TChildViewModel2}, IConcreteChildRoutePart{TChildViewModel2}, string?)"/>
-    public async Task<NavigationResult> NavigateAsync<TRootViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
-        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        string? anchor = null)
-        where TRootViewModel : class
-        where TChildViewModel1 : class
-        where TChildViewModel2 : class
-    {
-        EnsureThreadAccess();
-        return await NavigateNewWithRouteCheckAsync([rootRoutePart, childRoutePart1, childRoutePart2, childRoutePart3], anchor);
+        return await NavigateNewWithRouteCheckAsync([.. route.RouteParts], anchor);
     }
 
     /// <inheritdoc cref="INavigator.NavigatePartialAsync(string?)"/>
@@ -99,28 +67,13 @@ partial class NavigatorCore
         return await NavigatePartialAsync(typeof(TParentViewModel), [childRoutePart], anchor);
     }
 
-    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TChildViewModel1}(IConcreteChildRoutePart{TParentViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1}, string?)"/>
-    public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TChildViewModel1>(
-        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2,
+    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel}(ConcretePartialRoute{TParentViewModel}, string?)"/>
+    public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel>(
+        ConcretePartialRoute<TParentViewModel> route,
         string? anchor = null)
         where TParentViewModel : class
-        where TChildViewModel1 : class
     {
-        return await NavigatePartialAsync(typeof(TParentViewModel), [childRoutePart1, childRoutePart2], anchor);
-    }
-
-    /// <inheritdoc cref="INavigator.NavigatePartialAsync{TParentViewModel, TChildViewModel1, TChildViewModel2}(IConcreteChildRoutePart{TParentViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1, TChildViewModel2}, IConcreteChildRoutePart{TChildViewModel2}, string?)"/>
-    public async Task<NavigationResult> NavigatePartialAsync<TParentViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteChildRoutePart<TParentViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
-        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3,
-        string? anchor = null)
-        where TParentViewModel : class
-        where TChildViewModel1 : class
-        where TChildViewModel2 : class
-    {
-        return await NavigatePartialAsync(typeof(TParentViewModel), [childRoutePart1, childRoutePart2, childRoutePart3], anchor);
+        return await NavigatePartialAsync(typeof(TParentViewModel), [.. route.ChildRouteParts], anchor);
     }
 
     private async Task<NavigationResult> NavigatePartialAsync(Type parentViewModelType, List<IConcreteRoutePart> requestedChildRoutes, string? anchor)
@@ -198,7 +151,17 @@ partial class NavigatorCore
         return await NavigateAsyncCore(NavigationType.Refresh, route, null);
     }
 
-    /// <inheritdoc cref="INavigator.HandleSystemBackRequest()"/>
+    /// <summary>
+    /// Handles a system back request, such as when the user presses the back button on a mobile device, a hardware back button on a desktop or the back button
+    /// in a web browser. Returns <see langword="true"/> if there is a dialog showing, a light dismiss popup was closed, a navigation is currently in progress
+    /// or if a back navigation was initiated; otherwise <see langword="false"/> (meaning there was no back history).
+    /// </summary>
+    /// <remarks>
+    /// If a dialog is showing and it implements <see cref="IDismissibleDialogViewModel"/>, the <see
+    /// cref="IDismissibleDialogViewModel.OnDismissRequestedAsync"/> method will be called to allow the dialog to handle the back request. If the dialog is not
+    /// dismissible or if a navigation is currently in progress then the back request will still be marked as handled but the request will be ignored and no
+    /// navigation will occur.
+    /// </remarks>
     public bool HandleSystemBackRequest()
     {
         EnsureThreadAccess();
@@ -220,7 +183,15 @@ partial class NavigatorCore
         return true;
     }
 
-    /// <inheritdoc cref="INavigator.HandleSystemForwardRequest()"/>
+    /// <summary>
+    /// Handles a system forward request, such as when the user presses the forward button on a mobile device, a hardware forward button on a desktop or the
+    /// forward button in a web browser. Returns <see langword="true"/> if there is a dialog showing, a navigation is currently in progress or if a forward
+    /// navigation was initiated; otherwise <see langword="false"/> (meaning there was no forward history).
+    /// </summary>
+    /// <remarks>
+    /// If a dialog is showing or if a navigation is currently in progress then the forward request will still be marked as handled but the request will be
+    /// ignored and no navigation will occur.
+    /// </remarks>
     public bool HandleSystemForwardRequest()
     {
         EnsureThreadAccess();
@@ -366,40 +337,18 @@ partial class NavigatorCore
             .Select(ri => ri.ConcreteRoutePart);
     }
 
-    /// <inheritdoc cref="INavigator.CurrentPathStartsWith{TRootViewModel}(IConcreteRootRoutePart{TRootViewModel}, IConcreteChildRoutePart{TRootViewModel})"/>
-    public bool CurrentPathStartsWith<TRootViewModel>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel> childRoutePart)
-        where TRootViewModel : class
+    /// <inheritdoc cref="INavigator.CurrentPathStartsWith(IConcreteRootRoutePart)"/>
+    public bool CurrentPathStartsWith(IConcreteRootRoutePart rootRoutePart)
     {
         EnsureThreadAccess();
-        return CurrentPathStartsWith([rootRoutePart, childRoutePart]);
+        return CurrentPathStartsWith([rootRoutePart]);
     }
 
-    /// <inheritdoc cref="INavigator.CurrentPathStartsWith{TRootViewModel, TChildViewModel1}(IConcreteRootRoutePart{TRootViewModel}, IConcreteChildRoutePart{TRootViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1})"/>
-    public bool CurrentPathStartsWith<TRootViewModel, TChildViewModel1>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1> childRoutePart2)
-        where TRootViewModel : class
-        where TChildViewModel1 : class
+    /// <inheritdoc cref="INavigator.CurrentPathStartsWith(ConcreteRoute)"/>
+    public bool CurrentPathStartsWith(ConcreteRoute route)
     {
         EnsureThreadAccess();
-        return CurrentPathStartsWith([rootRoutePart, childRoutePart1, childRoutePart2]);
-    }
-
-    /// <inheritdoc cref="INavigator.CurrentPathStartsWith{TRootViewModel, TChildViewModel1, TChildViewModel2}(IConcreteRootRoutePart{TRootViewModel}, IConcreteChildRoutePart{TRootViewModel, TChildViewModel1}, IConcreteChildRoutePart{TChildViewModel1, TChildViewModel2}, IConcreteChildRoutePart{TChildViewModel2})"/>
-    public bool CurrentPathStartsWith<TRootViewModel, TChildViewModel1, TChildViewModel2>(
-        IConcreteRootRoutePart<TRootViewModel> rootRoutePart,
-        IConcreteChildRoutePart<TRootViewModel, TChildViewModel1> childRoutePart1,
-        IConcreteChildRoutePart<TChildViewModel1, TChildViewModel2> childRoutePart2,
-        IConcreteChildRoutePart<TChildViewModel2> childRoutePart3)
-        where TRootViewModel : class
-        where TChildViewModel1 : class
-        where TChildViewModel2 : class
-    {
-        EnsureThreadAccess();
-        return CurrentPathStartsWith([rootRoutePart, childRoutePart1, childRoutePart2, childRoutePart3]);
+        return CurrentPathStartsWith([.. route.RouteParts]);
     }
 
     private bool CurrentPathStartsWith(List<IConcreteRoutePart> routeParts)
@@ -417,7 +366,24 @@ partial class NavigatorCore
         return partial.Length == current.Length || current[partial.Length] is '/';
     }
 
-    /// <inheritdoc cref="INavigator.TryShutDownAsync"/>
+    /// <summary>
+    /// Shuts down the navigator by releasing all views and view model resources. Returns <see langword="false"/> if shutdown, navigation or busy tasks are in
+    /// progress, dialogs are showing, or any view models are preventing navigating away from the current view; otherwise returns <see langword="true"/> after
+    /// successfully shutting down.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This method should only be called when the navigator is no longer needed (e.g. when the window hosting it is being closed) to ensure that all resources
+    /// are properly released. This is important in multi-window applications to prevent memory leaks but is not strictly necessary in single-window
+    /// applications since all resources should be released when the application exits. Navigating or showing dialogs is blocked after the shutdown completes
+    /// and attempting to do so will result in an <see cref="InvalidOperationException"/> being thrown.</para>
+    /// <para>
+    /// It may still be beneficial to call this method in single-window applications when the window should be prevented from being closed when dialogs are
+    /// showing or navigating away from the current view is blocked by a view model (e.g. if the user has unsaved changes). The navigator queries active view
+    /// models to see if they allow navigating away by calling <see cref="IRoutedViewModelBase.OnNavigatingAwayAsync(NavigatingArgs)"/>.</para>
+    /// <para>
+    /// If the shutdown process is aborted and the method returns <see langword="false"/> then closing the window should be cancelled.</para>
+    /// </remarks>
     public async Task<bool> TryShutDownAsync()
     {
         EnsureThreadAccess();
@@ -661,12 +627,14 @@ partial class NavigatorCore
                     if (!routeItem.AlreadyNavigatedTo)
                     {
                         routeItem.AlreadyNavigatedTo = true;
+                        OnViewModelLifecycleInvoking(routeItem.ViewModel!, ViewModelLifecycleStage.NavigatedTo);
                         await routeItem.ViewModel!.OnNavigatedToAsync(args);
                         EnsureDialogsClosed();
                     }
 
                     if (args.Redirect is null)
                     {
+                        OnViewModelLifecycleInvoking(routeItem.ViewModel, ViewModelLifecycleStage.RouteNavigated);
                         await routeItem.ViewModel.OnRouteNavigatedAsync(args);
                         EnsureDialogsClosed();
                     }
@@ -678,6 +646,7 @@ partial class NavigatorCore
 
                     try
                     {
+                        OnNavigationRedirecting(routeItem.ViewModel, args.Redirect);
                         _isRedirecting = true;
                         return await args.Redirect.ExecuteAsync(this);
                     }
@@ -724,6 +693,7 @@ partial class NavigatorCore
                     if (routeItem.AlreadyNavigatedTo)
                     {
                         routeItem.AlreadyNavigatedTo = false;
+                        OnViewModelLifecycleInvoking(routeItem.ViewModel, ViewModelLifecycleStage.NavigatedAway);
                         await routeItem.ViewModel.OnNavigatedAwayAsync();
                     }
                 }
@@ -779,6 +749,7 @@ partial class NavigatorCore
 
                     if (willNavigateAway)
                     {
+                        OnViewModelLifecycleInvoking(routeItem.ViewModel, ViewModelLifecycleStage.NavigatingAway);
                         await routeItem.ViewModel.OnNavigatingAwayAsync(args);
                         EnsureDialogsClosed();
 
@@ -786,6 +757,7 @@ partial class NavigatorCore
                             return false;
                     }
 
+                    OnViewModelLifecycleInvoking(routeItem.ViewModel, ViewModelLifecycleStage.RouteNavigating);
                     await routeItem.ViewModel.OnRouteNavigatingAsync(args);
                     EnsureDialogsClosed();
 

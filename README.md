@@ -11,6 +11,7 @@ Details of each component are provided below:
 | **Singulink.UI.Icons** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Icons.svg)](https://www.nuget.org/packages/Singulink.UI.Icons/) |
 | **Singulink.UI.Navigation** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation/) |
 | **Singulink.UI.Navigation.WinUI** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.WinUI.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation.WinUI/) |
+| **Singulink.UI.Navigation.Testing** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Navigation.Testing.svg)](https://www.nuget.org/packages/Singulink.UI.Navigation.Testing/) |
 | **Singulink.UI.Tasks** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Tasks.svg)](https://www.nuget.org/packages/Singulink.UI.Tasks/) |
 | **Singulink.UI.Xaml.WinUI** | Public | [![View nuget package](https://img.shields.io/nuget/v/Singulink.UI.Xaml.WinUI.svg)](https://www.nuget.org/packages/Singulink.UI.Xaml.WinUI/) |
 

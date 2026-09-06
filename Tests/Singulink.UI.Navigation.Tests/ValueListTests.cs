@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using PrefixClassName.MsTest;
 using Shouldly;
+using Singulink.UI.Navigation.Testing;
 using Singulink.UI.Navigation.Tests.TestSupport;
 
 namespace Singulink.UI.Navigation.Tests;
@@ -335,7 +336,7 @@ public class ValueListTests
     [TestMethod]
     public void RouteValue_AsPathParameter_RoundTrips()
     {
-        AsyncContextTest.Run(async () =>
+        NavigationTestContext.Run(async () =>
         {
             var nav = BuildNav();
 
@@ -344,7 +345,7 @@ public class ValueListTests
             concrete.Path.ShouldBe("tags/~1~2~3");
 
             (await nav.NavigateAsync("tags/~10~20~30")).ShouldBe(NavigationResult.Success);
-            var vm = (TagsVm)nav.WiredViews[0].ViewModel;
+            var vm = nav.ActiveViewModel<TagsVm>();
             vm.GetParameter().AsSpan().ToArray().ShouldBe(new[] { 10, 20, 30 });
 
             nav.CurrentRoute.ToString().ShouldBe("tags/~10~20~30");
@@ -381,7 +382,7 @@ public class ValueListTests
 
     private static TestNavigator BuildNav() => new(b =>
     {
-        b.MapRoutedView<TagsVm, TagsView>();
+        b.MapViewModel<TagsVm>();
         b.AddRoute(Route.Build<ValueList<int>>(p => $"tags/{p}").Root<TagsVm>());
     });
 
@@ -390,9 +391,6 @@ public class ValueListTests
         public ValueList<int> GetParameter() => this.Parameter;
     }
 
-    public class TagsView : FakeView
-    {
-    }
 
     #endregion
 }
