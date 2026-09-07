@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using IconPackBuilder.Data;
 
 namespace IconPackBuilder.Core.Services;
@@ -10,8 +11,6 @@ namespace IconPackBuilder.Core.Services;
 public sealed class RecentProjectsStore : IRecentProjectsStore
 {
     private const int MaxProjects = 10;
-
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private readonly string _filePath;
     private List<RecentProject>? _projects;
@@ -65,7 +64,7 @@ public sealed class RecentProjectsStore : IRecentProjectsStore
                 return [];
 
             using var stream = File.OpenRead(_filePath);
-            var projects = JsonSerializer.Deserialize<List<RecentProject>>(stream, JsonOptions) ?? [];
+            var projects = JsonSerializer.Deserialize(stream, RecentProjectsJsonContext.Default.ListRecentProject) ?? [];
             projects.RemoveAll(p => string.IsNullOrWhiteSpace(p.Path));
             return projects;
         }
@@ -82,7 +81,7 @@ public sealed class RecentProjectsStore : IRecentProjectsStore
             Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
 
             string tempPath = _filePath + ".tmp";
-            await File.WriteAllBytesAsync(tempPath, JsonSerializer.SerializeToUtf8Bytes(_projects, JsonOptions));
+            await File.WriteAllBytesAsync(tempPath, JsonSerializer.SerializeToUtf8Bytes(_projects, RecentProjectsJsonContext.Default.ListRecentProject));
             File.Move(tempPath, _filePath, overwrite: true);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -90,3 +89,7 @@ public sealed class RecentProjectsStore : IRecentProjectsStore
         }
     }
 }
+
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(List<RecentProject>))]
+internal sealed partial class RecentProjectsJsonContext : JsonSerializerContext;

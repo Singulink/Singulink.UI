@@ -1,57 +1,80 @@
 <Project>
 
   <!--
-    Bundles the single-file pyftsubset binary for the target platform into the app's Tools/<rid> folder.
+    Bundles single-file pyftsubset binaries into the app's Tools/<rid> folders.
 
     Binaries are built by the "Build pyftsubset binaries" GitHub Actions workflow and published as assets of the
     "pyftsubset-v<fonttools version>" release. The Windows x64 binary is committed to the repo; other platforms are
-    downloaded into obj/ on first build when building on (or publishing for) that platform.
+    downloaded into obj/ on first build. By default only the binary for the build host (or the RuntimeIdentifier being
+    published) is bundled; set PyFtSubsetAllPlatforms=true (used for the dotnet tool package) to bundle all of them, or
+    PyFtSubsetRids to a ';'-separated list to choose explicitly.
   -->
 
   <PropertyGroup>
     <PyFtSubsetVersion Condition="'$(PyFtSubsetVersion)' == ''">4.64.0</PyFtSubsetVersion>
     <PyFtSubsetReleaseUrl Condition="'$(PyFtSubsetReleaseUrl)' == ''">https://github.com/Singulink/Singulink.UI/releases/download/pyftsubset-v$(PyFtSubsetVersion)</PyFtSubsetReleaseUrl>
+    <PyFtSubsetRids Condition="'$(PyFtSubsetRids)' == '' and '$(PyFtSubsetAllPlatforms)' == 'true'">win-x64;linux-x64;linux-arm64;osx-x64;osx-arm64</PyFtSubsetRids>
   </PropertyGroup>
 
-  <ItemGroup>
+  <PropertyGroup>
+    <_PyFtApplies>true</_PyFtApplies>
+    <_PyFtApplies Condition="$(TargetFramework.Contains('browserwasm'))">false</_PyFtApplies>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(_PyFtApplies)' == 'true'">
     <None Update="Tools\*\pyftsubset;Tools\*\pyftsubset.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
   </ItemGroup>
 
-  <Target Name="ResolvePyFtSubsetBinary" BeforeTargets="AssignTargetPaths">
+  <Target Name="ResolvePyFtSubsetBinaries" BeforeTargets="AssignTargetPaths" Condition="'$(_PyFtApplies)' == 'true'">
     <PropertyGroup>
-      <_PyFtRid>$(RuntimeIdentifier)</_PyFtRid>
       <_PyFtArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</_PyFtArch>
       <_PyFtArch>$(_PyFtArch.ToLowerInvariant())</_PyFtArch>
-      <_PyFtRid Condition="'$(_PyFtRid)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">win-$(_PyFtArch)</_PyFtRid>
-      <_PyFtRid Condition="'$(_PyFtRid)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">osx-$(_PyFtArch)</_PyFtRid>
-      <_PyFtRid Condition="'$(_PyFtRid)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">linux-$(_PyFtArch)</_PyFtRid>
-      <_PyFtExeExt Condition="$(_PyFtRid.StartsWith('win'))">.exe</_PyFtExeExt>
-      <_PyFtExe>pyftsubset$(_PyFtExeExt)</_PyFtExe>
-      <_PyFtCommittedFile>$(MSBuildThisFileDirectory)$(_PyFtRid)\$(_PyFtExe)</_PyFtCommittedFile>
-      <_PyFtDownloadDir>$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)pyftsubset\$(PyFtSubsetVersion)\$(_PyFtRid)\</_PyFtDownloadDir>
-      <_PyFtDownloadedFile>$(_PyFtDownloadDir)$(_PyFtExe)</_PyFtDownloadedFile>
-      <_PyFtNeedsDownload>false</_PyFtNeedsDownload>
-      <_PyFtNeedsDownload Condition="'$(_PyFtRid)' != '' and !Exists('$(_PyFtCommittedFile)')">true</_PyFtNeedsDownload>
+      <_PyFtHostRid Condition="$([MSBuild]::IsOSPlatform('Windows'))">win-$(_PyFtArch)</_PyFtHostRid>
+      <_PyFtHostRid Condition="$([MSBuild]::IsOSPlatform('OSX'))">osx-$(_PyFtArch)</_PyFtHostRid>
+      <_PyFtHostRid Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux-$(_PyFtArch)</_PyFtHostRid>
+      <PyFtSubsetRids Condition="'$(PyFtSubsetRids)' == ''">$(RuntimeIdentifier)</PyFtSubsetRids>
+      <PyFtSubsetRids Condition="'$(PyFtSubsetRids)' == ''">$(_PyFtHostRid)</PyFtSubsetRids>
+      <_PyFtDownloadRoot>$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)pyftsubset\$(PyFtSubsetVersion)\</_PyFtDownloadRoot>
     </PropertyGroup>
 
-    <DownloadFile Condition="'$(_PyFtNeedsDownload)' == 'true' and !Exists('$(_PyFtDownloadedFile)')"
-                  SourceUrl="$(PyFtSubsetReleaseUrl)/pyftsubset-$(_PyFtRid)$(_PyFtExeExt)"
-                  DestinationFolder="$(_PyFtDownloadDir)"
-                  DestinationFileName="$(_PyFtExe)"
+    <ItemGroup>
+      <!-- Metadata is built up in steps because an Update cannot reference metadata it defines itself. -->
+      <_PyFtRid Include="$(PyFtSubsetRids)" />
+      <_PyFtRid Update="@(_PyFtRid)">
+        <Rid>%(Identity)</Rid>
+        <ExeExt></ExeExt>
+      </_PyFtRid>
+      <_PyFtRid Update="@(_PyFtRid)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('win'))">
+        <ExeExt>.exe</ExeExt>
+      </_PyFtRid>
+      <_PyFtRid Update="@(_PyFtRid)">
+        <Exe>pyftsubset%(ExeExt)</Exe>
+        <CommittedFile>$(MSBuildThisFileDirectory)%(Rid)\pyftsubset%(ExeExt)</CommittedFile>
+        <DownloadedFile>$(_PyFtDownloadRoot)%(Rid)\pyftsubset%(ExeExt)</DownloadedFile>
+      </_PyFtRid>
+      <!-- Committed binaries are picked up by the None glob above; everything else is downloaded. -->
+      <_PyFtDownload Include="@(_PyFtRid)" Condition="!Exists('%(CommittedFile)')" />
+    </ItemGroup>
+
+    <DownloadFile Condition="'@(_PyFtDownload)' != '' and !Exists('%(_PyFtDownload.DownloadedFile)')"
+                  SourceUrl="$(PyFtSubsetReleaseUrl)/pyftsubset-%(_PyFtDownload.Rid)%(_PyFtDownload.ExeExt)"
+                  DestinationFolder="$(_PyFtDownloadRoot)%(_PyFtDownload.Rid)"
+                  DestinationFileName="%(_PyFtDownload.Exe)"
                   ContinueOnError="WarnAndContinue" />
 
-    <Warning Condition="'$(_PyFtNeedsDownload)' == 'true' and !Exists('$(_PyFtDownloadedFile)')"
-             Text="pyftsubset binary for '$(_PyFtRid)' is not available. Exporting will fall back to 'pyftsubset' on the PATH or a Python installation with fonttools." />
+    <Warning Condition="'@(_PyFtDownload)' != '' and !Exists('%(_PyFtDownload.DownloadedFile)')"
+             Text="pyftsubset binary for '%(_PyFtDownload.Rid)' is not available. Exporting on that platform will fall back to 'pyftsubset' on the PATH or a Python installation with fonttools." />
 
-    <!-- Cross-publishing from Windows cannot set the bit; PyFtSubsetter sets it at runtime if it is missing. -->
-    <Exec Condition="'$(_PyFtNeedsDownload)' == 'true' and Exists('$(_PyFtDownloadedFile)') and '$(_PyFtExeExt)' == '' and !$([MSBuild]::IsOSPlatform('Windows'))"
-          Command="chmod +x &quot;$(_PyFtDownloadedFile)&quot;" />
+    <!-- Cross-building from Windows cannot set the bit; PyFtSubsetter sets it at runtime if it is missing. -->
+    <Exec Condition="'@(_PyFtDownload)' != '' and Exists('%(_PyFtDownload.DownloadedFile)') and '%(_PyFtDownload.ExeExt)' == '' and !$([MSBuild]::IsOSPlatform('Windows'))"
+          Command="chmod +x &quot;%(_PyFtDownload.DownloadedFile)&quot;" />
 
-    <ItemGroup Condition="'$(_PyFtNeedsDownload)' == 'true' and Exists('$(_PyFtDownloadedFile)')">
-      <None Include="$(_PyFtDownloadedFile)" Link="Tools\$(_PyFtRid)\$(_PyFtExe)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <ItemGroup>
+      <!-- Qualified metadata so batching runs over the download list rather than the existing None items. -->
+      <None Include="%(_PyFtDownload.DownloadedFile)" Condition="Exists('%(_PyFtDownload.DownloadedFile)')" Link="Tools\%(_PyFtDownload.Rid)\%(_PyFtDownload.Exe)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>
 

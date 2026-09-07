@@ -50,7 +50,7 @@ public class StartRootModelTests
 
             await start.OpenRecentProjectCommand.ExecuteAsync(start.RecentProjects[0]);
 
-            nav.ActiveViewModel<EditorRootModel>().ProjectFile.PathDisplay.ShouldBe(path);
+            nav.ActiveViewModel<EditorRootModel>().ProjectPath.ShouldBe(path);
         });
     }
 

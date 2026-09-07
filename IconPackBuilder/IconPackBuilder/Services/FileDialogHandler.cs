@@ -21,7 +21,9 @@ public class FileDialogHandler : IFileDialogHandler
             ViewMode = PickerViewMode.List,
         };
 
-        openFilePicker.FileTypeFilter.AddRange(filters);
+        foreach (string filter in filters)
+            openFilePicker.FileTypeFilter.Add(filter);
+
         WinRT.Interop.InitializeWithWindow.Initialize(openFilePicker, WindowHandle);
 
         var result = await openFilePicker.PickSingleFileAsync();

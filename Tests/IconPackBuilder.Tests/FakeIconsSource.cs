@@ -87,14 +87,17 @@ public sealed class TestServices : IServiceProvider
 
     public IRecentProjectsStore RecentProjects { get; init; } = new RecentProjectsStore(TestFiles.NewTempPath("recent", ".json"));
 
+    public IProjectDocumentFactory Documents { get; init; } = new FileProjectDocumentFactory();
+
     public object? GetService(Type serviceType)
     {
         if (serviceType == typeof(IWindow)) return Window;
         if (serviceType == typeof(IconsSource)) return IconsSource;
-        if (serviceType == typeof(IFontSubsetter)) return FontSubsetter;
-        if (serviceType == typeof(IEnumerable<IExporter>)) return Exporters;
+        if (serviceType == typeof(IExportService)) return new FileExportService(FontSubsetter, Exporters);
+        if (serviceType == typeof(IProjectDocumentFactory)) return Documents;
         if (serviceType == typeof(IFileDialogHandler)) return FileDialogs;
         if (serviceType == typeof(IRecentProjectsStore)) return RecentProjects;
+        if (serviceType == typeof(IHostInfo)) return DefaultHostInfo.Instance;
         return null;
     }
 }
@@ -115,12 +118,18 @@ public static class TestFiles
     /// <summary>
     /// Writes a project file the way other programs (including git) do: to a new file that is then moved into place.
     /// </summary>
-    public static void WriteProject(string path, Version? sourceVersion = null, params (string GroupId, string ExportName, string[] Variants)[] exports)
+    public static void WriteProject(
+        string path,
+        Version? sourceVersion = null,
+        string? sourceId = null,
+        ExportFormat[]? formats = null,
+        params (string GroupId, string ExportName, string[] Variants)[] exports)
     {
         var project = new Project {
             Name = "Test.Icons",
-            IconsSourceId = FakeIconsSource.SourceId,
+            IconsSourceId = sourceId ?? FakeIconsSource.SourceId,
             IconsSourceVersion = sourceVersion ?? FakeIconsSource.Instance.Version,
+            ExportFormats = formats?.ToList(),
             IconExports = [.. exports.Select(e => new IconExport(e.GroupId, e.ExportName, e.Variants))],
         };
 

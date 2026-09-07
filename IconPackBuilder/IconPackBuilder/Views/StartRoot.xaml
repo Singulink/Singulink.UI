@@ -11,10 +11,13 @@
     <FontFamily x:Key="SeagullIconFont">ms-appx:///Assets/Seagull/SeagullFluentIcons.otf#Seagull Fluent Icons</FontFamily>
   </UserControl.Resources>
 
-  <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+  <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20" Width="500" Padding="32">
       <TextBlock Text="Icon Pack Builder" HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold" />
       <TextBlock Text="Create a new project or open an existing one." FontSize="15" HorizontalAlignment="Center" Opacity="0.8" />
+      <Border Padding="12,10" CornerRadius="4" Background="{ThemeResource SubtleFillColorSecondaryBrush}" Visibility="{x:Bind suxc:Visible.IfTrue(Model.HasHostNote)}">
+        <TextBlock Text="{x:Bind Model.HostNote}" TextWrapping="Wrap" Opacity="0.85" />
+      </Border>
 
       <StackPanel Spacing="4">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">

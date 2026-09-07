@@ -1,3 +1,4 @@
+using IconPackBuilder.Data;
 using IconPackBuilder.ViewModels;
 using PrefixClassName.MsTest;
 using Shouldly;
@@ -301,9 +302,61 @@ public class EditorRootModelTests
             subset.CodePoints.ShouldBe([arrowLeft.CodePoint, arrowLeft.RtlCodePoint!.Value, Icon(editor, "Save", "Filled").Info.CodePoint], ignoreOrder: true);
             subset.Destination.PathDisplay.ShouldEndWith(Path.Combine("Test.Icons_Export", "Test.Icons.otf"));
 
-            exporter.ProjectName.ShouldBe("Test.Icons");
-            exporter.DefaultVariant.ShouldBe("Regular");
-            exporter.Icons.Select(i => (i.ExportName, i.Icon.Variant)).ShouldBe([("Back", "Regular"), ("Save", "Filled")], ignoreOrder: true);
+            var context = exporter.Context.ShouldNotBeNull();
+            context.ProjectName.ShouldBe("Test.Icons");
+            context.DefaultVariantName.ShouldBe("Regular");
+            context.FontFileName.ShouldBe("Test.Icons.otf");
+            context.Icons.Select(i => (i.ExportName, i.Icon.Variant)).ShouldBe([("Back", "Regular"), ("Save", "Filled")], ignoreOrder: true);
+        });
+    }
+
+    [TestMethod]
+    public void ExportFormats_LoadFromProject_SkipDisabledExporters_AndSaveBack()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var services = new TestServices();
+            var csharp = new RecordingExporter(ExportFormat.CSharp);
+            var css = new RecordingExporter(ExportFormat.Css);
+            services.Exporters.AddRange([csharp, css]);
+
+            string path = Path.Combine(TestFiles.NewTempDirectory(), "Test.Icons.ipproj");
+            TestFiles.WriteProject(path, formats: [ExportFormat.Css], exports: [("Add", string.Empty, ["Regular"])]);
+
+            var nav = BuildNav(services);
+            (await nav.NavigateAsync(Routes.EditorRoot.ToConcrete(path))).ShouldBe(NavigationResult.Success);
+            var editor = nav.ActiveViewModel<EditorRootModel>();
+            nav.OnMessageDialog(m => 0);
+
+            editor.ExportCSharp.ShouldBeFalse();
+            editor.ExportCss.ShouldBeTrue();
+            editor.ExportJavaScript.ShouldBeFalse();
+            editor.IsDirty.ShouldBeFalse();
+
+            await editor.ExportProjectCommand.ExecuteAsync(null);
+            csharp.Context.ShouldBeNull();
+            css.Context.ShouldNotBeNull();
+
+            // Toggling a format dirties the project and is persisted on save.
+            editor.ExportJavaScript = true;
+            editor.IsDirty.ShouldBeTrue();
+            await editor.SaveProjectCommand.ExecuteAsync(null);
+
+            TestFiles.ReadProject(path).ExportFormats.ShouldBe([ExportFormat.Css, ExportFormat.JavaScript]);
+        });
+    }
+
+    [TestMethod]
+    public void ExportFormats_AbsentFromProject_DefaultToAll()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var (nav, _, _) = await OpenEditorAsync(("Add", string.Empty, ["Regular"]));
+            var editor = nav.ActiveViewModel<EditorRootModel>();
+
+            editor.ExportCSharp.ShouldBeTrue();
+            editor.ExportCss.ShouldBeTrue();
+            editor.ExportJavaScript.ShouldBeTrue();
         });
     }
 
@@ -343,23 +396,4 @@ public class EditorRootModelTests
     private static IconGroupModel Group(EditorRootModel editor, string id) => editor.FilteredIconGroups.First(g => g.Info.Id == id);
 
     private static IconModel Icon(EditorRootModel editor, string id, string variant) => Group(editor, id).Icons.First(i => i.Info.Variant == variant);
-
-    private sealed class RecordingExporter : Core.Services.IExporter
-    {
-        public string Name => "Recording";
-
-        public string? ProjectName { get; private set; }
-
-        public string? DefaultVariant { get; private set; }
-
-        public List<Core.Services.ExportIconInfo> Icons { get; } = [];
-
-        public Task SaveAsync(string projectName, Singulink.IO.IAbsoluteDirectoryPath exportDir, IEnumerable<Core.Services.ExportIconInfo> icons, string defaultVariantName)
-        {
-            ProjectName = projectName;
-            DefaultVariant = defaultVariantName;
-            Icons.AddRange(icons);
-            return Task.CompletedTask;
-        }
-    }
 }

@@ -11,23 +11,34 @@ public sealed class SeagullIconsSource : IconsSource
 {
     private const string AssetsFolder = "Assets/Seagull";
 
-    private static readonly Lazy<SeagullIconsSource> _instance = new(() => new());
+    private static readonly Lazy<SeagullIconsSource> _instance = new(LoadFromAppBase);
 
     public static SeagullIconsSource Instance => _instance.Value;
 
     private readonly SeagullIconsData _data;
 
-    private SeagullIconsSource()
+    private SeagullIconsSource(Stream dataStream, string dataDescription)
     {
-        var dataFile = DirectoryPath.GetAppBase() + DataFile;
-
-        using var stream = dataFile.OpenStream(FileMode.Open, FileAccess.Read, FileShare.Read);
-        _data = JsonSerializer.Deserialize(stream, SeagullIconsJsonContext.Default.SeagullIconsData) ??
-            throw new InvalidDataException($"Icon data file '{dataFile.PathDisplay}' is empty.");
+        _data = JsonSerializer.Deserialize(dataStream, SeagullIconsJsonContext.Default.SeagullIconsData) ??
+            throw new InvalidDataException($"Icon data '{dataDescription}' is empty.");
 
         Version = Version.Parse(_data.Version);
         Variants = [.. _data.Variants];
     }
+
+    private static SeagullIconsSource LoadFromAppBase()
+    {
+        var dataFile = DirectoryPath.GetAppBase() + DataFilePath;
+
+        using var stream = dataFile.OpenStream(FileMode.Open, FileAccess.Read, FileShare.Read);
+        return new SeagullIconsSource(stream, dataFile.PathDisplay);
+    }
+
+    /// <summary>
+    /// Creates a source from the metadata JSON read from the given stream, for hosts that cannot read the app directory with <see cref="File"/>
+    /// APIs (WebAssembly). The font file is still expected at <see cref="FontFile"/> relative to the app package.
+    /// </summary>
+    public static SeagullIconsSource FromStream(Stream dataStream) => new(dataStream, "stream");
 
     public override string Id => "FluentIcons.Seagull";
 
@@ -40,7 +51,7 @@ public sealed class SeagullIconsSource : IconsSource
     /// <summary>
     /// Gets the metadata file path relative to the app directory.
     /// </summary>
-    public IRelativeFilePath DataFile { get; } = FilePath.ParseRelative($"{AssetsFolder}/SeagullFluentIcons.json", PathFormat.Universal);
+    public static IRelativeFilePath DataFilePath { get; } = FilePath.ParseRelative($"{AssetsFolder}/SeagullFluentIcons.json", PathFormat.Universal);
 
     public override string FontFamilyName => _data.FontFamilyName;
 

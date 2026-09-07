@@ -9,21 +9,50 @@
 
   <UserControl.Resources>
     <FontFamily x:Key="SeagullIconFont">ms-appx:///Assets/Seagull/SeagullFluentIcons.otf#Seagull Fluent Icons</FontFamily>
-    <Style x:Key="IconGroupTileStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+    <!--
+      Deliberately lightweight: the default Fluent Button template adds several rounded-clip visuals per tile, and on Uno's Skia renderer each
+      visual pays per-frame damage-region and clip work while scrolling (unoplatform/uno#23984, #24221). One rectangular Border + ContentPresenter
+      with hover/pressed states keeps the grid smooth with ~150 realized tiles.
+    -->
+    <Style x:Key="IconGroupTileStyle" TargetType="Button">
       <Setter Property="Padding" Value="0" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="CornerRadius" Value="0" />
       <Setter Property="MinWidth" Value="0" />
       <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="UseSystemFocusVisuals" Value="True" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Root" Background="{TemplateBinding Background}">
+              <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="CommonStates">
+                  <VisualState x:Name="Normal" />
+                  <VisualState x:Name="PointerOver">
+                    <VisualState.Setters>
+                      <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
+                    </VisualState.Setters>
+                  </VisualState>
+                  <VisualState x:Name="Pressed">
+                    <VisualState.Setters>
+                      <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}" />
+                    </VisualState.Setters>
+                  </VisualState>
+                  <VisualState x:Name="Disabled" />
+                </VisualStateGroup>
+              </VisualStateManager.VisualStateGroups>
+              <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Padding="{TemplateBinding Padding}" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
   </UserControl.Resources>
 
-  <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,280">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,280" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
     <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6" Margin="10" HorizontalAlignment="Left">
       <MenuBar VerticalAlignment="Center">
         <MenuBarItem Title="File" AccessKey="F">
-          <MenuFlyoutItem Text="Save" AccessKey="S" Command="{x:Bind Model.SaveProjectCommand}">
+          <MenuFlyoutItem Text="Save" AccessKey="S" Command="{x:Bind Model.SaveProjectCommand}" Visibility="{x:Bind suxc:Visible.IfTrue(Model.ShowFileCommands)}">
             <MenuFlyoutItem.Icon>
               <FontIcon Glyph="&#xF03E4;" FontFamily="{StaticResource SeagullIconFont}" />
             </MenuFlyoutItem.Icon>
@@ -36,19 +65,27 @@
               <FontIcon Glyph="&#xF2400;" FontFamily="{StaticResource SeagullIconFont}" />
             </MenuFlyoutItem.Icon>
           </MenuFlyoutItem>
+          <MenuFlyoutSubItem Text="Export Formats" AccessKey="F">
+            <MenuFlyoutSubItem.Icon>
+              <FontIcon Glyph="&#xF0C4C;" FontFamily="{StaticResource SeagullIconFont}" />
+            </MenuFlyoutSubItem.Icon>
+            <ToggleMenuFlyoutItem Text="C# Class" IsChecked="{x:Bind Model.ExportCSharp, Mode=TwoWay}" />
+            <ToggleMenuFlyoutItem Text="CSS Stylesheet" IsChecked="{x:Bind Model.ExportCss, Mode=TwoWay}" />
+            <ToggleMenuFlyoutItem Text="JavaScript Module" IsChecked="{x:Bind Model.ExportJavaScript, Mode=TwoWay}" />
+          </MenuFlyoutSubItem>
           <MenuFlyoutItem Text="Preview" AccessKey="P" Command="{x:Bind Model.PreviewIconPackCommand}">
             <MenuFlyoutItem.Icon>
               <FontIcon Glyph="&#xF1C80;" FontFamily="{StaticResource SeagullIconFont}" />
             </MenuFlyoutItem.Icon>
           </MenuFlyoutItem>
-          <MenuFlyoutSeparator />
-          <MenuFlyoutItem Text="Close" AccessKey="C" Command="{x:Bind Model.CloseCommand}">
+          <MenuFlyoutSeparator Visibility="{x:Bind suxc:Visible.IfTrue(Model.ShowFileCommands)}" />
+          <MenuFlyoutItem Text="Close" AccessKey="C" Command="{x:Bind Model.CloseCommand}" Visibility="{x:Bind suxc:Visible.IfTrue(Model.ShowFileCommands)}">
             <MenuFlyoutItem.Icon>
               <FontIcon Glyph="&#xF0428;" FontFamily="{StaticResource SeagullIconFont}" />
             </MenuFlyoutItem.Icon>
           </MenuFlyoutItem>
-          <MenuFlyoutSeparator />
-          <MenuFlyoutItem Text="Exit" AccessKey="X" Command="{x:Bind Model.ExitCommand}">
+          <MenuFlyoutSeparator Visibility="{x:Bind suxc:Visible.IfTrue(Model.ShowExitCommand)}" />
+          <MenuFlyoutItem Text="Exit" AccessKey="X" Command="{x:Bind Model.ExitCommand}" Visibility="{x:Bind suxc:Visible.IfTrue(Model.ShowExitCommand)}">
             <MenuFlyoutItem.Icon>
               <FontIcon Glyph="&#xF01C0;" FontFamily="{StaticResource SeagullIconFont}" />
             </MenuFlyoutItem.Icon>
@@ -60,7 +97,7 @@
       <ComboBox ItemsSource="{x:Bind Model.VariantFilters}" SelectedItem="{x:Bind Model.VariantFilter, Mode=TwoWay}" VerticalAlignment="Center" />
       <CheckBox Content="With RTL Only" IsChecked="{x:Bind Model.RtlVersionsOnlyFilter, Mode=TwoWay}" HorizontalAlignment="Center" />
       <CheckBox Content="Included Only" IsChecked="{x:Bind Model.IncludedOnlyFilter, Mode=TwoWay}" HorizontalAlignment="Center" />
-      <Grid Padding="10,3" Margin="0,3" CornerRadius="3" Background="#11FFFFFF" VerticalAlignment="Stretch">
+      <Grid Padding="10,3" Margin="0,3" CornerRadius="3" Background="{ThemeResource SubtleFillColorSecondaryBrush}" VerticalAlignment="Stretch">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <TextBlock Text="{x:Bind Model.ProjectName, Mode=OneWay}" />
           <TextBlock Text="*" Visibility="{x:Bind Model.IsDirty, Mode=OneWay}" Foreground="Red" Margin="2,0,0,0" FontWeight="Bold" />
@@ -77,7 +114,7 @@
         <ItemsRepeater.ItemTemplate>
           <DataTemplate x:DataType="vm:IconGroupModel">
             <Button Style="{StaticResource IconGroupTileStyle}" Click="OnIconGroupClick" ToolTipService.ToolTip="{x:Bind Info.Description}">
-              <Grid Background="#111111" Width="168" Height="40">
+              <Grid Background="{ThemeResource ControlFillColorDefaultBrush}" Width="168" Height="40">
                 <Grid Background="#2235C759" Visibility="{x:Bind suxc:Visible.IfTrue(HasSelectedIcons), Mode=OneWay}">
                   <Ellipse Width="8" Height="8" Fill="#35C759" StrokeThickness="0" Margin="4"
                            HorizontalAlignment="Right" VerticalAlignment="Top" />

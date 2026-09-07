@@ -12,17 +12,19 @@ public class CSharpExporterTests
     [TestMethod]
     public async Task Save_GeneratesStronglyTypedMembers()
     {
-        var dir = DirectoryPath.ParseAbsolute(TestFiles.NewTempDirectory(), PathOptions.None);
+        var context = ExporterTestContext.Create("MyApp.FontIcons");
         var save = new IconGroupInfo("Save", "Save", [new IconInfo("Regular", 0xF03E4, null), new IconInfo("Filled", 0xF03E5, null)]);
         var back = new IconGroupInfo("ArrowLeft", "Arrow Left", [new IconInfo("Regular", 0xF0048, 0x100048)]);
 
-        await CSharpExporter.Instance.SaveAsync("MyApp.FontIcons", dir, [
-            new ExportIconInfo("Save", save.Icons[0]),
-            new ExportIconInfo("Save", save.Icons[1]),
-            new ExportIconInfo("Back", back.Icons[0]),
-        ], defaultVariantName: "Regular");
+        await CSharpExporter.Instance.SaveAsync(context with {
+            Icons = [
+                new ExportIconInfo("Save", save.Icons[0]),
+                new ExportIconInfo("Save", save.Icons[1]),
+                new ExportIconInfo("Back", back.Icons[0]),
+            ],
+        });
 
-        string code = File.ReadAllText(Path.Combine(dir.PathExport, "FontIcons.cs"));
+        string code = File.ReadAllText(Path.Combine(context.ExportDir.PathExport, "FontIcons.cs"));
 
         code.ShouldContain("namespace MyApp;");
         code.ShouldContain("public static class FontIcons");
@@ -35,12 +37,12 @@ public class CSharpExporterTests
     [TestMethod]
     public async Task Save_ProjectNameWithoutNamespace_UsesItForBoth()
     {
-        var dir = DirectoryPath.ParseAbsolute(TestFiles.NewTempDirectory(), PathOptions.None);
+        var context = ExporterTestContext.Create("Icons");
         var group = new IconGroupInfo("Add", "Add", [new IconInfo("Regular", 0xF0008, null)]);
 
-        await CSharpExporter.Instance.SaveAsync("Icons", dir, [new ExportIconInfo("Add", group.Icons[0])], "Regular");
+        await CSharpExporter.Instance.SaveAsync(context with { Icons = [new ExportIconInfo("Add", group.Icons[0])] });
 
-        string code = File.ReadAllText(Path.Combine(dir.PathExport, "Icons.cs"));
+        string code = File.ReadAllText(Path.Combine(context.ExportDir.PathExport, "Icons.cs"));
         code.ShouldContain("namespace Icons;");
         code.ShouldContain("public static class Icons");
     }
@@ -48,13 +50,13 @@ public class CSharpExporterTests
     [TestMethod]
     public async Task Save_DuplicateMemberNames_Throw()
     {
-        var dir = DirectoryPath.ParseAbsolute(TestFiles.NewTempDirectory(), PathOptions.None);
+        var context = ExporterTestContext.Create("MyApp.Icons");
         var a = new IconGroupInfo("A", "A", [new IconInfo("Regular", 0xF0001, null)]);
         var b = new IconGroupInfo("B", "B", [new IconInfo("Regular", 0xF0002, null)]);
 
         // Two groups exported under the same name collide.
         await Should.ThrowAsync<InvalidOperationException>(() => CSharpExporter.Instance.SaveAsync(
-            "MyApp.Icons", dir, [new ExportIconInfo("Same", a.Icons[0]), new ExportIconInfo("Same", b.Icons[0])], "Regular"));
+            context with { Icons = [new ExportIconInfo("Same", a.Icons[0]), new ExportIconInfo("Same", b.Icons[0])] }));
     }
 
     [TestMethod]
@@ -69,5 +71,28 @@ public class CSharpExporterTests
 
         // An RTL code point equal to the regular one is treated as "no RTL glyph".
         new IconInfo("Regular", 0xF0008, 0xF0008).RtlCodePoint.ShouldBeNull();
+    }
+
+    [TestMethod]
+    public void ExportContext_ToKebabCase_SplitsWordsAndAcronyms()
+    {
+        ExportContext.ToKebabCase("Save").ShouldBe("save");
+        ExportContext.ToKebabCase("SaveFilled").ShouldBe("save-filled");
+        ExportContext.ToKebabCase("ArrowLeft2").ShouldBe("arrow-left2");
+        ExportContext.ToKebabCase("QRCode").ShouldBe("qr-code");
+        ExportContext.ToKebabCase("Icon24Regular").ShouldBe("icon24-regular");
+        ExportContext.ToKebabCase("My_Icon").ShouldBe("my-icon");
+    }
+}
+
+/// <summary>
+/// Builds exporter contexts that write into a fresh temp folder.
+/// </summary>
+public static class ExporterTestContext
+{
+    public static ExportContext Create(string projectName, string defaultVariant = "Regular")
+    {
+        var dir = DirectoryPath.ParseAbsolute(TestFiles.NewTempDirectory(), PathOptions.None);
+        return new ExportContext(projectName, dir, [], defaultVariant, projectName + ".otf");
     }
 }

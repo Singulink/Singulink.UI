@@ -8,11 +8,17 @@ using Singulink.UI.Navigation;
 
 namespace IconPackBuilder.ViewModels;
 
-public partial class StartRootModel(IconsSource iconsSource, IFileDialogHandler fileDialogHandler, IRecentProjectsStore recentProjects)
+public partial class StartRootModel(IconsSource iconsSource, IFileDialogHandler fileDialogHandler, IRecentProjectsStore recentProjects, IHostInfo hostInfo)
     : ObservableObject, IRoutedViewModel
 {
     private static readonly string[] ProjectFileFilters = [".ipproj"];
-    private static readonly JsonSerializerOptions ProjectJsonOptions = new() { WriteIndented = true };
+
+    /// <summary>
+    /// Gets the host's note for the start screen (how projects and exports work here), or <see langword="null"/> if there is none.
+    /// </summary>
+    public string? HostNote => hostInfo.StartPageNote;
+
+    public bool HasHostNote => hostInfo.StartPageNote is not null;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateProjectCommand))]
@@ -49,7 +55,7 @@ public partial class StartRootModel(IconsSource iconsSource, IFileDialogHandler 
         };
 
         await using (var stream = filePath.OpenAsyncStream(FileMode.Create, FileAccess.Write, FileShare.None))
-            await JsonSerializer.SerializeAsync(stream, project, ProjectJsonOptions);
+            await JsonSerializer.SerializeAsync(stream, project, ProjectJsonContext.Default.Project);
 
         await this.Navigator.NavigateAsync(Routes.EditorRoot.ToConcrete(filePath.PathDisplay));
     }
