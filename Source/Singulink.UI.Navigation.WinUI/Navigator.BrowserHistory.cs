@@ -133,6 +133,10 @@ partial class Navigator
     /// <inheritdoc />
     protected override object? OnNavigationStarting(NavigationType navigationType, NavigatorRoute targetRoute)
     {
+        // Browser history sync is opt-in via HookSystemNavigationRequests (see OnCurrentRouteChanged).
+        if (!_isSystemNavigationHooked)
+            return null;
+
         // If this navigation was triggered by a browser popstate (user clicked the browser/mouse back/forward button), the browser has already moved its
         // history pointer. We must not call any history APIs here, otherwise we'd double-navigate the browser.
         if (_isPopstateNavigation)
@@ -177,6 +181,9 @@ partial class Navigator
     /// <inheritdoc />
     protected override void OnNavigationCompleted(NavigationType navigationType, NavigatorRoute targetRoute, NavigationResult result, object? state)
     {
+        if (!_isSystemNavigationHooked)
+            return;
+
         // Only ever true for an app-initiated Back/Forward; clear it now that the in-app navigation (and its route-changed events) are done.
         _appBackForwardInProgress = false;
 
@@ -241,6 +248,11 @@ partial class Navigator
     /// <inheritdoc />
     protected override void OnCurrentRouteChanged(NavigatorRoute route)
     {
+        // Browser history/URL sync is opt-in via HookSystemNavigationRequests. Hosts without a real address bar (e.g. an app embedded in a VS Code
+        // webview, where the document origin differs from the resource base and history APIs throw) never hook it and must not touch history.
+        if (!_isSystemNavigationHooked)
+            return;
+
         // While an app-initiated Back/Forward navigation is in flight, the browser move is deferred (see OnNavigationStarting), so the browser is still on
         // the entry we are leaving. Writing the new route's URL here would corrupt that entry, so skip it; the deferred move reconciles the URL instead.
         if (_appBackForwardInProgress)
