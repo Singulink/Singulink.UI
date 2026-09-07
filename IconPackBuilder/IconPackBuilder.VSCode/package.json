@@ -1,0 +1,150 @@
+{
+    "name": "singulink-icon-pack-builder",
+    "displayName": "Singulink Icon Pack Builder",
+    "description": "Build trimmed, strongly typed Fluent icon font packs for .NET apps (WinUI, Uno Platform, WPF, Avalonia, MAUI) from inside VS Code.",
+    "version": "1.0.0",
+    "publisher": "Singulink",
+    "license": "MIT",
+    "icon": "media/icon.png",
+    "galleryBanner": {
+        "color": "#1f1f1f",
+        "theme": "dark"
+    },
+    "homepage": "https://www.singulink.com/Docs/Singulink.UI/articles/icon-guides/getting-started.html",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Singulink/Singulink.UI.git",
+        "directory": "IconPackBuilder/IconPackBuilder.VSCode"
+    },
+    "bugs": {
+        "url": "https://github.com/Singulink/Singulink.UI/issues"
+    },
+    "engines": {
+        "vscode": "^1.90.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "keywords": [
+        "icons",
+        "font",
+        "fluent",
+        "seagull",
+        "uno",
+        "winui",
+        "wpf",
+        "avalonia",
+        "maui"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "customEditors": [
+            {
+                "viewType": "singulink.iconPackBuilder",
+                "displayName": "Icon Pack Builder",
+                "selector": [
+                    {
+                        "filenamePattern": "*.ipproj"
+                    }
+                ],
+                "priority": "default"
+            }
+        ],
+        "languages": [
+            {
+                "id": "json",
+                "extensions": [
+                    ".ipproj"
+                ]
+            }
+        ],
+        "jsonValidation": [
+            {
+                "fileMatch": "*.ipproj",
+                "url": "./schemas/ipproj.schema.json"
+            }
+        ],
+        "commands": [
+            {
+                "command": "singulink.iconPackBuilder.newProject",
+                "title": "New Icon Pack Project...",
+                "shortTitle": "Icon Pack Project",
+                "category": "Icon Pack Builder",
+                "icon": "$(new-file)"
+            },
+            {
+                "command": "singulink.iconPackBuilder.openWithTextEditor",
+                "title": "Open as JSON",
+                "category": "Icon Pack Builder",
+                "icon": "$(json)"
+            },
+            {
+                "command": "singulink.iconPackBuilder.openWithIconPackBuilder",
+                "title": "Open in Icon Pack Builder",
+                "category": "Icon Pack Builder",
+                "icon": "$(symbol-color)"
+            }
+        ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "singulink.iconPackBuilder.openWithTextEditor",
+                    "when": "activeCustomEditorId == singulink.iconPackBuilder"
+                },
+                {
+                    "command": "singulink.iconPackBuilder.openWithIconPackBuilder",
+                    "when": "resourceExtname == .ipproj && activeCustomEditorId != singulink.iconPackBuilder"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "singulink.iconPackBuilder.openWithTextEditor",
+                    "when": "activeCustomEditorId == singulink.iconPackBuilder",
+                    "group": "navigation"
+                },
+                {
+                    "command": "singulink.iconPackBuilder.openWithIconPackBuilder",
+                    "when": "resourceExtname == .ipproj && activeCustomEditorId != singulink.iconPackBuilder",
+                    "group": "navigation"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "singulink.iconPackBuilder.newProject",
+                    "when": "explorerResourceIsFolder",
+                    "group": "navigation@50"
+                }
+            ],
+            "file/newFile": [
+                {
+                    "command": "singulink.iconPackBuilder.newProject",
+                    "group": "file"
+                }
+            ]
+        }
+    },
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "The editor works in untrusted workspaces. Exporting runs the bundled pyftsubset binary on the project's own font and icon selection."
+        },
+        "virtualWorkspaces": {
+            "supported": false,
+            "description": "Exports write files next to the project, which requires a local file system."
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile -- --minify",
+        "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node20 --sourcemap",
+        "watch": "npm run compile -- --watch",
+        "lint": "tsc --noEmit -p tsconfig.json",
+        "package": "node scripts/package.mjs"
+    },
+    "devDependencies": {
+        "@types/node": "^20.14.0",
+        "@types/vscode": "^1.90.0",
+        "@vscode/vsce": "^3.2.0",
+        "esbuild": "^0.24.0",
+        "typescript": "^5.6.0"
+    }
+}

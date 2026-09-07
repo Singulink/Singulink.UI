@@ -1,0 +1,93 @@
+name: Build VS Code extension
+
+# Publishes the Icon Pack Builder WebAssembly head, bundles it with the pyftsubset binaries into one VSIX per platform, and
+# optionally publishes them to the Visual Studio Marketplace and Open VSX. Requires the "pyftsubset-v<version>" release
+# (see pyftsubset.yml) for the version pinned in IconPackBuilder/IconPackBuilder/Tools/PyFtSubset.targets.
+#
+# Secrets for publishing: VSCE_PAT (Azure DevOps token with Marketplace > Manage scope for the Singulink publisher) and
+# OVSX_PAT (open-vsx.org access token).
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the packages to the Visual Studio Marketplace and Open VSX
+        type: boolean
+        default: false
+
+env:
+  DOTNET_NOLOGO: "1"
+  EXTENSION_DIR: IconPackBuilder/IconPackBuilder.VSCode
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Install WebAssembly workload
+        run: dotnet workload install wasm-tools
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ${{ env.EXTENSION_DIR }}/package-lock.json
+
+      - name: Publish WebAssembly head
+        run: dotnet publish IconPackBuilder/IconPackBuilder/IconPackBuilder.csproj -f net10.0-browserwasm -c Release -o "${{ runner.temp }}/wasm"
+
+      - name: Download pyftsubset binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/.*<PyFtSubsetVersion[^>]*>\([^<]*\)<.*/\1/p' IconPackBuilder/IconPackBuilder/Tools/PyFtSubset.targets | head -n 1)
+          echo "pyftsubset version: $version"
+          mkdir -p "${{ runner.temp }}/pyftsubset"
+          cp IconPackBuilder/IconPackBuilder/Tools/win-x64/pyftsubset.exe "${{ runner.temp }}/pyftsubset/pyftsubset-win-x64.exe"
+          for rid in linux-x64 linux-arm64 osx-x64 osx-arm64; do
+            curl -fsSL -o "${{ runner.temp }}/pyftsubset/pyftsubset-$rid" \
+              "https://github.com/${GITHUB_REPOSITORY}/releases/download/pyftsubset-v${version}/pyftsubset-$rid"
+          done
+          ls -l "${{ runner.temp }}/pyftsubset"
+
+      - name: Build extension
+        working-directory: ${{ env.EXTENSION_DIR }}
+        run: |
+          npm ci
+          npm run lint
+          npm run compile
+
+      - name: Package
+        working-directory: ${{ env.EXTENSION_DIR }}
+        run: node scripts/package.mjs --app-dir "${{ runner.temp }}/wasm/wwwroot" --bin-dir "${{ runner.temp }}/pyftsubset"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: ${{ env.EXTENSION_DIR }}/dist/*.vsix
+          if-no-files-found: error
+
+      - name: Publish to Visual Studio Marketplace
+        if: ${{ inputs.publish }}
+        working-directory: ${{ env.EXTENSION_DIR }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          for file in dist/*.vsix; do
+            npx @vscode/vsce publish --packagePath "$file"
+          done
+
+      - name: Publish to Open VSX
+        if: ${{ inputs.publish }}
+        working-directory: ${{ env.EXTENSION_DIR }}
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          for file in dist/*.vsix; do
+            npx ovsx publish "$file" -p "$OVSX_PAT"
+          done

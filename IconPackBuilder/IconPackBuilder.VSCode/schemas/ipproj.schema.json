@@ -1,0 +1,63 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Icon Pack Builder project",
+    "description": "A Singulink Icon Pack Builder project (.ipproj): the icons and variants to export from an icon font source.",
+    "type": "object",
+    "required": [ "Name", "IconsSourceId", "IconsSourceVersion", "IconExports" ],
+    "additionalProperties": false,
+    "properties": {
+        "Name": {
+            "type": "string",
+            "description": "Project name in Namespace.Class form. It becomes the namespace and class name of the generated C# icon class, and names the export folder and font file.",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+        },
+        "IconsSourceId": {
+            "type": "string",
+            "description": "Identifier of the icon source the project was built with.",
+            "enum": [ "FluentIcons.Seagull" ]
+        },
+        "IconsSourceVersion": {
+            "type": "string",
+            "description": "Version of the icon source the project was last saved with. Used to warn when opening the project with an older source.",
+            "pattern": "^\\d+(\\.\\d+){1,3}$"
+        },
+        "ExportFormats": {
+            "type": "array",
+            "description": "Outputs written by an export alongside the subset font. Omit to write every format.",
+            "uniqueItems": true,
+            "items": {
+                "type": "string",
+                "enum": [ "CSharp", "Css", "JavaScript" ]
+            }
+        },
+        "IconExports": {
+            "type": "array",
+            "description": "Icons included in the pack.",
+            "items": {
+                "type": "object",
+                "required": [ "GroupId", "ExportName", "Variants" ],
+                "additionalProperties": false,
+                "properties": {
+                    "GroupId": {
+                        "type": "string",
+                        "description": "Identifier of the icon in the source (for example 'Save' or 'ArrowPrevious')."
+                    },
+                    "ExportName": {
+                        "type": "string",
+                        "description": "Name of the generated member. Empty to use the icon identifier."
+                    },
+                    "Variants": {
+                        "type": "array",
+                        "description": "Variants to export. The source's first variant (Regular) is exported under the plain name; others get the variant name appended (for example SaveFilled).",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                            "type": "string",
+                            "enum": [ "Regular", "Filled", "Color", "Light" ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

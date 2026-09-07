@@ -1,0 +1,11 @@
+# Dependencies and build output
+node_modules/
+dist/
+out/
+*.vsix
+
+# Published Uno WebAssembly app, copied in by scripts/package.mjs --app-dir
+media/app/
+
+# Platform-specific pyftsubset binary, copied in by scripts/package.mjs --bin-dir
+bin/
