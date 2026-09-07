@@ -10,5 +10,5 @@
   href: avalonia.md
 - name: .NET MAUI
   href: maui.md
-- name: Windows Forms
-  href: winforms.md
+- name: Other Platforms
+  href: other-platforms.md

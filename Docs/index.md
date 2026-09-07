@@ -12,7 +12,7 @@ This package is part of our **Singulink Libraries** collection. Visit https://gi
 
 Provides the base types used by **Icon Pack Builder**, a tool in this repository that generates trimmed, strongly-typed font icon packs from Microsoft's Fluent UI System Icons (via the Seagull Fluent Icons font). Companion packages (`Singulink.UI.Icons.WinUI`, `.Wpf`, `.Avalonia` and `.Maui`) display the correct glyph for the current flow direction, so directional icons mirror automatically in right-to-left layouts. See the [Icon Guides](articles/icon-guides/getting-started.md).
 
-**Supported Platforms**: .NET 8.0+, any UI framework that renders text (Windows Forms needs only the base package); framework packages for WinUI 3 / Uno Platform, WPF, Avalonia 11.3+ and .NET MAUI
+**Supported Platforms**: .NET 8.0+, any UI framework that renders text (Windows Forms, Blazor and others need only the base package); framework packages for WinUI 3 / Uno Platform, WPF, Avalonia 11.3+ and .NET MAUI
 
 ### Singulink.UI.Navigation
 

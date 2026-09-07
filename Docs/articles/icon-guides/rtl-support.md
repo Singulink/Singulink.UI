@@ -31,6 +31,7 @@ The framework packages do this for you based on the element's effective flow dir
 | Avalonia | `AutoDirectionFontIcon`, `AutoDirection.Glyph` on `TextBlock` | |
 | .NET MAUI | `AutoDirection.Glyph` on `Label` | `DirectionalFontImageSource` for image slots |
 | Windows Forms | | `GetGlyph` with the control's `RightToLeft` |
+| Blazor / other | | `GetGlyph` with the framework's layout direction |
 
 Explicit direction exists where the framework creates the visual itself from a description object (an icon source or image source) that has no place in the visual tree and therefore no flow direction of its own. Bind its direction to the hosting page or element.
 
