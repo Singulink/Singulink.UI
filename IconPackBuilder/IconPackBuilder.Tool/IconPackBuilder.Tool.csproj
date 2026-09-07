@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    dotnet global tool that launches the Icon Pack Builder desktop (Skia) app. The app itself is a multi-targeted Uno head that cannot be packed
+    as a tool directly, so this thin launcher publishes the desktop head (framework-dependent, all platforms) and ships it inside the tool package.
+
+      dotnet pack IconPackBuilder/IconPackBuilder.Tool/IconPackBuilder.Tool.csproj -c Release
+      dotnet tool install -g Singulink.UI.IconPackBuilder [-add-source <folder>]
+      iconpackbuilder [MyApp.Icons.ipproj]
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>IconPackBuilder.Tool</RootNamespace>
+    <RollForward>Major</RollForward>
+    <DebugType>none</DebugType>
+
+    <!-- IconPackBuilder/Directory.Build.props marks the app projects as not packable; the tool package is the exception. -->
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>iconpackbuilder</ToolCommandName>
+    <PackageId>Singulink.UI.IconPackBuilder</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Singulink Icon Pack Builder: builds trimmed font-based icon packs (with strongly typed C# accessors and right-to-left glyph support) from the Fluent UI System Icons for use with the Singulink.UI.Icons packages.</Description>
+    <PackageTags>Icons; IconPackBuilder; Fonts; FluentIcons; Uno; WinUI; WPF; Avalonia; MAUI;</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/Singulink/Singulink.UI</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Singulink/Singulink.UI</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <AppProjectPath>$(MSBuildProjectDirectory)\..\IconPackBuilder\IconPackBuilder.csproj</AppProjectPath>
+    <!-- No trailing separator: a trailing backslash would escape the closing quote of the publish -o argument. -->
+    <AppPublishDir>$(MSBuildProjectDirectory)\obj\app</AppPublishDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!--
+    Publishes the desktop head (framework-dependent so one package runs everywhere) and adds the output under tools/<tfm>/any/app/ in the package.
+    Symbols, XML docs and the 32-bit Linux natives are left out to keep the package size down. Uno's build is driven through the CLI rather than an
+    MSBuild task call because Uno.Sdk needs to see the desktop framework as the build's own TargetFramework.
+  -->
+  <Target Name="PublishIconPackBuilderApp" BeforeTargets="_GetPackageFiles" Condition="'$(NoBuild)' != 'true'">
+    <RemoveDir Directories="$(AppPublishDir)" />
+    <Exec Command="dotnet publish &quot;$(AppProjectPath)&quot; -f net10.0-desktop -c $(Configuration) -p:PyFtSubsetAllPlatforms=true -o &quot;$(AppPublishDir)&quot; --nologo" />
+
+    <ItemGroup>
+      <_AppFile Include="$(AppPublishDir)\**" Exclude="$(AppPublishDir)\**\*.pdb;$(AppPublishDir)\**\*.xml;$(AppPublishDir)\runtimes\linux-arm\**" />
+      <!-- NuGet appends each item's RecursiveDir to a PackagePath that ends with a separator, so the folder structure is preserved. -->
+      <None Include="@(_AppFile)" Pack="true" PackagePath="tools\$(TargetFramework)\any\app\" />
+    </ItemGroup>
+  </Target>
+</Project>
