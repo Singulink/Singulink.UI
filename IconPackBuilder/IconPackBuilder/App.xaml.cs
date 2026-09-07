@@ -7,23 +7,22 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+
+#if __WASM__
+        // Inside the VS Code webview nothing else reports failures on the UI thread; the extension forwards console output to its output channel.
+        UnhandledException += (s, e) => Console.Error.WriteLine($"[IconPackBuilder] Unhandled UI exception: {e.Exception}");
+#endif
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-#if __WASM__
-        // Required so that early breakpoints aren't missed.
-        // Note: Does not work if you put this in the App ctor.
-        Debugger.Break();
-#endif
-
         _mainWindow ??= new();
         _mainWindow.Activate();
     }
 
     public static void InitializeLogging()
     {
-#if DEBUG
+#if DEBUG || __WASM__
         // Logging is disabled by default for release builds, as it incurs a significant
         // initialization cost from Microsoft.Extensions.Logging setup. If startup performance
         // is a concern for your application, keep this disabled. If you're running on the web or

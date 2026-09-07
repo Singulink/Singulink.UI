@@ -1,13 +1,23 @@
 ﻿<Project Sdk="Uno.Sdk">
   <PropertyGroup>
     <!-- ;net9.0-desktop -->
-    <TargetFrameworks>net10.0-windows10.0.26100;net10.0-desktop</TargetFrameworks>
+    <TargetFrameworks>net10.0-windows10.0.26100;net10.0-desktop;net10.0-browserwasm</TargetFrameworks>
 
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Suppress not implemented in Uno warnings -->
     <NoWarn>$(NoWarn);Uno0001;</NoWarn>
+    <!-- Uno.WinUI.DevServer disables the assembly version attributes in Debug builds (a hot reload workaround), which trips CA1016. -->
+    <NoWarn Condition="'$(Configuration)' == 'Debug'">$(NoWarn);CA1016</NoWarn>
+    <!-- The platform analyzer calls Uno's WebAssembly target 'browserwasm' while the JavaScript interop APIs are annotated 'browser'. -->
+    <NoWarn Condition="$(TargetFramework.Contains('browserwasm'))">$(NoWarn);CA1416</NoWarn>
+    <!-- Uno's own assemblies produce trim warnings (IL2104) when the WebAssembly head is published; they must not fail the publish. -->
+    <ILLinkTreatWarningsAsErrors Condition="$(TargetFramework.Contains('browserwasm'))">false</ILLinkTreatWarningsAsErrors>
+    <!-- The WebAssembly head is embedded in the VS Code extension's webview, where the app is not served from a site root, so emit relative paths. -->
+    <WasmShellWebAppBasePath Condition="$(TargetFramework.Contains('browserwasm'))">./</WasmShellWebAppBasePath>
+    <!-- Neutral dark splash so the WebAssembly loader does not flash white; inside VS Code the page overrides it with the editor background. -->
+    <UnoSplashScreenColor>#202020</UnoSplashScreenColor>
 
     <!-- Display name -->
     <ApplicationTitle>Singulink Icon Pack Builder</ApplicationTitle>
@@ -37,22 +47,22 @@
       https://aka.platform.uno/singleproject-features
     -->
     <UnoFeatures>
-      Lottie;
       Toolkit;
       Mvvm;
-      ThemeService;
       SkiaRenderer;
     </UnoFeatures>
   </PropertyGroup>
   
   <ItemGroup>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\Source\Singulink.UI.Navigation.WinUI\Singulink.UI.Navigation.WinUI.csproj" />
     <ProjectReference Include="..\..\Source\Singulink.UI.Xaml.WinUI\Singulink.UI.Xaml.WinUI.csproj" />
     <ProjectReference Include="..\IconPackBuilder.Core\IconPackBuilder.Core.csproj" />
     <ProjectReference Include="..\IconPackBuilder.ViewModels\IconPackBuilder.ViewModels.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetFramework.Contains('browserwasm'))">
+    <!-- Uno.Sdk only embeds AppManifest.js by default; the bootstrapper runs every embedded WasmScripts/*.js before the app starts. -->
+    <EmbeddedResource Include="Platforms\WebAssembly\WasmScripts\ipbBrowserHost.js" />
   </ItemGroup>
 
   <Import Project="Tools\PyFtSubset.targets" />

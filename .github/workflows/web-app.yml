@@ -1,0 +1,45 @@
+name: Build browser app
+
+# Publishes the Icon Pack Builder WebAssembly head for hosting at https://iconpackbuilder.singulink.com. The site is a static bundle:
+# copy the contents of the published wwwroot to the web root. It runs entirely in the browser (projects are kept in local storage, exports
+# download as a zip, font subsetting runs fontTools in Pyodide from the jsDelivr CDN), so the host only needs to serve the files with the
+# usual MIME types (.wasm as application/wasm) and, if it supports it, the pre-compressed .br/.gz variants.
+#
+# The same output can be produced locally with:
+#   dotnet publish IconPackBuilder/IconPackBuilder/IconPackBuilder.csproj -f net10.0-browserwasm -c Release -o <folder>
+
+on:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: IconPackBuilder/global.json
+
+      - name: Install WebAssembly workload
+        run: dotnet workload install wasm-tools
+
+      - name: Publish WebAssembly head
+        run: dotnet publish IconPackBuilder/IconPackBuilder/IconPackBuilder.csproj -f net10.0-browserwasm -c Release -o "${{ runner.temp }}/wasm"
+
+      - name: Package site
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "${{ runner.temp }}/wasm/wwwroot"
+          du -sh .
+          zip -qr "${{ runner.temp }}/iconpackbuilder-web.zip" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iconpackbuilder-web
+          path: ${{ runner.temp }}/iconpackbuilder-web.zip
+          if-no-files-found: error

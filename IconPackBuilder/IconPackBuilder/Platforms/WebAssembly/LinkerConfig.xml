@@ -1,10 +1,8 @@
 <linker>
   <assembly fullname="IconPackBuilder" />
 
-  <!--
-  Uncomment this section when using JSON.NET
-  <assembly fullname="System.Core">
-    <type fullname="System.Linq.Expressions*" />
-  </assembly>
-   -->
+  <!-- Project files are deserialized with reflection-based System.Text.Json, so keep the data and view model assemblies intact. -->
+  <assembly fullname="IconPackBuilder.Data" />
+  <assembly fullname="IconPackBuilder.Core" />
+  <assembly fullname="IconPackBuilder.ViewModels" />
 </linker>
