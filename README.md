@@ -38,7 +38,7 @@ These packages are part of our **Singulink Libraries** collection. Visit https:/
 
 ### Singulink.UI.Icons
 
-**Icon Pack Builder** (in the [IconPackBuilder](https://github.com/Singulink/Singulink.UI/tree/main/IconPackBuilder) folder) generates trimmed, strongly-typed font icon packs from Microsoft's Fluent UI System Icons (via the [Seagull Fluent Icons](https://github.com/davidxuang/FluentIcons) font). Pick the icons and variants your app uses and it exports a subset font containing only those glyphs plus a generated C# class with a member per icon, so icons are referenced by name and the font stays tiny.
+**Icon Pack Builder** (in the [IconPackBuilder](https://github.com/Singulink/Singulink.UI/tree/main/IconPackBuilder) folder) generates trimmed, strongly-typed font icon packs from Microsoft's Fluent UI System Icons (via the [Seagull Fluent Icons](https://github.com/davidxuang/FluentIcons) font). Pick the icons and variants your app uses and it exports a subset font containing only those glyphs plus a generated C# class with a member per icon, so icons are referenced by name and the font stays tiny. A CSS stylesheet and a JavaScript module (with TypeScript declarations) are exported alongside for web apps.
 
 ![Icon Pack Builder](Docs/images/icon-pack-builder.png)
 
@@ -48,10 +48,11 @@ These packages are part of our **Singulink Libraries** collection. Visit https:/
 ✔️ Regular, Filled, Color and Light variants, with per-icon export names  
 ✔️ Right-to-left glyphs for directional icons are exported automatically, and the framework packages display the correct glyph for the current flow direction  
 ✔️ Small JSON project file that is safe to commit and reloads when it changes on disk  
+✔️ Scripted exports for CI with `iconpackbuilder export MyApp.Icons.ipproj`  
 
-The **Singulink.UI.Icons** package provides the base types used by generated packs and is enough on its own for Windows Forms or any framework that renders text. **Singulink.UI.Icons.WinUI** (WinUI 3 and Uno Platform), **Singulink.UI.Icons.Wpf**, **Singulink.UI.Icons.Avalonia** and **Singulink.UI.Icons.Maui** add flow direction aware font icon elements for each framework.
+The **Singulink.UI.Icons** package provides the base types used by generated packs and is enough on its own for Windows Forms, Blazor or any other framework that renders text. **Singulink.UI.Icons.WinUI** (WinUI 3 and Uno Platform), **Singulink.UI.Icons.Wpf**, **Singulink.UI.Icons.Avalonia** and **Singulink.UI.Icons.Maui** add flow direction aware font icon elements for each framework.
 
-See the [Icon Guides](https://www.singulink.com/Docs/Singulink.UI/articles/icon-guides/getting-started.html) on the documentation site for a walkthrough of the builder and per-framework usage.
+**[Try it in your browser](https://iconpackbuilder.singulink.com/)** with nothing to install, or install the builder as a .NET global tool with `dotnet tool install -g Singulink.UI.IconPackBuilder` and run `iconpackbuilder`. See the [Icon Guides](https://www.singulink.com/Docs/Singulink.UI/articles/icon-guides/getting-started.html) on the documentation site for a walkthrough of the builder and per-framework usage.
 
 **Supported Platforms**: .NET 8.0+ for the base package and WPF/Avalonia packages; .NET 10.0+ for WinUI (WinAppSDK 1.7+), Uno Platform 6.5+ and .NET MAUI
 
