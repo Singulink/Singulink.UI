@@ -1,0 +1,15 @@
+<Project Sdk="MSTest.Sdk/4.0.2">
+  <PropertyGroup>
+    <RootNamespace>Singulink.UI.Icons.Maui.Tests</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <UseMaui>true</UseMaui>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Source\Singulink.UI.Icons.Maui\Singulink.UI.Icons.Maui.csproj" />
+  </ItemGroup>
+</Project>

@@ -31,7 +31,10 @@
   <Folder Name="/Tests/">
     <Project Path="Tests/IconPackBuilder.Tests/IconPackBuilder.Tests.csproj" />
     <Project Path="Tests/Singulink.UI.Navigation.Generators.Tests/Singulink.UI.Navigation.Generators.Tests.csproj" />
+    <Project Path="Tests/Singulink.UI.Icons.Avalonia.Tests/Singulink.UI.Icons.Avalonia.Tests.csproj" />
+    <Project Path="Tests/Singulink.UI.Icons.Maui.Tests/Singulink.UI.Icons.Maui.Tests.csproj" />
     <Project Path="Tests/Singulink.UI.Icons.Tests/Singulink.UI.Icons.Tests.csproj" />
+    <Project Path="Tests/Singulink.UI.Icons.Wpf.Tests/Singulink.UI.Icons.Wpf.Tests.csproj" />
     <Project Path="Tests/Singulink.UI.Navigation.Tests/Singulink.UI.Navigation.Tests.csproj" />
   </Folder>
 </Solution>

@@ -29,7 +29,7 @@ public static class AutoDirection
     /// </summary>
     public static void SetGlyph(BindableObject label, IIconGlyph? value) => label.SetValue(GlyphProperty, value);
 
-    private static void OnIconChanged(BindableObject bindable, object oldValue, object newValue)
+    private static void OnIconChanged(BindableObject bindable, object? oldValue, object? newValue)
     {
         if (bindable is not Label label)
             throw new InvalidOperationException($"{nameof(AutoDirection)}.Icon can only be set on a {nameof(Label)}.");
