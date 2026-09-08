@@ -21,16 +21,18 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Windows: the app references multi-targeted libraries (Android, iOS, Windows, WebAssembly, desktop) whose restore needs the
+    # mobile workloads and Windows targeting, which Linux runners cannot provide.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
         with:
-          global-json-file: global.json
+          global-json-file: IconPackBuilder/global.json
 
-      - name: Install WebAssembly workload
-        run: dotnet workload install wasm-tools
+      - name: Install workloads
+        run: dotnet workload install wasm-tools android ios
 
       - uses: actions/setup-node@v4
         with:
@@ -47,16 +49,18 @@ jobs:
           set -euo pipefail
           version=$(sed -n 's/.*<PyFtSubsetVersion[^>]*>\([^<]*\)<.*/\1/p' IconPackBuilder/IconPackBuilder/Tools/PyFtSubset.targets | head -n 1)
           echo "pyftsubset version: $version"
-          mkdir -p "${{ runner.temp }}/pyftsubset"
-          cp IconPackBuilder/IconPackBuilder/Tools/win-x64/pyftsubset.exe "${{ runner.temp }}/pyftsubset/pyftsubset-win-x64.exe"
+          bin=$(cygpath -u "$RUNNER_TEMP")/pyftsubset
+          mkdir -p "$bin"
+          cp IconPackBuilder/IconPackBuilder/Tools/win-x64/pyftsubset.exe "$bin/pyftsubset-win-x64.exe"
           for rid in linux-x64 linux-arm64 osx-x64 osx-arm64; do
-            curl -fsSL -o "${{ runner.temp }}/pyftsubset/pyftsubset-$rid" \
+            curl -fsSL -o "$bin/pyftsubset-$rid" \
               "https://github.com/${GITHUB_REPOSITORY}/releases/download/pyftsubset-v${version}/pyftsubset-$rid"
           done
-          ls -l "${{ runner.temp }}/pyftsubset"
+          ls -l "$bin"
 
       - name: Build extension
         working-directory: ${{ env.EXTENSION_DIR }}
+        shell: bash
         run: |
           npm ci
           npm run lint
@@ -75,6 +79,7 @@ jobs:
       - name: Publish to Visual Studio Marketplace
         if: ${{ inputs.publish }}
         working-directory: ${{ env.EXTENSION_DIR }}
+        shell: bash
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
@@ -85,6 +90,7 @@ jobs:
       - name: Publish to Open VSX
         if: ${{ inputs.publish }}
         working-directory: ${{ env.EXTENSION_DIR }}
+        shell: bash
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |

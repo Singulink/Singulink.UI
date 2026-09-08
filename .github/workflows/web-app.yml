@@ -16,7 +16,9 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Windows: the app references multi-targeted libraries (Android, iOS, Windows, WebAssembly, desktop) whose restore needs the
+    # mobile workloads and Windows targeting, which Linux runners cannot provide.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -24,22 +26,15 @@ jobs:
         with:
           global-json-file: IconPackBuilder/global.json
 
-      - name: Install WebAssembly workload
-        run: dotnet workload install wasm-tools
+      - name: Install workloads
+        run: dotnet workload install wasm-tools android ios
 
       - name: Publish WebAssembly head
         run: dotnet publish IconPackBuilder/IconPackBuilder/IconPackBuilder.csproj -f net10.0-browserwasm -c Release -o "${{ runner.temp }}/wasm"
 
-      - name: Package site
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "${{ runner.temp }}/wasm/wwwroot"
-          du -sh .
-          zip -qr "${{ runner.temp }}/iconpackbuilder-web.zip" .
-
+      # The artifact is a zip of the site: extract it into the web root.
       - uses: actions/upload-artifact@v4
         with:
           name: iconpackbuilder-web
-          path: ${{ runner.temp }}/iconpackbuilder-web.zip
+          path: ${{ runner.temp }}/wasm/wwwroot
           if-no-files-found: error
