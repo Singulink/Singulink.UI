@@ -98,7 +98,9 @@ jobs:
         run: |
           set -euo pipefail
           bin=$(ls dist/pyftsubset-${{ matrix.rid }}*)
-          "$bin" --help | head -n 3
+          # Not piped straight into head: with pipefail, head closing the pipe early makes Python exit 120 (BrokenPipeError).
+          "$bin" --help > help.txt
+          head -n 3 help.txt
           python - "$bin" <<'EOF'
           import subprocess, sys, tempfile, os
           from fontTools.fontBuilder import FontBuilder
