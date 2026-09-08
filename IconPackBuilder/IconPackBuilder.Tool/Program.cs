@@ -37,7 +37,7 @@ foreach (string arg in args)
 
 if (!File.Exists(appDll))
 {
-    Console.Error.WriteLine($"Icon Pack Builder app files were not found at '{appDll}'. Reinstall the tool with 'dotnet tool update -g Singulink.UI.IconPackBuilder'.");
+    Console.Error.WriteLine($"Icon Pack Builder app files were not found at '{appDll}'. Reinstall the tool with 'dotnet tool update -g Singulink.IconPackBuilder'.");
     return 1;
 }
 

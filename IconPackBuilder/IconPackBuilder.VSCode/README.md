@@ -19,7 +19,7 @@ Right-to-left versions of directional icons are exported automatically, and the 
 
 **Icon Pack Builder: Open as JSON** shows the raw project file; `.ipproj` files have JSON highlighting and schema validation, and edits made there are picked up by the visual editor.
 
-See the [Icon Guides](https://www.singulink.com/Docs/Singulink.UI/articles/icon-guides/getting-started.html) for per-framework usage, right-to-left support and the desktop version of the builder (`dotnet tool install -g Singulink.UI.IconPackBuilder`).
+See the [Icon Guides](https://www.singulink.com/Docs/Singulink.UI/articles/icon-guides/getting-started.html) for per-framework usage, right-to-left support and the desktop version of the builder (`dotnet tool install -g Singulink.IconPackBuilder`).
 
 ## Requirements
 

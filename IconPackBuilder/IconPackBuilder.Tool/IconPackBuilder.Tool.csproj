@@ -4,7 +4,7 @@
     as a tool directly, so this thin launcher publishes the desktop head (framework-dependent, all platforms) and ships it inside the tool package.
 
       dotnet pack IconPackBuilder/IconPackBuilder.Tool/IconPackBuilder.Tool.csproj -c Release
-      dotnet tool install -g Singulink.UI.IconPackBuilder [-add-source <folder>]
+      dotnet tool install -g Singulink.IconPackBuilder [-add-source <folder>]
       iconpackbuilder [MyApp.Icons.ipproj]
   -->
   <PropertyGroup>
@@ -18,7 +18,7 @@
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>iconpackbuilder</ToolCommandName>
-    <PackageId>Singulink.UI.IconPackBuilder</PackageId>
+    <PackageId>Singulink.IconPackBuilder</PackageId>
     <Version>1.0.0</Version>
     <Description>Singulink Icon Pack Builder: builds trimmed font-based icon packs (with strongly typed C# accessors and right-to-left glyph support) from the Fluent UI System Icons for use with the Singulink.UI.Icons packages.</Description>
     <PackageTags>Icons; IconPackBuilder; Fonts; FluentIcons; Uno; WinUI; WPF; Avalonia; MAUI;</PackageTags>

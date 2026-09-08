@@ -5,7 +5,7 @@ Icon Pack Builder creates trimmed font-based icon packs from the [Fluent UI Syst
 ## Install
 
 ```
-dotnet tool install -g Singulink.UI.IconPackBuilder
+dotnet tool install -g Singulink.IconPackBuilder
 ```
 
 The tool is framework-dependent and runs on Windows (x64 / Arm64), macOS (x64 / Apple Silicon) and Linux (x64 / Arm64) with the .NET 10 runtime or later.

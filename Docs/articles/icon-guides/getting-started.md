@@ -31,7 +31,7 @@ The quickest way to try Icon Pack Builder is the **[browser version](https://ico
 For day-to-day use, Icon Pack Builder is distributed as a .NET global tool that runs on Windows, macOS and Linux:
 
 ```
-dotnet tool install -g Singulink.UI.IconPackBuilder
+dotnet tool install -g Singulink.IconPackBuilder
 ```
 
 Run `iconpackbuilder` to open the start screen, or pass a project file to open it directly:

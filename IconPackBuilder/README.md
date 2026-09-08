@@ -7,7 +7,7 @@ Utility app for building trimmed font-based icon packs from the Seagull Fluent I
 The builder ships as a .NET global tool (framework-dependent, Windows / macOS / Linux):
 
 ```
-dotnet tool install -g Singulink.UI.IconPackBuilder
+dotnet tool install -g Singulink.IconPackBuilder
 iconpackbuilder [MyApp.Icons.ipproj]
 iconpackbuilder --register-file-association   # optional: open .ipproj files by double-clicking (Windows/Linux, per user)
 ```
