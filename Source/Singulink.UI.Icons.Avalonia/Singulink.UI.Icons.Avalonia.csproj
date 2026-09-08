@@ -3,7 +3,7 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <RootNamespace>Singulink.UI.Icons.Avalonia</RootNamespace>
 
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <PackageTags>Avalonia; Icons; RTL; IconPackBuilder;</PackageTags>
     <Description>Avalonia support for icon packs built with Singulink Icon Pack Builder: flow direction aware font icons.</Description>
   </PropertyGroup>

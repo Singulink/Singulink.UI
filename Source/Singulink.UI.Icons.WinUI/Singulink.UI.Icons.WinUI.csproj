@@ -8,7 +8,7 @@
     <!-- Uno0001: FlowDirection is flagged as not implemented for Android/iOS/native WASM; it is implemented on Skia and the inherited value still flows elsewhere. -->
     <NoWarn>$(NoWarn);Uno0001</NoWarn>
 
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <PackageTags>WinUI; Uno Platform; Icons; RTL; IconPackBuilder;</PackageTags>
     <Description>WinUI 3 / Uno Platform support for icon packs built with Singulink Icon Pack Builder: flow direction aware font icons.</Description>
 

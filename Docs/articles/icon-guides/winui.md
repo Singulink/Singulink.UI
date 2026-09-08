@@ -58,7 +58,19 @@ For a `FontIcon` inside a control template or third-party markup that cannot be 
 
 ### Icon Sources
 
-Controls such as `TabViewItem`, `InfoBar` and `IconSourceElement` take an `IconSource` rather than an element. The framework creates the actual `FontIcon` from the source itself, so the source cannot observe the flow direction of the element that ends up displaying it. <xref:Singulink.UI.Icons.WinUI.DirectionalFontIconSource> therefore takes the direction explicitly; bind it to the hosting element or the root:
+Controls such as `TabViewItem`, `InfoBar` and `IconSourceElement` take an `IconSource` rather than an element. The element a host creates from a `FontIconSource` is a plain `FontIcon` that only knows a single glyph string, so the choice between the regular and right-to-left glyph has to be made by the source, and a source is not part of the visual tree, so it has no flow direction of its own to read.
+
+<xref:Singulink.UI.Icons.WinUI.DirectionalFontIconSource> is a `FontIconSource` that takes the icon and a `FlowDirection`. Attach it to the host control with the `AutoDirection.IconSource` attached property instead of setting `IconSource` directly, and the direction is kept in sync with the control, so the icon follows the flow direction like `AutoDirectionFontIcon` does. `TabViewItem`, `InfoBar` and `IconSourceElement` are supported; setting the property on another control throws. Use a separate source instance for each control.
+
+```xml
+<TabViewItem Header="Home">
+  <sui:AutoDirection.IconSource>
+    <sui:DirectionalFontIconSource Icon="{x:Bind icons:FontIcons.Home}" FontFamily="{StaticResource IconFont}" />
+  </sui:AutoDirection.IconSource>
+</TabViewItem>
+```
+
+The source can also be assigned to `IconSource` directly, with the direction bound to the hosting element or the root:
 
 ```xml
 <TabViewItem Header="Home">
@@ -69,13 +81,14 @@ Controls such as `TabViewItem`, `InfoBar` and `IconSourceElement` take an `IconS
 </TabViewItem>
 ```
 
-Some hosts (`TabViewItem` on both WinUI and Uno, for example) copy the glyph once when they create their icon element and do not observe later changes to the source, so a direction change while the element is showing is not reflected in them. This only matters for apps that switch flow direction at runtime; setting the direction before the page is shown works everywhere.
+With this form, a direction change while the icon is showing reaches `IconSourceElement` (which observes the source) but not `TabViewItem` or `InfoBar`: both copy the glyph once when they build their icon element and only rebuild it when the property is assigned again, which is what `AutoDirection.IconSource` does for them. This only matters for apps that switch flow direction at runtime; a direction set before the page is shown works everywhere.
 
 ### Code-Behind
 
 ```csharp
 var icon = new AutoDirectionFontIcon { Glyph = FontIcons.Back };
 AutoDirection.SetGlyph(existingFontIcon, FontIcons.Back);
+AutoDirection.SetIconSource(tabViewItem, new DirectionalFontIconSource { Icon = FontIcons.Home, FontFamily = iconFont });
 ```
 
 ### Uno Platform Notes

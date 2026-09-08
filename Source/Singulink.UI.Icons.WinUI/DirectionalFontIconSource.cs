@@ -4,9 +4,11 @@ using Microsoft.UI.Xaml.Controls;
 namespace Singulink.UI.Icons.WinUI;
 
 /// <summary>
-/// A <see cref="FontIconSource"/> that displays an <see cref="IIconGlyph"/> using the glyph for a given <see cref="FlowDirection"/>. Icon sources are
-/// not part of the visual tree and the elements that hosts create from them cannot be intercepted, so unlike <see cref="AutoDirectionFontIcon"/> the
-/// direction cannot be detected automatically and must be set (typically bound to the flow direction of the hosting element or the root).
+/// A <see cref="FontIconSource"/> that displays an <see cref="IIconGlyph"/> using the glyph for a given <see cref="FlowDirection"/>. The element a
+/// host creates from a font icon source is a plain <see cref="FontIcon"/> that only knows a glyph string, so the choice between the regular and
+/// right-to-left glyph is made here; and since a source is not part of the visual tree it has no flow direction of its own, so the direction must be
+/// set explicitly (typically bound to the hosting element or the root), or the source is attached through <c>AutoDirection.IconSource</c>, which keeps
+/// the direction in sync with the hosting control for the common hosts.
 /// </summary>
 public partial class DirectionalFontIconSource : FontIconSource
 {

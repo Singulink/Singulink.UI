@@ -23,7 +23,7 @@
       </StackPanel>
 
       <StackPanel x:Name="Container" Spacing="12">
-        <TextBlock Text="Plain FontIcon (baseline, never changes), AutoDirectionFontIcon (x:Bind), AutoDirectionFontIcon (Binding), AutoDirectionFontIcon without RTL glyph, FontIcon with attached property, IconSourceElement with DirectionalFontIconSource (direction bound to the container):" TextWrapping="Wrap" />
+        <TextBlock Text="Plain FontIcon (baseline, never changes), AutoDirectionFontIcon (x:Bind), AutoDirectionFontIcon (Binding), AutoDirectionFontIcon without RTL glyph, FontIcon with attached property, IconSourceElement with DirectionalFontIconSource (direction bound to the container); below, a TabViewItem with DirectionalFontIconSource, then a TabViewItem and an InfoBar using the AutoDirection.IconSource attached property:" TextWrapping="Wrap" />
         <StackPanel Orientation="Horizontal" Spacing="16">
           <FontIcon x:Name="PlainIcon" Glyph="{x:Bind local:TestIcons.ArrowPrevious}" Style="{StaticResource BigIcon}" />
           <icons:AutoDirectionFontIcon x:Name="AutoIcon" Glyph="{x:Bind local:TestIcons.ArrowPrevious}" Style="{StaticResource BigIcon}" />
@@ -67,7 +67,17 @@
                                                FontFamily="{StaticResource SeagullFont}" />
             </muxc:TabViewItem.IconSource>
           </muxc:TabViewItem>
+          <muxc:TabViewItem x:Name="AttachedTabItem" Header="Tab with AutoDirection.IconSource" IsClosable="False">
+            <icons:AutoDirection.IconSource>
+              <icons:DirectionalFontIconSource Icon="{x:Bind local:TestIcons.ArrowPrevious}" FontFamily="{StaticResource SeagullFont}" />
+            </icons:AutoDirection.IconSource>
+          </muxc:TabViewItem>
         </muxc:TabView>
+        <muxc:InfoBar x:Name="AttachedInfoBar" IsOpen="True" IsClosable="False" Title="InfoBar with AutoDirection.IconSource" Message="The icon follows the flow direction of the InfoBar.">
+          <icons:AutoDirection.IconSource>
+            <icons:DirectionalFontIconSource Icon="{x:Bind local:TestIcons.ArrowPrevious}" FontFamily="{StaticResource SeagullFont}" />
+          </icons:AutoDirection.IconSource>
+        </muxc:InfoBar>
       </StackPanel>
 
       <TextBlock x:Name="Results" FontFamily="Consolas" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
