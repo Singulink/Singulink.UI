@@ -18,6 +18,9 @@ The package is produced by `IconPackBuilder.Tool`, a small launcher that publish
 dotnet pack IconPackBuilder/IconPackBuilder.Tool/IconPackBuilder.Tool.csproj -c Release
 ```
 
+The builder is also available as a [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=Singulink.singulink-icon-pack-builder) (`IconPackBuilder.VSCode`, built by `.github/workflows/vscode-extension.yml`) and as a
+browser app at https://iconpackbuilder.singulink.com/ (`.github/workflows/web-app.yml`).
+
 ## Projects
 
 - **IconPackBuilder** - the Uno Platform app (WinAppSDK and Skia desktop heads). Requires MSBuild to build because of the WinAppSDK head.

@@ -52,7 +52,7 @@ These packages are part of our **Singulink Libraries** collection. Visit https:/
 
 The **Singulink.UI.Icons** package provides the base types used by generated packs and is enough on its own for Windows Forms, Blazor or any other framework that renders text. **Singulink.UI.Icons.WinUI** (WinUI 3 and Uno Platform), **Singulink.UI.Icons.Wpf**, **Singulink.UI.Icons.Avalonia** and **Singulink.UI.Icons.Maui** add flow direction aware font icon elements for each framework.
 
-**[Try it in your browser](https://iconpackbuilder.singulink.com/)** with nothing to install, or install the builder as a .NET global tool with `dotnet tool install -g Singulink.IconPackBuilder` and run `iconpackbuilder`. See the [Icon Guides](https://www.singulink.com/Docs/Singulink.UI/articles/icon-guides/getting-started.html) on the documentation site for a walkthrough of the builder and per-framework usage.
+**[Try it in your browser](https://iconpackbuilder.singulink.com/)** with nothing to install, install the builder as a .NET global tool with `dotnet tool install -g Singulink.IconPackBuilder` and run `iconpackbuilder`, or install the **[Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=Singulink.singulink-icon-pack-builder)** to edit `.ipproj` files right inside VS Code. See the [Icon Guides](https://www.singulink.com/Docs/Singulink.UI/articles/icon-guides/getting-started.html) on the documentation site for a walkthrough of the builder and per-framework usage.
 
 **Supported Platforms**: .NET 8.0+ for the base package and WPF/Avalonia packages; .NET 10.0+ for WinUI (WinAppSDK 1.7+), Uno Platform 6.5+ and .NET MAUI
 
