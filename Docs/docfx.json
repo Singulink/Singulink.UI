@@ -1,6 +1,7 @@
 {
   "metadata": [
     {
+      "_comment": "Singulink.UI.Icons.Wpf only has Windows target frameworks and cannot be built with TargetFramework=net10.0, so it is documented from its Release assembly (built by build-and-serve.ps1). A separate metadata group for it would overwrite this group's generated api/toc.yml.",
       "properties": {
           "TargetFramework": "net10.0"
       },
@@ -15,26 +16,8 @@
             "Singulink.UI.Navigation.WinUI/Singulink.UI.Navigation.WinUI.csproj",
             "Singulink.UI.Navigation.Testing/Singulink.UI.Navigation.Testing.csproj",
             "Singulink.UI.Tasks/Singulink.UI.Tasks.csproj",
-            "Singulink.UI.Xaml.WinUI/Singulink.UI.Xaml.WinUI.csproj"
-          ],
-          "src": "../Source"
-        }
-      ],
-      "dest": "api",
-      "filter": "filterConfig.yml",
-      "memberLayout": "separatePages",
-      "includeExplicitInterfaceImplementations": true,
-      "disableGitFeatures": true,
-      "disableDefaultFilter": false
-    },
-    {
-      "properties": {
-          "TargetFramework": "net10.0-windows"
-      },
-      "src": [
-        {
-          "files": [
-            "Singulink.UI.Icons.Wpf/Singulink.UI.Icons.Wpf.csproj"
+            "Singulink.UI.Xaml.WinUI/Singulink.UI.Xaml.WinUI.csproj",
+            "Singulink.UI.Icons.Wpf/bin/Release/net10.0-windows/Singulink.UI.Icons.Wpf.dll"
           ],
           "src": "../Source"
         }

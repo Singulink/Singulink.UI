@@ -11,6 +11,11 @@ Get-ChildItem -Path 'api' -Filter '*.yml' -File | Remove-Item -Force
 if (Test-Path 'api/.manifest') { Remove-Item 'api/.manifest' -Force }
 if (Test-Path '_site') { Remove-Item '_site' -Recurse -Force }
 
+# The WPF package is documented from its Release assembly (see docfx.json), so it has to be built first.
+Write-Host 'Building Singulink.UI.Icons.Wpf (Release) for API metadata...'
+dotnet build ../Source/Singulink.UI.Icons.Wpf/Singulink.UI.Icons.Wpf.csproj -c Release -nologo -v q
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 Write-Host 'Generating API metadata...'
 docfx metadata docfx.json
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
