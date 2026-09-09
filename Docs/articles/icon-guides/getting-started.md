@@ -79,6 +79,8 @@ Every member implements <xref:Singulink.UI.Icons.IIconGlyph>, which exposes the 
 2. Add the generated `.cs` file to a project that references **Singulink.UI.Icons**. A shared project works well if view models need to pick icons.
 3. Refer to the font by its family name, **Seagull Fluent Icons**. Subsetting does not change the family name.
 
+If your app never runs right-to-left, the base package is all you need: every generated member converts to its regular glyph string through `ToString()`, so bind it to any text or glyph property, such as `FontIcon.Glyph`, `TextBlock.Text` or `Label.Text`, with the icon font applied (bindings do the conversion; a direct `x:Static` assignment to a string property does not). The framework packages add one thing on top: switching to the right-to-left glyph when the element's flow direction is right-to-left (see [Right-to-Left Support](rtl-support.md)).
+
 Then follow the guide for your UI framework:
 
 - [WinUI and Uno Platform](winui.md)

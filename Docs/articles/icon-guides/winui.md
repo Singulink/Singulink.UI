@@ -42,7 +42,9 @@ xmlns:icons="using:MyApp"
 
 `Glyph` is a normal dependency property, so `{Binding}` and runtime assignment work too. Because the element manages the underlying glyph string itself, do not set the string `Glyph` inherited from `FontIcon` (for example through a `FontIcon`-typed reference or a style setter).
 
-A plain `FontIcon` bound directly to an icon also works, and is what you get by binding the icon to the string `Glyph` property; it always displays the left-to-right glyph:
+### Left-to-Right Only Apps
+
+An app that never runs right-to-left does not need this package at all: a plain `FontIcon` bound to a generated member shows its left-to-right glyph, since the members convert to that glyph string. Binding the member's `Glyph` property is equivalent.
 
 ```xml
 <FontIcon Glyph="{x:Bind icons:FontIcons.Save}" Style="{StaticResource Icon}" />

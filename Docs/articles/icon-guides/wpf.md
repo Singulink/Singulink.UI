@@ -36,6 +36,14 @@ xmlns:icons="clr-namespace:MyApp"
 
 The element follows its effective `FlowDirection`, so setting `FlowDirection="RightToLeft"` on a window or any ancestor switches directional icons to their right-to-left glyphs. `Glyph` is a dependency property and can be bound like any other.
 
+### Left-to-Right Only Apps
+
+An app that never runs right-to-left does not need the element at all: bind the generated member to a `TextBlock` with the icon font applied. Bindings convert it to its glyph string, and it always shows the left-to-right glyph.
+
+```xml
+<TextBlock Text="{Binding Source={x:Static icons:FontIcons.Back}, Mode=OneTime}" FontFamily="{StaticResource IconFont}" FontSize="16" />
+```
+
 ### Text Blocks You Do Not Own
 
 For a `TextBlock` inside a template that cannot be replaced, the <xref:Singulink.UI.Icons.Wpf.AutoDirection> attached property provides the same behaviour:

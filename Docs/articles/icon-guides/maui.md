@@ -25,6 +25,14 @@ xmlns:icons="clr-namespace:MyApp"
 <Label sui:AutoDirection.Glyph="{x:Static icons:FontIcons.Back}" FontFamily="IconFont" FontSize="20" />
 ```
 
+### Left-to-Right Only Apps
+
+An app that never runs right-to-left does not need the attached property: bind the generated member to a `Label` with the icon font applied. Bindings convert it to its glyph string, and it always shows the left-to-right glyph. The same works for `FontImageSource.Glyph` in place of `DirectionalFontImageSource` below.
+
+```xml
+<Label Text="{Binding Source={x:Static icons:FontIcons.Back}}" FontFamily="IconFont" FontSize="20" />
+```
+
 ### Images, Buttons and Toolbar Items
 
 Anything that takes an `ImageSource` (`Image`, `Button.ImageSource`, `ToolbarItem.IconImageSource`, tab icons) can use <xref:Singulink.UI.Icons.Maui.DirectionalFontImageSource>. An image source is not a visual element and has no flow direction of its own, so bind its `FlowDirection` to the page (named `Page` here with `x:Name`) or to the hosting element:
