@@ -140,3 +140,45 @@ public static class TestFiles
 
     public static Project ReadProject(string path) => JsonSerializer.Deserialize<Project>(File.ReadAllBytes(path))!;
 }
+
+/// <summary>
+/// A project document whose persistence is owned by the host (like the VS Code editor), recording how many times it is written.
+/// </summary>
+public sealed class RecordingHostDocumentFactory : IProjectDocumentFactory
+{
+    public RecordingHostDocument Document { get; private set; } = null!;
+
+    public IProjectDocument Open(string path) => Document = new RecordingHostDocument(path);
+}
+
+public sealed class RecordingHostDocument : IProjectDocument
+{
+    private byte[] _content;
+
+    public RecordingHostDocument(string path)
+    {
+        Path = path;
+        _content = File.ReadAllBytes(path);
+    }
+
+    public string Path { get; }
+
+    public bool HostOwnsPersistence => true;
+
+    public int WriteCount { get; private set; }
+
+    public event EventHandler? Changed { add { } remove { } }
+
+    public Task<byte[]?> ReadAsync() => Task.FromResult<byte[]?>(_content);
+
+    public Task WriteAsync(byte[] content)
+    {
+        WriteCount++;
+        _content = content;
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+    }
+}

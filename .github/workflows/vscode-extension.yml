@@ -4,8 +4,13 @@ name: Build VS Code extension
 # optionally publishes them to the Visual Studio Marketplace and Open VSX. Requires the "pyftsubset-v<version>" release
 # (see pyftsubset.yml) for the version pinned in IconPackBuilder/IconPackBuilder/Tools/PyFtSubset.targets.
 #
-# Secrets for publishing: VSCE_PAT (Azure DevOps token with Marketplace > Manage scope for the Singulink publisher) and
-# OVSX_PAT (open-vsx.org access token).
+# Marketplace authentication, one of:
+#   - Entra ID federation (no stored secret; the Marketplace retires personal access tokens on 2026-12-01): set the repository
+#     variables AZURE_CLIENT_ID and AZURE_TENANT_ID (and AZURE_SUBSCRIPTION_ID if the app has one) for an app registration
+#     with a GitHub federated credential for this repository's main branch, and add that identity as a Contributor member
+#     of the Singulink publisher. Run once with "identity" to print the Marketplace identity id the publisher needs.
+#   - Personal access token: the VSCE_PAT secret (Azure DevOps token, "All accessible organizations", Marketplace > Manage).
+# OVSX_PAT (open-vsx.org access token) is optional: the Open VSX step is skipped when it is not set.
 
 on:
   workflow_dispatch:
@@ -14,13 +19,43 @@ on:
         description: Publish the packages to the Visual Studio Marketplace and Open VSX
         type: boolean
         default: false
+      identity:
+        description: Only print the Marketplace identity id of the federated Azure identity (to add it to the publisher)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
 
 env:
   DOTNET_NOLOGO: "1"
   EXTENSION_DIR: IconPackBuilder/IconPackBuilder.VSCode
+  # Workflow-level so steps can be skipped when the corresponding credential is not configured.
+  AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
 jobs:
+  identity:
+    if: ${{ inputs.identity }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
+
+      - name: Print the Marketplace identity id
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Add this id as a Contributor member of the publisher at https://marketplace.visualstudio.com/manage:"
+          az rest -u https://app.vssps.visualstudio.com/_apis/profile/profiles/me --resource 499b84ac-1321-427f-aa17-267ca6975798 --query id -o tsv
+
   build:
+    if: ${{ !inputs.identity }}
     # Windows: the app references multi-targeted libraries (Android, iOS, Windows, WebAssembly, desktop) whose restore needs the
     # mobile workloads and Windows targeting, which Linux runners cannot provide.
     runs-on: windows-latest
@@ -76,8 +111,26 @@ jobs:
           path: ${{ env.EXTENSION_DIR }}/dist/*.vsix
           if-no-files-found: error
 
-      - name: Publish to Visual Studio Marketplace
-        if: ${{ inputs.publish }}
+      - name: Sign in to Azure (Entra ID federation)
+        if: ${{ inputs.publish && env.AZURE_CLIENT_ID != '' }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
+
+      - name: Publish to Visual Studio Marketplace (Entra ID federation)
+        if: ${{ inputs.publish && env.AZURE_CLIENT_ID != '' }}
+        working-directory: ${{ env.EXTENSION_DIR }}
+        shell: bash
+        run: |
+          for file in dist/*.vsix; do
+            npx @vscode/vsce publish --azure-credential --packagePath "$file"
+          done
+
+      - name: Publish to Visual Studio Marketplace (personal access token)
+        if: ${{ inputs.publish && env.AZURE_CLIENT_ID == '' }}
         working-directory: ${{ env.EXTENSION_DIR }}
         shell: bash
         env:
@@ -88,11 +141,9 @@ jobs:
           done
 
       - name: Publish to Open VSX
-        if: ${{ inputs.publish }}
+        if: ${{ inputs.publish && env.OVSX_PAT != '' }}
         working-directory: ${{ env.EXTENSION_DIR }}
         shell: bash
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
           for file in dist/*.vsix; do
             npx ovsx publish "$file" -p "$OVSX_PAT"

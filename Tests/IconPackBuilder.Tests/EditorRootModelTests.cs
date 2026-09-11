@@ -347,6 +347,30 @@ public class EditorRootModelTests
     }
 
     [TestMethod]
+    public void HostOwnedDocument_IsNotWrittenOnOpen_ThenWrittenOnChange()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var documents = new RecordingHostDocumentFactory();
+            var services = new TestServices { Documents = documents };
+            var (nav, _, _) = await OpenEditorAsync(services, ("Add", string.Empty, ["Regular"]));
+            var editor = nav.ActiveViewModel<EditorRootModel>();
+            nav.OnMessageDialog(m => 0);
+
+            await SettleAsync(nav);
+
+            // Opening a project must not push a write back to a host that owns persistence, or the file shows as modified immediately.
+            documents.Document.WriteCount.ShouldBe(0);
+            editor.IsDirty.ShouldBeFalse();
+
+            // A real edit is pushed to the host.
+            Icon(editor, "Alert", "Regular").IsSelected = true;
+            await SettleAsync(nav);
+            documents.Document.WriteCount.ShouldBeGreaterThan(0);
+        });
+    }
+
+    [TestMethod]
     public void ExportFormats_AbsentFromProject_DefaultToAll()
     {
         NavigationTestContext.Run(async () =>

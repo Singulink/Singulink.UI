@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- Fixed the editor marking a project as modified as soon as it was opened, and not clearing the modified state after saving.
+
 ## 1.0.0
 
 Initial release.

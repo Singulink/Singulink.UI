@@ -2,7 +2,7 @@
     "name": "singulink-icon-pack-builder",
     "displayName": "Singulink Icon Pack Builder",
     "description": "Build trimmed, strongly typed Fluent icon font packs for .NET apps (WinUI, Uno Platform, WPF, Avalonia, MAUI) from inside VS Code.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "publisher": "Singulink",
     "license": "MIT",
     "icon": "media/icon.png",

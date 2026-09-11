@@ -29,6 +29,7 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
     private Timer? _reloadDebounceTimer;
     private Timer? _hostSaveDebounceTimer;
     private bool _isWatchingDocument;
+    private bool _isApplyingProject;
     private byte[]? _documentHash;
     private bool _isHandlingExternalChange;
 
@@ -98,8 +99,9 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
     partial void OnIsDirtyChanged(bool value)
     {
         // When the host owns persistence there is no Save command: changes are coalesced briefly and pushed to the host, which tracks dirty
-        // state and undo itself.
-        if (value && Document.HostOwnsPersistence)
+        // state and undo itself. Applying a project (load/reload) mutates state whose setters mark the editor dirty; that must not schedule a
+        // save or the file would be rewritten on open and stay perpetually modified.
+        if (value && Document.HostOwnsPersistence && !_isApplyingProject)
             ScheduleHostSave();
     }
 
@@ -408,6 +410,27 @@ public partial class EditorRootModel : ObservableObject, IRoutedViewModel<string
     /// Resets the editor state and applies the given project to it. Returns warnings to show the user, if any.
     /// </summary>
     private List<string> ApplyProject(Project project)
+    {
+        // Suppress the dirty-driven host save while applying, and drop any pending one, so opening a project never writes it back.
+        lock (_timerLock)
+        {
+            _hostSaveDebounceTimer?.Dispose();
+            _hostSaveDebounceTimer = null;
+        }
+
+        _isApplyingProject = true;
+
+        try
+        {
+            return ApplyProjectCore(project);
+        }
+        finally
+        {
+            _isApplyingProject = false;
+        }
+    }
+
+    private List<string> ApplyProjectCore(Project project)
     {
         var warnings = new List<string>();
         bool hasVersionDowngrade = project.IconsSourceVersion > IconsSource.Version;
