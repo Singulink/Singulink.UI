@@ -8,9 +8,36 @@ public partial class App : Application
     {
         InitializeComponent();
 
-#if __WASM__
-        // Inside the VS Code webview nothing else reports failures on the UI thread; the extension forwards console output to its output channel.
-        UnhandledException += (s, e) => Console.Error.WriteLine($"[IconPackBuilder] Unhandled UI exception: {e.Exception}");
+        // Inside the VS Code webview the extension forwards console output to its output channel, and the windowed heads have no console at
+        // all, so unhandled UI exceptions are also appended to a log file. Without this a XAML callback that throws just terminates the process
+        // with a stowed exception and no managed detail.
+        UnhandledException += (s, e) => LogUnhandledException("UI", e.Exception);
+
+#if !__WASM__
+        AppDomain.CurrentDomain.UnhandledException += (s, e) => LogUnhandledException("AppDomain", e.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (s, e) => LogUnhandledException("Task", e.Exception);
+#endif
+    }
+
+    /// <summary>
+    /// Gets the path of the crash log written by <see cref="LogUnhandledException"/> on the windowed heads.
+    /// </summary>
+    public static string CrashLogPath { get; } = Path.Combine(Path.GetTempPath(), "IconPackBuilder-crash.log");
+
+    private static void LogUnhandledException(string source, Exception? exception)
+    {
+        string text = $"[IconPackBuilder] {DateTime.Now:O} Unhandled {source} exception:{Environment.NewLine}{exception}";
+        Console.Error.WriteLine(text);
+
+#if !__WASM__
+        try
+        {
+            File.AppendAllText(CrashLogPath, text + Environment.NewLine + Environment.NewLine);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Diagnostics must never be the reason the app fails.
+        }
 #endif
     }
 
