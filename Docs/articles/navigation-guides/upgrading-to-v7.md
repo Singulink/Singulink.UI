@@ -14,7 +14,7 @@ await this.Navigator.NavigateAsync(
     Routes.RepoRoot.ToConcrete("my-repo"),
     Routes.Repo.HomePage);
 
-await this.Navigator.NavigatePartialAsync<RepoRootModel>(
+await this.Navigator.NavigatePartialAsync(
     Routes.Repo.DocumentPage.ToConcrete(documentParams),
     Routes.Repo.DocumentPage.History);
 
@@ -31,7 +31,7 @@ await this.Navigator.NavigateAsync(
     Routes.RepoRoot.ToConcrete("my-repo")
         .Then(Routes.Repo.HomePage));
 
-await this.Navigator.NavigatePartialAsync<RepoRootModel>(
+await this.Navigator.NavigatePartialAsync(
     Routes.Repo.DocumentPage.ToConcrete(documentParams)
         .Then(Routes.Repo.DocumentPage.History));
 

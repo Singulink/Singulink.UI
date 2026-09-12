@@ -67,12 +67,12 @@ private async Task ShowHomeAsync()
 Deeper partial routes chain child route parts with <xref:Singulink.UI.Navigation.ConcreteRouteExtensions.Then*>, starting from the child of the parent view model:
 
 ```csharp
-await this.Navigator.NavigatePartialAsync<RepoRootModel>(
+await this.Navigator.NavigatePartialAsync(
     Routes.Repo.DocumentPage.ToConcrete(documentParams)
         .Then(Routes.Repo.DocumentPage.History));
 ```
 
-The route's generic parameters describe the parent view model the child is registered under; the navigator verifies at runtime that the current route actually contains that parent. If it doesn't, an <xref:System.InvalidOperationException> is thrown.
+The route's generic parameters describe the parent view model the child is registered under, so the parent type is inferred from the route and never needs to be given explicitly; the navigator verifies at runtime that the current route actually contains that parent. If it doesn't, an <xref:System.InvalidOperationException> is thrown.
 
 The [NavigatePartialAsync(string? anchor)](xref:Singulink.UI.Navigation.INavigator.NavigatePartialAsync(System.String)) overload updates only the anchor on the current route. This fires the usual <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatingAsync*> / <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatedAsync*> lifecycle events, so view models that react to route changes (e.g. to update a highlighted item or scroll position) will see the new anchor. If you only want to reflect an anchor change in the URL without firing any lifecycle events, use <xref:Singulink.UI.Navigation.INavigator.UpdateCurrentRoute(System.String)> instead (see the [Anchor-only update](#anchor-only-update) section below); the two methods are otherwise equivalent.
 

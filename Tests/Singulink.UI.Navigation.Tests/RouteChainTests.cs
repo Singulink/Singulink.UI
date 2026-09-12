@@ -41,7 +41,7 @@ public class RouteChainTests
 
             IConcreteChildRoutePart<ChildVm> grandChild = Routes.GrandChild.ToConcrete(4);
             ConcretePartialRoute<RootVm> partial = Routes.Child.Then(grandChild);
-            await nav.NavigatePartialAsync<RootVm>(partial);
+            await nav.NavigatePartialAsync(partial);
             nav.CurrentRoute.ToString().ShouldBe("root/child/gc/4");
         });
     }
@@ -85,7 +85,7 @@ public class RouteChainTests
 
             var root = nav.ActiveViewModel<RootVm>();
 
-            await nav.NavigatePartialAsync<RootVm>(Routes.Child.Then(Routes.GrandChild.ToConcrete(2)));
+            await nav.NavigatePartialAsync(Routes.Child.Then(Routes.GrandChild.ToConcrete(2)));
 
             nav.CurrentRoute.ToString().ShouldBe("root/child/gc/2");
             nav.ActiveViewModel<RootVm>().ShouldBeSameAs(root);

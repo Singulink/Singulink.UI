@@ -31,7 +31,7 @@ public class NavigatorPartialNavigationTests
             await nav.NavigateAsync("p/c1");
             var parentBefore = nav.ActiveViewModels[0];
 
-            await nav.NavigatePartialAsync<ParentVm>(C2);
+            await nav.NavigatePartialAsync(C2);
 
             var parentAfter = nav.ActiveViewModels[0];
             parentAfter.ShouldBeSameAs(parentBefore);
@@ -50,7 +50,7 @@ public class NavigatorPartialNavigationTests
             await nav.NavigateAsync("home");
 
             await Should.ThrowAsync<NavigationRouteException>(
-                () => nav.NavigatePartialAsync<ParentVm>(C2));
+                () => nav.NavigatePartialAsync(C2));
         });
     }
 
