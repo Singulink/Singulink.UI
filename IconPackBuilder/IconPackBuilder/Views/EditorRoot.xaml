@@ -113,7 +113,13 @@
         </ItemsRepeater.Layout>
         <ItemsRepeater.ItemTemplate>
           <DataTemplate x:DataType="vm:IconGroupModel">
-            <Button Style="{StaticResource IconGroupTileStyle}" Click="OnIconGroupClick" ToolTipService.ToolTip="{x:Bind Info.Description}">
+            <!--
+              DataContext is set explicitly because WinUI's ItemsRepeater does not set it on realized elements when the template uses compiled
+              x:Bind (they inherit the UserControl's, i.e. the editor view model), which made the click handler cast the wrong type. Uno sets it,
+              so this only crashed the WinAppSDK head.
+            -->
+            <Button Style="{StaticResource IconGroupTileStyle}" Click="OnIconGroupClick" DataContext="{x:Bind}"
+                    ToolTipService.ToolTip="{x:Bind Info.Description}">
               <Grid Background="{ThemeResource ControlFillColorDefaultBrush}" Width="168" Height="40">
                 <Grid Background="#2235C759" Visibility="{x:Bind suxc:Visible.IfTrue(HasSelectedIcons), Mode=OneWay}">
                   <Ellipse Width="8" Height="8" Fill="#35C759" StrokeThickness="0" Margin="4"
