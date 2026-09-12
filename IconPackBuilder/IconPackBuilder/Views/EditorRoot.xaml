@@ -107,7 +107,16 @@
 
     <ScrollViewer x:Name="IconGroupsScrollViewer" Grid.Row="1" Grid.Column="0" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
       <!-- ItemsRepeater is used instead of GridView because GridView does not virtualize on Skia. -->
-      <ItemsRepeater ItemsSource="{x:Bind Model.FilteredIconGroups, Mode=OneWay}" Margin="10,0,10,10" XYFocusKeyboardNavigation="Enabled">
+      <!--
+        TEMPORARY, revert to the defaults once unoplatform/uno#23984 is fixed (the #23986 backport to a 6.7.x service release).
+        VerticalCacheLength defaults to 2.0, i.e. two viewports of buffer on top of the visible one, so roughly three viewports of tiles are
+        realized. On Uno's Skia heads every realized visual pays per-frame damage-region work while scrolling even when it is off screen, so
+        the buffer is trimmed to cut that population roughly in half. The WinAppSDK head is unaffected and scrolls smoothly either way.
+        The cost of trimming is that fast scrolling can reveal empty tiles, so this is a stopgap and not a setting worth keeping long term.
+        Horizontal scrolling is disabled here, so that buffer is not needed at all.
+      -->
+      <ItemsRepeater ItemsSource="{x:Bind Model.FilteredIconGroups, Mode=OneWay}" Margin="10,0,10,10" XYFocusKeyboardNavigation="Enabled"
+                     VerticalCacheLength="0.5" HorizontalCacheLength="0">
         <ItemsRepeater.Layout>
           <UniformGridLayout MinItemWidth="168" MinItemHeight="40" MinRowSpacing="4" MinColumnSpacing="8" ItemsStretch="None" />
         </ItemsRepeater.Layout>
