@@ -51,6 +51,8 @@
       Mvvm;
       SkiaRenderer;
     </UnoFeatures>
+
+    <SkiaSharpVersion>4.152.0</SkiaSharpVersion>
   </PropertyGroup>
   
   <ItemGroup>
@@ -64,6 +66,25 @@
     <!-- Uno.Sdk only embeds AppManifest.js by default; the bootstrapper runs every embedded WasmScripts/*.js before the app starts. -->
     <EmbeddedResource Include="Platforms\WebAssembly\WasmScripts\ipbBrowserHost.js" />
   </ItemGroup>
+
+  <!--
+    SkiaSharp 4.x enables Dawn's WebGPU backend by appending its webgpu.cpp source and -std=c++20 to the emcc link command, and a standard
+    flag applies to every source in that one invocation. Uno contributes uno_gl_shim.c to the same link, so clang fails with
+    "invalid argument '-std=c++20' not allowed with 'C'" whenever both are compiled together. The shim is valid C++20, so emcc is handed a
+    .cpp copy of it instead, which keeps the Dawn backend enabled. The alternative is opting out with _SkiaSharpUseEmdawnwebgpu=false, which
+    falls back to emscripten's built-in WebGPU. Remove this once Uno or SkiaSharp scopes the flag to its own source.
+  -->
+  <Target Name="CompileUnoGlShimAsCxx" BeforeTargets="_UnoAdjustCompatibility" Condition="$(TargetFramework.Contains('browserwasm'))">
+    <ItemGroup>
+      <_UnoGlShimSource Include="@(WasmShellNativeCompile)" Condition="'%(Filename)%(Extension)' == 'uno_gl_shim.c'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_UnoGlShimSource)" DestinationFiles="$(IntermediateOutputPath)uno_gl_shim.cpp" SkipUnchangedFiles="true"
+          Condition="'@(_UnoGlShimSource)' != ''" />
+    <ItemGroup Condition="'@(_UnoGlShimSource)' != ''">
+      <WasmShellNativeCompile Remove="@(_UnoGlShimSource)" />
+      <WasmShellNativeCompile Include="$(IntermediateOutputPath)uno_gl_shim.cpp" Visible="false" />
+    </ItemGroup>
+  </Target>
 
   <Import Project="Tools\PyFtSubset.targets" />
 </Project>
