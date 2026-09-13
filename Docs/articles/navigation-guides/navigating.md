@@ -130,6 +130,8 @@ Key members include <xref:Singulink.UI.Navigation.NavigatorRoute.Path>, <xref:Si
 string shareUrl = $"{Hosts.AppBaseUrl}/{this.Navigator.CurrentRoute}";
 ```
 
+Routes obtained from the navigator are **live views** of its route entries, not snapshots: if the current route is later changed in place (see [Updating the Current Route In-Place](#updating-the-current-route-in-place)), a previously obtained <xref:Singulink.UI.Navigation.NavigatorRoute> reflects the new parts and anchor. Call <xref:Singulink.UI.Navigation.NavigatorRoute.ToString> if you need to capture the route at a point in time.
+
 ## Ancestor-Aware Checks
 
 Use these methods to branch logic based on which view models are currently in the route tree:
@@ -194,6 +196,58 @@ this.Navigator.UpdateCurrentRoute(
 ```
 
 <xref:Singulink.UI.Navigation.INavigator.UpdateCurrentRoute(Singulink.UI.Navigation.IConcreteRoutePart,System.String)> requires the new leaf route part to map to the same view model type as the current leaf, otherwise an <xref:System.ArgumentException> is thrown. No lifecycle methods fire; the view model and view remain mounted while the URL updates.
+
+## Pinning a Route
+
+Sometimes a user needs to leave a view temporarily and come back to it with its state intact, for example to look up reference material while filling out a form. Caching alone does not guarantee that: a view model that opts out of caching is disposed as soon as it is navigated away from, and even a cached one is released once it falls outside the configured cache depth or its route drops out of the navigation stacks (e.g. when a new navigation clears the forward stack).
+
+<xref:Singulink.UI.Navigation.INavigator.PinCurrentRoute> returns a <xref:Singulink.UI.Navigation.RoutePin> that keeps the current route's leaf view and view model materialized until it is disposed, regardless of caching settings or navigation history. Navigate back to the route with <xref:Singulink.UI.Navigation.INavigator.NavigateAsync(Singulink.UI.Navigation.NavigatorRoute)> and the retained instances are reused:
+
+```csharp
+// Before leaving the form
+_formPin = this.Navigator.PinCurrentRoute();
+await this.Navigator.NavigateAsync(referenceRoute);
+
+// Later, from anywhere in the app
+await this.Navigator.NavigateAsync(_formPin.Route);   // same view model instance, state intact
+_formPin.Dispose();
+```
+
+### Which view models can be pinned
+
+A pinned view model is navigated to again on the same instance, so it must handle repeated <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*> calls the way a cached view model does. <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBePinned> controls this and defaults to <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBeCached>, so a view model that opts out of caching keeps its guarantee of a fresh instance per activation unless it explicitly opts into pinning:
+
+```csharp
+public partial class FormViewModel : ObservableObject, IRoutedViewModel<long>
+{
+    public bool CanBeCached => false;   // fresh instance per activation...
+    public bool CanBePinned => true;    // ...except when pinned, which OnNavigatedToAsync handles
+
+    public async Task OnNavigatedToAsync(NavigationArgs args)
+    {
+        if (Runner is not null)
+            return; // Returning to the pinned form: state is intact, nothing to load.
+
+        ...
+    }
+}
+```
+
+<xref:Singulink.UI.Navigation.INavigator.PinCurrentRoute> throws if the current leaf view model is not pinnable.
+
+### Ancestors
+
+The pin also retains each ancestor of the leaf up to the first one that is not pinnable. Ancestors from that point up follow the normal caching rules, so the app is responsible for keeping them active while the pin matters (typically with a guard, see below). If such an ancestor is evicted and the pinned view models depended on services it provided, they are evicted with it and <xref:Singulink.UI.Navigation.RoutePin.IsPinned> becomes `false`; navigating to the route afterwards creates fresh instances.
+
+An app that needs a pinned view to survive leaving its parent context can make the parent pinnable (cacheable parents are pinnable by default). The pin then retains the parent too, regardless of cache depth.
+
+### Points to keep in mind
+
+- Returning to a pinned route is an ordinary new navigation: it pushes a new history entry and fires the usual lifecycle events.
+- <xref:Singulink.UI.Navigation.RoutePin.Route> is the live route entry that was pinned (see [The Current Route](#the-current-route)), so in-place updates made while it is still current are reflected in it.
+- Disposing the pin releases the retained instances on the next navigation, unless they are cached or active by then. Pins are released automatically when the navigator shuts down.
+- Always dispose pins. The navigator does not keep them alive, so a pin that is dropped without being disposed is released once it has been garbage collected rather than leaking forever, but until then its instances are retained and, worse, a pin that was never stored anywhere can be collected while the app still expects the route to be retained. Debug builds report undisposed pins.
+- Navigating to the pinned route does not prevent the user from navigating elsewhere. To stop them from leaving the reference material without returning to (or discarding) the pinned view, use a guard that inspects <xref:Singulink.UI.Navigation.NavigatingArgs.TargetRoute> (see [Guards and Redirects](guards-and-redirects.md)).
 
 ## System Back / Forward Handling
 

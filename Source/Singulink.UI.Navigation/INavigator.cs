@@ -121,6 +121,13 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     public Task<NavigationResult> NavigateAsync(ConcreteRoute route, string? anchor = null);
 
     /// <summary>
+    /// Navigates to the specified route, including its anchor. This can be used to return to a route that was previously obtained from <see cref="CurrentRoute"/>,
+    /// the navigation stacks or a <see cref="RoutePin"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The route is empty.</exception>
+    public Task<NavigationResult> NavigateAsync(NavigatorRoute route);
+
+    /// <summary>
     /// Navigates to a partial route that has the same path as the current route but with the specified options.
     /// </summary>
     public Task<NavigationResult> NavigatePartialAsync(string? anchor);
@@ -148,6 +155,14 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
     /// </summary>
     public Task<NavigationResult> NavigateToParentAsync<TParentViewModel>(string? anchor = null)
         where TParentViewModel : class;
+
+    /// <summary>
+    /// Pins the current route so that its views and view models are retained (regardless of caching settings and whether the route remains in the navigation
+    /// history) until the returned pin is disposed. Navigating to the pinned route again with <see cref="NavigateAsync(NavigatorRoute)"/> reuses them with
+    /// their state intact, which is useful for temporarily leaving a view with unsaved state and returning to it later.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The navigator does not have a current route.</exception>
+    public RoutePin PinCurrentRoute();
 
     /// <summary>
     /// Refreshes the current route.

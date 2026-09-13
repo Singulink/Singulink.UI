@@ -10,12 +10,13 @@ public class NavigatingArgs
     /// <summary>
     /// Initializes a new instance of the <see cref="NavigatingArgs"/> class.
     /// </summary>
-    public NavigatingArgs(INavigator navigator, NavigationType navigationType)
+    public NavigatingArgs(INavigator navigator, NavigationType navigationType, NavigatorRoute? targetRoute = null)
     {
         navigationType.ThrowIfNotValid(nameof(navigationType));
 
         Navigator = navigator;
         NavigationType = navigationType;
+        TargetRoute = targetRoute;
     }
 
     /// <summary>
@@ -27,6 +28,12 @@ public class NavigatingArgs
     /// Gets the type of navigation that is occurring.
     /// </summary>
     public NavigationType NavigationType { get; }
+
+    /// <summary>
+    /// Gets the route that is being navigated to, or <see langword="null"/> if the navigator is shutting down (e.g. the window is closing) and there is no
+    /// destination route.
+    /// </summary>
+    public NavigatorRoute? TargetRoute { get; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the new navigation should be canceled and the current route should remain active.

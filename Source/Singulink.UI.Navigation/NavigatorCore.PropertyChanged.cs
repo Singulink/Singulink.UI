@@ -29,6 +29,7 @@ partial class NavigatorCore
         private NavigatorCore? _navigator = navigator;
 
         private NavigatorRoute? _currentRoute = navigator.CurrentRouteCore;
+        private int _currentRouteVersion = navigator.CurrentRouteCore?.Version ?? 0;
         private bool _canGoBack = navigator.CanGoBack;
         private bool _canGoForward = navigator.CanGoForward;
         private bool _canRefresh = navigator.CanRefresh;
@@ -52,21 +53,28 @@ partial class NavigatorCore
             CheckUpdateNotify(ref _isNavigating, _navigator.IsNavigating, IsNavigatingChangedArgs);
             CheckUpdateNotify(ref _isShowingDialog, _navigator.IsShowingDialog, IsShowingDialogChangedArgs);
 
-            if (CheckUpdateNotify(ref _currentRoute, _navigator.CurrentRouteCore, CurrentRouteChangedArgs) && _currentRoute is { } route)
+            // Routes are live views that can be updated in place, so a route counts as changed when either the instance or its version differs.
+
+            var currentRoute = _navigator.CurrentRouteCore;
+            int currentRouteVersion = currentRoute?.Version ?? 0;
+
+            if (currentRoute != _currentRoute || currentRouteVersion != _currentRouteVersion)
             {
-                _navigator.OnCurrentRouteChanged(route);
+                _currentRoute = currentRoute;
+                _currentRouteVersion = currentRouteVersion;
+                _navigator.OnPropertyChanged(CurrentRouteChangedArgs);
+
+                if (currentRoute is not null)
+                    _navigator.OnCurrentRouteChanged(currentRoute);
             }
 
-            bool CheckUpdateNotify<T>(ref T field, T value, PropertyChangedEventArgs e)
+            void CheckUpdateNotify(ref bool field, bool value, PropertyChangedEventArgs e)
             {
-                if (!EqualityComparer<T>.Default.Equals(field, value))
+                if (field != value)
                 {
                     field = value;
                     _navigator?.OnPropertyChanged(e);
-                    return true;
                 }
-
-                return false;
             }
         }
 

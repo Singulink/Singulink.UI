@@ -25,6 +25,10 @@ public abstract partial class NavigatorCore : INavigator
     private List<NavigatorRoute> _routeStack = [];
     private int _currentRouteIndex = -1;
 
+    // Pins are referenced weakly so that a pin dropped without being disposed does not retain its route forever; the trim pass releases dead entries.
+    private readonly List<PinEntry> _pins = [];
+    private readonly List<NavigatorRoute> _releasedPinRoutes = [];
+
     private bool _isNavigating;
     private bool _isRedirecting;
 
@@ -159,6 +163,22 @@ public abstract partial class NavigatorCore : INavigator
     protected bool IsRedirecting => _isRedirecting;
 
     private NavigatorRoute? CurrentRouteCore => _currentRouteIndex >= 0 ? _routeStack[_currentRouteIndex] : null;
+
+    /// <summary>
+    /// Tracks a pin created by <see cref="PinCurrentRoute"/>: the pin itself (weakly), its route and the route items it retains.
+    /// </summary>
+    private sealed record PinEntry(WeakReference<RoutePin> Pin, NavigatorRoute Route, IReadOnlyList<NavigationItem> Items)
+    {
+        public bool IsPin(RoutePin pin) => Pin.TryGetTarget(out var target) && target == pin;
+
+        public bool IsAlive => Pin.TryGetTarget(out _);
+
+        public void InvalidatePin()
+        {
+            if (Pin.TryGetTarget(out var pin))
+                pin.Invalidate();
+        }
+    }
 
     private bool IsShowingDialogCore => _dialogStack.Count > 0;
 

@@ -6,17 +6,34 @@ namespace Singulink.UI.Navigation;
 public interface IRoutedViewModelBase
 {
     /// <summary>
-    /// Gets a value indicating whether the view model and its associated view can be cached in the navigation stacks.
+    /// Gets a value indicating whether the view model and its associated view can be cached in the navigation stacks. Defaults to <see langword="false"/>,
+    /// meaning a fresh view model and view are created every time the route is navigated to.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// If a view model (or its associated view) consumes a large amount of memory or should be recreated whenever it is navigated to, this property should
-    /// return <see langword="false"/> to avoid being cached when it is inactive. If a parent view model that provided services to a child view model is evicted
-    /// from cache then all of its children are also evicted.</para>
+    /// Return <see langword="true"/> to keep the view model and view alive while they are inactive so that returning to them (e.g. by navigating back) is
+    /// instant and preserves their state. A cached view model is navigated to again on the same instance, so <see cref="OnNavigatedToAsync(NavigationArgs)"/>
+    /// must handle being called repeatedly (e.g. by skipping work that was already done and not subscribing to events twice). If a parent view model that
+    /// provided services to a child view model is evicted from cache then all of its children are also evicted.</para>
     /// <para>
     /// Use <see cref="INavigatorBuilder.ConfigureNavigationStacks(int, int, int)"/> to control the maximum depth of cached views and view models.</para>
     /// </remarks>
-    public bool CanBeCached => true;
+    public bool CanBeCached => false;
+
+    /// <summary>
+    /// Gets a value indicating whether the view model and its associated view can be retained by a <see cref="RoutePin"/> (see
+    /// <see cref="INavigator.PinCurrentRoute"/>). Defaults to the value of <see cref="CanBeCached"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A pinned view model is navigated to again with its state intact when its route is returned to, so it must handle repeated calls to <see
+    /// cref="OnNavigatedToAsync(NavigationArgs)"/> on the same instance in the same way a cached view model does. View models that opt out of caching
+    /// therefore cannot be pinned unless they explicitly override this property to return <see langword="true"/>.</para>
+    /// <para>
+    /// When a route is pinned, the leaf view model must be pinnable and each of its ancestors is pinned as well up to the first ancestor that is not pinnable.
+    /// Ancestors from that point up follow the normal caching rules.</para>
+    /// </remarks>
+    public bool CanBePinned => CanBeCached;
 
     /// <summary>
     /// Called when the view model is navigated to (i.e. becomes visible). May be called multiple times on the same view model instance if the view model is

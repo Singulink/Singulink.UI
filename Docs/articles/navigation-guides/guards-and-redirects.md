@@ -36,6 +36,20 @@ if (args.NavigationType == NavigationType.Normal && HasUnsavedChanges)
 }
 ```
 
+<xref:Singulink.UI.Navigation.NavigatingArgs.TargetRoute> is the route being navigated to, so a guard can decide based on the destination rather than just the kind of navigation. It is `null` when the navigator is shutting down (e.g. the window is closing or the browser tab is unloading), since there is no destination in that case:
+
+```csharp
+public async Task OnRouteNavigatingAsync(NavigatingArgs args)
+{
+    // Allow moving between the pages of the same wizard without prompting
+    if (args.TargetRoute?.Parts[^1].RoutePart is { } target && WizardPages.Contains(target))
+        return;
+
+    if (HasUnsavedChanges && !await ConfirmDiscardAsync())
+        args.Cancel = true;
+}
+```
+
 ### WebAssembly: Browser Tab Close, Refresh, and External Navigation
 
 In-app navigation (including the browser back / forward buttons) goes through the navigator's normal asynchronous pipeline, so <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatingAwayAsync*> and <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnRouteNavigatingAsync*> can freely `await` work such as confirmation dialogs.

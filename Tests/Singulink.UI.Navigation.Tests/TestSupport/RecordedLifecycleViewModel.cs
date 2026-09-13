@@ -22,9 +22,17 @@ public class RecordedLifecycleViewModel : IRoutedViewModelBase
 
     public Func<NavigationArgs, Task>? OnRouteNavigatedCallback { get; set; }
 
+    public Func<NavigatingArgs, Task>? OnNavigatingAwayCallback { get; set; }
+
+    public Func<NavigatingArgs, Task>? OnRouteNavigatingCallback { get; set; }
+
     public bool CanBeCachedValue { get; set; } = true;
 
+    public bool? CanBePinnedValue { get; set; }
+
     public virtual bool CanBeCached => CanBeCachedValue;
+
+    public virtual bool CanBePinned => CanBePinnedValue ?? CanBeCached;
 
     public virtual Task OnNavigatedToAsync(NavigationArgs args)
     {
@@ -53,7 +61,7 @@ public class RecordedLifecycleViewModel : IRoutedViewModelBase
         if (CancelOnNavigatingAway)
             args.Cancel = true;
 
-        return Task.CompletedTask;
+        return OnNavigatingAwayCallback?.Invoke(args) ?? Task.CompletedTask;
     }
 
     public virtual Task OnRouteNavigatingAsync(NavigatingArgs args)
@@ -63,7 +71,7 @@ public class RecordedLifecycleViewModel : IRoutedViewModelBase
         if (CancelOnRouteNavigating)
             args.Cancel = true;
 
-        return Task.CompletedTask;
+        return OnRouteNavigatingCallback?.Invoke(args) ?? Task.CompletedTask;
     }
 
     public virtual Task OnNavigatedAwayAsync()

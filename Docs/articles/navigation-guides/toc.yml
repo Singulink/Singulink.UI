@@ -18,6 +18,8 @@
   href: task-runner.md
 - name: Testing View Models
   href: testing.md
+- name: Upgrading to 7.1
+  href: upgrading-to-v7.1.md
 - name: Upgrading to 7.0
   href: upgrading-to-v7.md
 - name: WinUI / Uno Setup

@@ -41,6 +41,11 @@ public sealed class Redirect
     }
 
     /// <summary>
+    /// Navigates to the specified route, including its anchor.
+    /// </summary>
+    public static Redirect Navigate(NavigatorRoute route) => new(n => n.NavigateAsync(route));
+
+    /// <summary>
     /// Navigates to a partial route that has the same path as the current route but with the specified options.
     /// </summary>
     public static Redirect NavigatePartial(string? anchor)

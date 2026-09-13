@@ -132,7 +132,7 @@ Then pass it to <xref:Singulink.UI.Navigation.INavigator.NavigateAsync*> as the 
 
 ## Tuning Caching
 
-By default the navigator caches a limited number of back-stack and forward-stack views in memory (views and view models are recreated if the user navigates past that depth). The default values are exposed as constants on <xref:Singulink.UI.Navigation.INavigatorBuilder>: <xref:Singulink.UI.Navigation.INavigatorBuilder.DefaultNavigationStacksSize>, <xref:Singulink.UI.Navigation.INavigatorBuilder.DefaultMaxBackStackCachedDepth>, and <xref:Singulink.UI.Navigation.INavigatorBuilder.DefaultMaxForwardStackCachedDepth>. They can be overridden via:
+View models that opt into caching (see [Caching](view-models.md#caching)) are retained in memory along with their views for a limited number of back-stack and forward-stack entries; past that depth they are recreated if navigated to again. The default values are exposed as constants on <xref:Singulink.UI.Navigation.INavigatorBuilder>: <xref:Singulink.UI.Navigation.INavigatorBuilder.DefaultNavigationStacksSize>, <xref:Singulink.UI.Navigation.INavigatorBuilder.DefaultMaxBackStackCachedDepth>, and <xref:Singulink.UI.Navigation.INavigatorBuilder.DefaultMaxForwardStackCachedDepth>. They can be overridden via:
 
 ```csharp
 builder.ConfigureNavigationStacks(

@@ -51,6 +51,17 @@ partial class NavigatorCore
         return await NavigateNewWithRouteCheckAsync([.. route.RouteParts], anchor);
     }
 
+    /// <inheritdoc cref="INavigator.NavigateAsync(NavigatorRoute)"/>
+    public async Task<NavigationResult> NavigateAsync(NavigatorRoute route)
+    {
+        EnsureThreadAccess();
+
+        if (route.IsEmpty)
+            throw new ArgumentException("Cannot navigate to an empty route.", nameof(route));
+
+        return await NavigateNewWithRouteCheckAsync([.. route.Parts], route.Anchor);
+    }
+
     /// <inheritdoc cref="INavigator.NavigatePartialAsync(string?)"/>
     public async Task<NavigationResult> NavigatePartialAsync(string? anchor)
     {
@@ -218,7 +229,7 @@ partial class NavigatorCore
             return;
 
         using var notifier = new PropertyChangedNotifier(this);
-        _routeStack[_currentRouteIndex] = new NavigatorRoute(currentRoute.Items, anchor);
+        currentRoute.Update(anchor);
     }
 
     /// <inheritdoc cref="INavigator.UpdateCurrentRoute(IConcreteRoutePart, string?)"/>
@@ -241,10 +252,69 @@ partial class NavigatorCore
         if (lastItem.ConcreteRoutePart.Equals(concreteRoutePart) && currentRoute.Anchor == anchor)
             return;
 
-        lastItem.ConcreteRoutePart = concreteRoutePart;
-
         using var notifier = new PropertyChangedNotifier(this);
-        _routeStack[_currentRouteIndex] = new NavigatorRoute(currentRoute.Items, anchor);
+        currentRoute.Update(concreteRoutePart, anchor);
+    }
+
+    /// <inheritdoc cref="INavigator.PinCurrentRoute"/>
+    public RoutePin PinCurrentRoute()
+    {
+        EnsureThreadAccess();
+
+        var currentRoute = CurrentRouteCore ?? throw new InvalidOperationException("Cannot pin the current route before the navigator has a route.");
+
+        var leafItem = currentRoute.Items[^1];
+
+        if (!leafItem.ViewModel!.CanBePinned)
+        {
+            throw new InvalidOperationException(
+                $"The current route cannot be pinned because its view model of type '{leafItem.ViewModel.GetType()}' is not pinnable " +
+                $"(see {nameof(IRoutedViewModelBase)}.{nameof(IRoutedViewModelBase.CanBePinned)}).");
+        }
+
+        // Pin the leaf and its contiguous pinnable ancestors. Ancestors above the first non-pinnable one are left to the normal caching rules, since if that
+        // ancestor is evicted then everything beneath it that depends on it is evicted as well.
+
+        var pinnedItems = new List<NavigationItem>();
+
+        for (int i = currentRoute.Items.Count - 1; i >= 0 && currentRoute.Items[i].ViewModel!.CanBePinned; i--)
+            pinnedItems.Add(currentRoute.Items[i]);
+
+        var pin = new RoutePin(this, currentRoute);
+        _pins.Add(new PinEntry(new WeakReference<RoutePin>(pin), currentRoute, pinnedItems));
+
+        return pin;
+    }
+
+    /// <summary>
+    /// Stops retaining the specified pin's route. Its materialized components are released by the next trim (i.e. on the next navigation) unless they are
+    /// still cached, pinned or active by then.
+    /// </summary>
+    internal void ReleasePin(RoutePin pin)
+    {
+        EnsureThreadAccess();
+
+        int index = _pins.FindIndex(e => e.IsPin(pin));
+
+        if (index >= 0)
+        {
+            _releasedPinRoutes.Add(_pins[index].Route);
+            _pins.RemoveAt(index);
+        }
+    }
+
+    /// <summary>
+    /// Releases all pins so that a subsequent trim disposes their routes' materialized components.
+    /// </summary>
+    private void ReleaseAllPins()
+    {
+        foreach (var entry in _pins)
+        {
+            entry.InvalidatePin();
+            _releasedPinRoutes.Add(entry.Route);
+        }
+
+        _pins.Clear();
     }
 
     /// <inheritdoc cref="INavigator.ClearHistoryAsync"/>
@@ -401,10 +471,11 @@ partial class NavigatorCore
             notifier.Update();
 
             bool navigatedAway = await TaskRunner.RunAsBusyAsync(
-                NavigateAwayAsyncCore(NavigationType.New, numRouteItemsToKeep: 0, notifier, () => {
+                NavigateAwayAsyncCore(NavigationType.New, targetRoute: null, numRouteItemsToKeep: 0, notifier, () => {
                     var removedRoutes = _routeStack.ToList();
                     _routeStack.Clear();
                     _currentRouteIndex = -1;
+                    ReleaseAllPins();
 
                     return removedRoutes;
                 }));
@@ -445,7 +516,7 @@ partial class NavigatorCore
         _isNavigating = true;
         notifier.Update();
 
-        var task = TaskRunner.RunAsBusyAsync(() => ProbeNavigateAwayAsync(NavigationType.New, numRouteItemsToKeep: 0, notifier));
+        var task = TaskRunner.RunAsBusyAsync(() => ProbeNavigateAwayAsync(NavigationType.New, targetRoute: null, numRouteItemsToKeep: 0, notifier));
 
         // Reset the busy flag and dispose the notifier on the UI thread when the probe finishes, regardless of whether the caller awaits the task. This
         // ensures the navigator self-heals if the probe stays async (e.g. a view model awaits an unsaved-changes dialog) and the caller cannot await us
@@ -503,7 +574,10 @@ partial class NavigatorCore
 
         IReadOnlyList<NavigationItem> BuildRouteItems(IReadOnlyList<IConcreteRoutePart> routeParts)
         {
-            var commonRouteCandidates = _routeStack;
+            // Pinned routes are candidates too so that their retained items are reused even after they have left the navigation stacks, which also
+            // maintains the invariant that equal route parts always map to the same item instances among the routes the navigator holds.
+
+            var commonRouteCandidates = _pins.Count is 0 ? _routeStack : [.. _routeStack, .. _pins.Select(e => e.Route)];
             int i; // number of common route parts
 
             for (i = 0; i < routeParts.Count; i++)
@@ -587,7 +661,7 @@ partial class NavigatorCore
                 .TakeWhile(pair => pair.First == pair.Second)
                 .Count();
 
-            if (!await NavigateAwayAsyncCore(navigationType, numRouteItemsToKeep, notifier, updateRouteStackAndGetRemovedRoutes))
+            if (!await NavigateAwayAsyncCore(navigationType, route, numRouteItemsToKeep, notifier, updateRouteStackAndGetRemovedRoutes))
                 return NavigationResult.Cancelled;
 
             object? viewNavigator = _rootViewNavigator;
@@ -665,13 +739,14 @@ partial class NavigatorCore
 
     private async Task<bool> NavigateAwayAsyncCore(
         NavigationType navigationType,
+        NavigatorRoute? targetRoute,
         int numRouteItemsToKeep,
         PropertyChangedNotifier notifier,
         Func<List<NavigatorRoute>?>? updateRouteStackAndGetRemovedRoutes)
     {
         var currentRoute = CurrentRouteCore;
 
-        if (!await ProbeNavigateAwayAsync(navigationType, numRouteItemsToKeep, notifier))
+        if (!await ProbeNavigateAwayAsync(navigationType, targetRoute, numRouteItemsToKeep, notifier))
             return false;
 
         using (EnterNavigationGuard(blockDialogs: true))
@@ -717,7 +792,8 @@ partial class NavigatorCore
     /// langword="true"/> if no view model cancelled, otherwise <see langword="false"/>. This phase performs no teardown so it is safe to use as a
     /// non-destructive probe (e.g. for <c>beforeunload</c> on the browser).
     /// </summary>
-    private async Task<bool> ProbeNavigateAwayAsync(NavigationType navigationType, int numRouteItemsToKeep, PropertyChangedNotifier notifier)
+    private async Task<bool> ProbeNavigateAwayAsync(
+        NavigationType navigationType, NavigatorRoute? targetRoute, int numRouteItemsToKeep, PropertyChangedNotifier notifier)
     {
         var currentRoute = CurrentRouteCore;
 
@@ -735,7 +811,7 @@ partial class NavigatorCore
                 if (routeItem.AlreadyNavigatedTo)
                 {
                     bool willNavigateAway = i >= numRouteItemsToKeep;
-                    var args = new NavigatingArgs(this, navigationType);
+                    var args = new NavigatingArgs(this, navigationType, targetRoute);
 
                     void EnsureDialogsClosed()
                     {
@@ -779,9 +855,6 @@ partial class NavigatorCore
             _currentRouteIndex -= trimCount;
         }
 
-        if (_routeStack.Count <= 1)
-            return;
-
         var keepMaterialized = new HashSet<NavigationItem>(_routeStack.Count * 3);
 
         int cachedStartIndex = Math.Max(0, _currentRouteIndex - _maxBackStackCachedDepth);
@@ -802,31 +875,85 @@ partial class NavigatorCore
             }
         }
 
-        // Dispose all materialized items in routes that are not in the keepMaterialized set
+        // Pins that were dropped without being disposed are released here once they have been garbage collected, so that they don't retain their routes
+        // forever.
+
+        _pins.RemoveAll(entry => {
+            if (entry.IsAlive)
+                return false;
+
+            _releasedPinRoutes.Add(entry.Route);
+            return true;
+        });
+
+        // Keep all materialized components that pins retain, whether or not their routes are still in the stack
+
+        foreach (var entry in _pins)
+        {
+            foreach (var item in entry.Items)
+            {
+                if (item.IsMaterialized)
+                    keepMaterialized.Add(item);
+            }
+        }
+
+        // Determine the materialized items to dispose across every route the navigator holds: the stack, routes removed from it, routes released from pins
+        // since the last trim (which may no longer be in the stack) and pinned routes (so that evicting an ancestor that pinned items depend on evicts them
+        // too). Routes list their items from root to leaf and items are shared between routes, so visiting each route's items in order sees an item's parent
+        // (in this or an earlier route) before the item itself, which lets the dependent-children cascade be resolved in a single pass.
 
         var routes = _routeStack.AsEnumerable();
 
         if (removedRoutes is not null)
             routes = routes.Concat(removedRoutes);
 
+        if (_releasedPinRoutes.Count > 0)
+        {
+            routes = routes.Concat(_releasedPinRoutes.ToList());
+            _releasedPinRoutes.Clear();
+        }
+
+        if (_pins.Count > 0)
+            routes = routes.Concat(_pins.Select(e => e.Route));
+
+        var disposeItems = new List<NavigationItem>();
+        var disposeSet = new HashSet<NavigationItem>();
+
         foreach (var route in routes)
         {
-            bool forceDisposeChildren = false;
-
-            foreach (var routeItem in route.Items)
+            foreach (var item in route.Items)
             {
-                if (routeItem.IsMaterialized && (forceDisposeChildren || !keepMaterialized.Contains(routeItem)))
+                if (!item.IsMaterialized || disposeSet.Contains(item))
+                    continue;
+
+                // If a disposed item has dependent children, its children must be disposed as well since they may hold references to the disposed parent or
+                // disposed services that the parent provided.
+
+                bool parentDisposed = item.ParentItem is { } parent && disposeSet.Contains(parent) && parent.HasDependentChildren;
+
+                if (parentDisposed || !keepMaterialized.Contains(item))
                 {
-                    // If a disposed item has dependent children, we need to dispose its children as well since they may hold references to the disposed parent
-                    // or disposed services that the parent provided.
-
-                    if (routeItem.HasDependentChildren)
-                        forceDisposeChildren = true;
-
-                    await routeItem.DisposeMaterializedComponents();
+                    disposeSet.Add(item);
+                    disposeItems.Add(item);
                 }
             }
         }
+
+        if (disposeItems.Count is 0)
+            return;
+
+        // Pins whose retained items are being disposed (because an ancestor they depend on was evicted) no longer hold anything.
+
+        _pins.RemoveAll(entry => {
+            if (!entry.Items.Any(disposeSet.Contains))
+                return false;
+
+            entry.InvalidatePin();
+            return true;
+        });
+
+        foreach (var item in disposeItems)
+            await item.DisposeMaterializedComponents();
     }
 
     private bool TryMatchRoute(string routeString, RouteQuery query, [MaybeNullWhen(false)] out List<IConcreteRoutePart> routeParts)

@@ -11,7 +11,8 @@ A routed view model is any class that implements <xref:Singulink.UI.Navigation.I
 ```csharp
 public interface IRoutedViewModelBase
 {
-    bool CanBeCached => true;
+    bool CanBeCached => false;
+    bool CanBePinned => CanBeCached;
 
     Task OnNavigatedToAsync(NavigationArgs args);
     Task OnRouteNavigatedAsync(NavigationArgs args);
@@ -226,18 +227,22 @@ OnRouteNavigatedAsync    (parent, after child successfully swaps)
 
 ## Caching
 
-By default, view model instances are cached when navigated away from so returning to them later is instant and preserves state. If a view model consumes significant memory or should always be recreated fresh, override <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBeCached> to return `false`:
+By default, a view model is disposed along with its view when it is navigated away from, and a fresh instance is created if the route is navigated to again (including by going back). To keep a view model alive while it is inactive so that returning to it is instant and preserves its state (e.g. a list's scroll position), override <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBeCached> to return `true`:
 
 ```csharp
-public partial class LargeReportViewModel : ObservableObject, IRoutedViewModel
+public partial class FolderPageViewModel : ObservableObject, IRoutedViewModel<long>
 {
-    public bool CanBeCached => false;
+    public bool CanBeCached => true;
 }
 ```
 
-When a view model with <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBeCached> set to `false` is navigated away from, it is disposed along with its view. Note that if a parent view model is evicted from cache and provided a service to a child, all of its children are evicted too. Cache depth limits are configured on the navigator builder (see [WinUI / Uno Setup](winui-setup.md)).
+Caching is opt-in because a cached view model is navigated to again on the **same instance**: <xref:Singulink.UI.Navigation.IRoutedViewModelBase.OnNavigatedToAsync*> runs again, so it has to skip work that was already done and avoid subscribing to events twice. Forgetting that is an easy mistake to make, and the failure is silent, so only opt in for view models that are written for it.
+
+Cached entries are retained up to a configured depth in the back and forward stacks (see [WinUI / Uno Setup](winui-setup.md)). Note that if a parent view model is evicted from cache and provided a service to a child, all of its children are evicted too.
 
 If a view model implements <xref:System.IDisposable> or <xref:System.IAsyncDisposable>, <xref:System.IDisposable.Dispose> / <xref:System.IAsyncDisposable.DisposeAsync> is called automatically when it is evicted.
+
+To keep a specific view model alive across navigations regardless of these rules (e.g. so a half-completed form survives a detour to reference material), pin its route with <xref:Singulink.UI.Navigation.INavigator.PinCurrentRoute> before leaving it. Pinned view models are navigated to again on the same instance, so <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBePinned> defaults to <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBeCached> and a non-cacheable view model must opt in explicitly. See [Pinning a Route](navigating.md#pinning-a-route).
 
 ## Default Child Redirects
 
