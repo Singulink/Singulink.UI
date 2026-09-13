@@ -19,7 +19,7 @@ namespace Singulink.UI.Navigation;
 /// when the navigator shuts down. The navigator does not keep pins alive, so a pin that is dropped without being disposed is released once it has been
 /// garbage collected, but pins should always be disposed deterministically and debug builds report ones that were not.</para>
 /// </remarks>
-public sealed class RoutePin : IDisposable
+public sealed partial class RoutePin : IDisposable
 {
     private NavigatorCore? _navigator;
 
@@ -76,11 +76,8 @@ public sealed class RoutePin : IDisposable
     }
 
     /// <summary>
-    /// Marks the pin as no longer holding anything without notifying the navigator, for use when the navigator itself releases the pin.
+    /// Marks the pin as no longer holding anything without notifying the navigator, for use when the navigator itself releases the pin. The finalizer (if
+    /// present) then has nothing to report.
     /// </summary>
-    internal void Invalidate()
-    {
-        GC.SuppressFinalize(this);
-        _navigator = null;
-    }
+    internal void Invalidate() => _navigator = null;
 }
