@@ -69,7 +69,7 @@ public static class KeyActions
         }
 
         // A "Next" return key cannot dismiss the soft keyboard on iOS, so SoftKeyboard implies dismissability for it unless SoftKeyboard.Dismissable is
-        // explicitly set. The effective state is computed from current values when focus changes, so this only needs to keep its focus hooks current.
+        // set to a value. The effective state is computed from current values when focus changes, so this only needs to keep its focus hooks current.
         SoftKeyboard.UpdateHooks((Control)d);
     }
 

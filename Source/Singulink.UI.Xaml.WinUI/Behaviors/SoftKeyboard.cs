@@ -14,25 +14,28 @@ public static class SoftKeyboard
     /// <summary>
     /// Attached <see cref="DependencyProperty"/> that adds a "Done" button in a toolbar above the iOS soft keyboard which dismisses it, for inputs where the
     /// Enter key cannot dismiss the keyboard (e.g. Enter moves to the next field or enters a newline in a multiline text box). No-op on all other platforms
-    /// (Android's back button already dismisses the keyboard and other platforms use hardware keyboards). Implied by
-    /// <see cref="KeyActions.EnterProperty"/> being set to <see cref="EnterKeyAction.Next"/> unless explicitly set on the control. Can be set on any control,
-    /// including containers (focus events bubble, so the toolbar applies whenever focus lands on a text input within it), and is inert on controls that never
-    /// open the keyboard.
+    /// (Android's back button already dismisses the keyboard and other platforms use hardware keyboards). When the value is <see langword="null"/> (the
+    /// default), dismissability is implied by <see cref="KeyActions.EnterProperty"/> being set to <see cref="EnterKeyAction.Next"/>; set it to
+    /// <see langword="true"/> or <see langword="false"/> to decide explicitly. The value can come from any source (a local value, a style setter, a binding),
+    /// so it can be applied to all inputs of a kind through a shared style. Can be set on any control, including containers (focus events bubble, so the
+    /// toolbar applies whenever focus lands on a text input within it), and is inert on controls that never open the keyboard.
     /// </summary>
     public static readonly DependencyProperty DismissableProperty = DependencyProperty.RegisterAttached(
-        "Dismissable", typeof(bool), typeof(SoftKeyboard), new PropertyMetadata(false, OnDismissableChanged));
+        "Dismissable", typeof(bool?), typeof(SoftKeyboard), new PropertyMetadata(null, OnDismissableChanged));
 
     private static WeakReference<Control>? _focusedControl;
 
     /// <summary>
-    /// Gets a value indicating whether the control shows a "Done" button above the iOS soft keyboard that dismisses it.
+    /// Gets a value indicating whether the control shows a "Done" button above the iOS soft keyboard that dismisses it, or <see langword="null"/> if
+    /// dismissability is implied by <see cref="KeyActions.EnterProperty"/>.
     /// </summary>
-    public static bool GetDismissable(DependencyObject control) => (bool)control.GetValue(DismissableProperty);
+    public static bool? GetDismissable(DependencyObject control) => (bool?)control.GetValue(DismissableProperty);
 
     /// <summary>
-    /// Sets a value indicating whether the control shows a "Done" button above the iOS soft keyboard that dismisses it.
+    /// Sets a value indicating whether the control shows a "Done" button above the iOS soft keyboard that dismisses it, or <see langword="null"/> to imply
+    /// dismissability from <see cref="KeyActions.EnterProperty"/>.
     /// </summary>
-    public static void SetDismissable(DependencyObject control, bool value) => control.SetValue(DismissableProperty, value);
+    public static void SetDismissable(DependencyObject control, bool? value) => control.SetValue(DismissableProperty, value);
 
     /// <summary>
     /// Dismisses the soft keyboard by moving focus off the specified control (so that pending focus-loss updates like <c>LostFocus</c>-triggered bindings are
@@ -81,7 +84,7 @@ public static class SoftKeyboard
 
     /// <summary>
     /// Re-evaluates whether the control needs focus hooks for the keyboard dismiss toolbar, based on the effective dismissable state computed from
-    /// <see cref="DismissableProperty"/> (when explicitly set) or <see cref="KeyActions.EnterProperty"/> (a "Next" return key cannot dismiss the keyboard, so
+    /// <see cref="DismissableProperty"/> (when set to a value) or <see cref="KeyActions.EnterProperty"/> (a "Next" return key cannot dismiss the keyboard, so
     /// dismissability is implied for it). Called when either property changes; no-op on platforms without dismiss accessory support. The toolbar itself is
     /// managed through <see cref="SoftKeyboardNative"/>, which stays platform-built on Skia-rendered heads where this assembly is swapped for its Skia build.
     /// </summary>
@@ -100,10 +103,7 @@ public static class SoftKeyboard
         }
     }
 
-    private static bool GetEffectiveDismissable(Control control) =>
-        control.ReadLocalValue(DismissableProperty) != DependencyProperty.UnsetValue
-            ? GetDismissable(control)
-            : KeyActions.GetEnter(control) == EnterKeyAction.Next;
+    private static bool GetEffectiveDismissable(Control control) => GetDismissable(control) ?? KeyActions.GetEnter(control) == EnterKeyAction.Next;
 
     private static void OnControlGotFocus(object sender, RoutedEventArgs e)
     {
