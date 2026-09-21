@@ -27,7 +27,13 @@ public class AppWindow : Window
         this.SetWindowIcon();
 
         _navigator = new(this, ConfigureNavigator);
+#if __WASM__
+        // Honor deep links: the browser route is relative to the site path the app is hosted under (WasmShellWebAppBasePath).
+        string initialRoute = Navigator.GetBrowserRoute();
+        _navigator.HookWindowActivatedEvent(this, n => initialRoute is "/" ? n.NavigateAsync(Routes.LoginRoot) : n.NavigateAsync(initialRoute));
+#else
         _navigator.HookWindowActivatedEvent(this, n => n.NavigateAsync(Routes.LoginRoot));
+#endif
         _navigator.HookSystemNavigationRequests();
         _navigator.HookWindowClosedEvents(this);
     }

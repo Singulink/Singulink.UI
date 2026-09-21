@@ -35,14 +35,42 @@ partial class Navigator
     private bool _isPopstateNavigation;
     private bool _isFirstNavigation = true;
 
+    private static string? s_browserBasePath;
+
     /// <summary>
-    /// Gets the current browser route (path, query string, and fragment) without the scheme and host.
+    /// Gets the site path the application is hosted under (always starting and ending with a slash), as configured through the WebAssembly
+    /// <c>WasmShellWebAppBasePath</c> property. Routes are written to and read from the browser URL relative to this path, so an application hosted under
+    /// <c>/app/</c> keeps its routes unchanged while the address bar shows <c>/app/...</c>.
+    /// </summary>
+    public static string BrowserBasePath
+    {
+        get {
+            if (s_browserBasePath is null)
+            {
+                // The bootstrapper exposes the configured base path to managed code as an environment variable. A relative value (the bootstrapper default
+                // when the property is not set) is resolved against the document the application was loaded from.
+                string? configured = Environment.GetEnvironmentVariable("UNO_BOOTSTRAP_WEBAPP_BASE_PATH");
+                string documentPath = new Uri(BrowserNavigationHelper.GetCurrentUrl()).AbsolutePath;
+                s_browserBasePath = BrowserRoutePaths.ResolveBasePath(configured, documentPath);
+            }
+
+            return s_browserBasePath;
+        }
+    }
+
+    /// <summary>
+    /// Gets the current browser route (path, query string, and fragment) relative to <see cref="BrowserBasePath"/>, without the scheme and host.
     /// </summary>
     public static string GetBrowserRoute()
     {
         var uri = new Uri(BrowserNavigationHelper.GetCurrentUrl());
-        return uri.PathAndQuery + uri.Fragment;
+        return BrowserRoutePaths.ToRoute(BrowserBasePath, uri.PathAndQuery + uri.Fragment);
     }
+
+    /// <summary>
+    /// Gets the browser URL (path, query string, and fragment) for a route, under <see cref="BrowserBasePath"/>.
+    /// </summary>
+    private static string ToBrowserUrl(NavigatorRoute route) => BrowserRoutePaths.ToBrowserUrl(BrowserBasePath, route.ToString());
 
     /// <summary>
     /// Captures the current UI synchronization context (called from the navigator constructor on WebAssembly). The static popstate / beforeunload
@@ -142,7 +170,7 @@ partial class Navigator
         if (_isPopstateNavigation)
             return null;
 
-        string url = "/" + targetRoute;
+        string url = ToBrowserUrl(targetRoute);
 
         switch (navigationType)
         {
@@ -206,7 +234,7 @@ partial class Navigator
             {
                 // Successful popstate-initiated navigation. The browser is already on the landed entry; make sure its URL reflects the resolved route
                 // (it may differ if a redirect occurred).
-                BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, "/" + targetRoute);
+                BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, ToBrowserUrl(targetRoute));
             }
 
             return;
@@ -230,12 +258,12 @@ partial class Navigator
         switch ((WasmNavState?)state)
         {
             case WasmNavState.WentBack:
-                _pendingReconcileUrl = "/" + targetRoute;
+                _pendingReconcileUrl = ToBrowserUrl(targetRoute);
                 _selfNavPending = true;
                 BrowserNavigationHelper.Back();
                 break;
             case WasmNavState.WentForward:
-                _pendingReconcileUrl = "/" + targetRoute;
+                _pendingReconcileUrl = ToBrowserUrl(targetRoute);
                 _selfNavPending = true;
                 BrowserNavigationHelper.Forward();
                 break;
@@ -260,7 +288,7 @@ partial class Navigator
 
         // This fires for in-place route mutations (UpdateCurrentRoute, anchor changes) that don't go through NavigateAsyncCore, as well as after every
         // successful navigation. Calling replaceState with the same URL is a no-op for browser history but ensures the address bar stays in sync.
-        BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, "/" + route);
+        BrowserNavigationHelper.ReplaceState(_committedSeq, string.Empty, ToBrowserUrl(route));
     }
 
     private static void OnPopStateRaw(JSObject evt)
