@@ -33,5 +33,6 @@ Existing `CanBeCached => false` overrides are now redundant and can be removed. 
 
 - <xref:Singulink.UI.Navigation.INavigator.PinCurrentRoute> and <xref:Singulink.UI.Navigation.RoutePin> keep a view alive with its state intact while the user navigates elsewhere, together with <xref:Singulink.UI.Navigation.IRoutedViewModelBase.CanBePinned> and <xref:Singulink.UI.Navigation.INavigator.NavigateAsync(Singulink.UI.Navigation.NavigatorRoute)> for returning to it. See [Pinning a Route](navigating.md#pinning-a-route).
 - <xref:Singulink.UI.Navigation.NavigatingArgs.TargetRoute> lets guards decide based on the destination of a navigation. See [Guards and Redirects](guards-and-redirects.md).
+- On WebAssembly, browser URLs are now relative to the site path the application is hosted under (<xref:Singulink.UI.Navigation.WinUI.Navigator.BrowserBasePath>, from the Uno `WasmShellWebAppBasePath` property), so applications hosted under a sub-folder get correct deep links and address bar updates. See [Hosting Under a Sub-Folder](winui-setup.md#hosting-under-a-sub-folder).
 
 </div>
