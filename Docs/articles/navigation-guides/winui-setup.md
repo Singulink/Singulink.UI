@@ -132,7 +132,7 @@ Then pass it to <xref:Singulink.UI.Navigation.INavigator.NavigateAsync*> as the 
 
 #### Hosting Under a Sub-Folder
 
-Routes are always written to and read from the browser URL relative to the site path the application is hosted under, which is exposed as <xref:Singulink.UI.Navigation.WinUI.Navigator.BrowserBasePath>. The value comes from the Uno `WasmShellWebAppBasePath` MSBuild property (the bootstrapper passes it to managed code through the `UNO_BOOTSTRAP_WEBAPP_BASE_PATH` environment variable), so an application hosted at `https://example.com/app/` only needs that property set:
+Routes are always written to and read from the browser URL relative to the site path the application is hosted under, which is exposed as `Navigator.BrowserBasePath`. The value comes from the Uno `WasmShellWebAppBasePath` MSBuild property (the bootstrapper passes it to managed code through the `UNO_BOOTSTRAP_WEBAPP_BASE_PATH` environment variable), so an application hosted at `https://example.com/app/` only needs that property set:
 
 ```xml
 <PropertyGroup>
