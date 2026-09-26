@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
 using Singulink.UI.Tasks;
 using Windows.Foundation;
@@ -23,6 +24,23 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
     /// <c>beforeunload</c>). Entries are added by <see cref="HookWindowClosedEvents"/> and removed by <see cref="OnShutDown"/>.
     /// </summary>
     private static readonly ConditionalWeakTable<Window, Navigator> s_windowClosedHookOwners = [];
+
+    /// <summary>
+    /// Gets the template for a navigation content control without one of its own. A content control without a template paints nothing itself, so its
+    /// background is never hit-tested and pointer events over empty parts of the view (e.g. mouse back/forward buttons) go nowhere. This template's presenter carries
+    /// the background, so the whole surface receives them; everything else is what the implicit presenter would have forwarded anyway.
+    /// </summary>
+    private static ControlTemplate HitTestableContentTemplate => field ??= (ControlTemplate)XamlReader.Load("""
+        <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" TargetType="ContentControl">
+          <ContentPresenter Background="{TemplateBinding Background}"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            ContentTransitions="{TemplateBinding ContentTransitions}"
+                            Padding="{TemplateBinding Padding}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </ControlTemplate>
+        """);
 
     private readonly ViewNavigator _viewNavigator;
 
@@ -70,7 +88,10 @@ public sealed partial class Navigator : NavigatorCore, IDialogPresenter
         CaptureSynchronizationContextForJSCallbacks();
 #endif
 
-        // Ensures background is set so that nav control can receive pointer events over entire surface.
+        // Ensures the nav control paints a background so that it receives pointer events over its entire surface (see HitTestableContentTemplate).
+
+        if (viewNavigator.NavigationControl is ContentControl { Template: null } contentControl)
+            contentControl.Template = HitTestableContentTemplate;
 
         if (viewNavigator.NavigationControl.Background is null)
             viewNavigator.NavigationControl.Background = new SolidColorBrush(Colors.Transparent);
