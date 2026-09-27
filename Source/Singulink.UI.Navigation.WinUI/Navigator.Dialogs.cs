@@ -1,7 +1,5 @@
-using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Singulink.UI.Tasks;
@@ -36,49 +34,116 @@ partial class Navigator
         contentDialog.CloseButtonClick += OnCloseDialogButtonClick;
         contentDialog.Closing += OnDialogClosing;
 
-        // Set up command-to-enabled syncing for primary and secondary buttons
+        // Set up command-to-enabled syncing for primary and secondary buttons. The sync is skipped for a button when the dialog sets or binds the button's
+        // enabled property itself. x:Bind values are applied by the generated code when the dialog loads (on WinUI they are plain property assignments
+        // made from a Loading handler, on Uno they are bindings registered during construction whose values are produced on Loading), so the wiring is
+        // deferred to a Loading handler of our own: it is registered after the generated one so it runs after the x:Bind values are in place on both.
         ICommand? primaryCommand = null;
         ICommand? secondaryCommand = null;
         EventHandler? primaryCanExecuteChangedHandler = null;
         EventHandler? secondaryCanExecuteChangedHandler = null;
-        BoolNotifier? primaryEnabledNotifier = null;
-        BoolNotifier? secondaryEnabledNotifier = null;
 
-        contentDialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandProperty, OnPrimaryButtonCommandChanged);
-        contentDialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandProperty, OnSecondaryButtonCommandChanged);
-        contentDialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandParameterProperty, OnPrimaryButtonCommandParameterChanged);
-        contentDialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandParameterProperty, OnSecondaryButtonCommandParameterChanged);
+        contentDialog.Loading += OnDialogLoading;
 
-        OnPrimaryButtonCommandChanged(contentDialog, ContentDialog.PrimaryButtonCommandProperty);
-        OnSecondaryButtonCommandChanged(contentDialog, ContentDialog.SecondaryButtonCommandProperty);
+        // The close button has no enabled property on the dialog, so its enabled state is synced on the template's button directly. Both WinUI and Uno
+        // resolve the button with GetTemplateChild("CloseButton"), so a working template always has it. The template is only guaranteed to exist once
+        // the dialog is loaded.
+        ICommand? closeCommand = null;
+        EventHandler? closeCanExecuteChangedHandler = null;
+        Control? closeButton = null;
+
+        contentDialog.Loaded += OnDialogLoaded;
 
         taskRunner = new TaskRunner(busy => LayerPresentation.Get(contentDialog).IsBusy = busy);
         return;
 
+        void OnDialogLoading(FrameworkElement sender, object args)
+        {
+            var dialog = (ContentDialog)sender;
+            dialog.Loading -= OnDialogLoading;
+
+            dialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandProperty, OnPrimaryButtonCommandChanged);
+            dialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandProperty, OnSecondaryButtonCommandChanged);
+            dialog.RegisterPropertyChangedCallback(ContentDialog.PrimaryButtonCommandParameterProperty, OnPrimaryButtonCommandParameterChanged);
+            dialog.RegisterPropertyChangedCallback(ContentDialog.SecondaryButtonCommandParameterProperty, OnSecondaryButtonCommandParameterChanged);
+
+            OnPrimaryButtonCommandChanged(dialog, ContentDialog.PrimaryButtonCommandProperty);
+            OnSecondaryButtonCommandChanged(dialog, ContentDialog.SecondaryButtonCommandProperty);
+        }
+
+        void OnDialogLoaded(object sender, RoutedEventArgs args)
+        {
+            var dialog = (ContentDialog)sender;
+            dialog.Loaded -= OnDialogLoaded;
+
+            closeButton = FindTemplateChild(dialog, "CloseButton") as Control;
+
+            if (closeButton is null)
+                return;
+
+            dialog.RegisterPropertyChangedCallback(ContentDialog.CloseButtonCommandProperty, OnCloseButtonCommandChanged);
+            dialog.RegisterPropertyChangedCallback(ContentDialog.CloseButtonCommandParameterProperty, OnCloseButtonCommandParameterChanged);
+
+            OnCloseButtonCommandChanged(dialog, ContentDialog.CloseButtonCommandProperty);
+        }
+
+        void OnCloseButtonCommandChanged(DependencyObject sender, DependencyProperty dp)
+        {
+            var dialog = (ContentDialog)sender;
+
+            if (closeCommand is not null && closeCanExecuteChangedHandler is not null)
+                closeCommand.CanExecuteChanged -= closeCanExecuteChangedHandler;
+
+            closeCommand = null;
+            closeCanExecuteChangedHandler = null;
+
+            if (dialog.CloseButtonCommand is { } newCommand)
+            {
+                closeCommand = newCommand;
+                closeCanExecuteChangedHandler = (_, _) => closeButton!.IsEnabled = newCommand.CanExecute(dialog.CloseButtonCommandParameter);
+                newCommand.CanExecuteChanged += closeCanExecuteChangedHandler;
+                closeButton!.IsEnabled = newCommand.CanExecute(dialog.CloseButtonCommandParameter);
+            }
+            else
+            {
+                closeButton!.ClearValue(Control.IsEnabledProperty);
+            }
+        }
+
+        void OnCloseButtonCommandParameterChanged(DependencyObject sender, DependencyProperty dp)
+        {
+            var dialog = (ContentDialog)sender;
+
+            if (closeCommand is not null)
+                closeButton!.IsEnabled = closeCommand.CanExecute(dialog.CloseButtonCommandParameter);
+        }
+
         void OnPrimaryButtonCommandChanged(DependencyObject sender, DependencyProperty dp)
         {
             var dialog = (ContentDialog)sender;
+
+            // Once the sync is active for the button, its enabled property holds our value, so the set-or-bound check is only made when taking over.
+            bool canSync = primaryCommand is not null || !IsPropertySetOrBound(dialog, ContentDialog.IsPrimaryButtonEnabledProperty);
 
             if (primaryCommand is not null && primaryCanExecuteChangedHandler is not null)
                 primaryCommand.CanExecuteChanged -= primaryCanExecuteChangedHandler;
 
             primaryCommand = null;
             primaryCanExecuteChangedHandler = null;
-            primaryEnabledNotifier = null;
 
-            if (dialog.PrimaryButtonCommand is { } newCommand && !IsPropertySetOrBound(dialog, ContentDialog.IsPrimaryButtonEnabledProperty))
+            if (!canSync)
+                return;
+
+            if (dialog.PrimaryButtonCommand is { } newCommand)
             {
                 primaryCommand = newCommand;
-                primaryEnabledNotifier = new BoolNotifier(newCommand.CanExecute(dialog.PrimaryButtonCommandParameter));
-                primaryCanExecuteChangedHandler = (_, _) => primaryEnabledNotifier.Value = newCommand.CanExecute(dialog.PrimaryButtonCommandParameter);
+                primaryCanExecuteChangedHandler = (_, _) => dialog.IsPrimaryButtonEnabled = newCommand.CanExecute(dialog.PrimaryButtonCommandParameter);
                 newCommand.CanExecuteChanged += primaryCanExecuteChangedHandler;
-
-                dialog.SetBinding(ContentDialog.IsPrimaryButtonEnabledProperty, new Binding
-                {
-                    Source = primaryEnabledNotifier,
-                    Path = new PropertyPath(nameof(BoolNotifier.Value)),
-                    Mode = BindingMode.OneWay,
-                });
+                dialog.IsPrimaryButtonEnabled = newCommand.CanExecute(dialog.PrimaryButtonCommandParameter);
+            }
+            else
+            {
+                dialog.ClearValue(ContentDialog.IsPrimaryButtonEnabledProperty);
             }
         }
 
@@ -86,26 +151,27 @@ partial class Navigator
         {
             var dialog = (ContentDialog)sender;
 
+            bool canSync = secondaryCommand is not null || !IsPropertySetOrBound(dialog, ContentDialog.IsSecondaryButtonEnabledProperty);
+
             if (secondaryCommand is not null && secondaryCanExecuteChangedHandler is not null)
                 secondaryCommand.CanExecuteChanged -= secondaryCanExecuteChangedHandler;
 
             secondaryCommand = null;
             secondaryCanExecuteChangedHandler = null;
-            secondaryEnabledNotifier = null;
 
-            if (dialog.SecondaryButtonCommand is { } newCommand && !IsPropertySetOrBound(dialog, ContentDialog.IsSecondaryButtonEnabledProperty))
+            if (!canSync)
+                return;
+
+            if (dialog.SecondaryButtonCommand is { } newCommand)
             {
                 secondaryCommand = newCommand;
-                secondaryEnabledNotifier = new BoolNotifier(newCommand.CanExecute(dialog.SecondaryButtonCommandParameter));
-                secondaryCanExecuteChangedHandler = (_, _) => secondaryEnabledNotifier.Value = newCommand.CanExecute(dialog.SecondaryButtonCommandParameter);
+                secondaryCanExecuteChangedHandler = (_, _) => dialog.IsSecondaryButtonEnabled = newCommand.CanExecute(dialog.SecondaryButtonCommandParameter);
                 newCommand.CanExecuteChanged += secondaryCanExecuteChangedHandler;
-
-                dialog.SetBinding(ContentDialog.IsSecondaryButtonEnabledProperty, new Binding
-                {
-                    Source = secondaryEnabledNotifier,
-                    Path = new PropertyPath(nameof(BoolNotifier.Value)),
-                    Mode = BindingMode.OneWay,
-                });
+                dialog.IsSecondaryButtonEnabled = newCommand.CanExecute(dialog.SecondaryButtonCommandParameter);
+            }
+            else
+            {
+                dialog.ClearValue(ContentDialog.IsSecondaryButtonEnabledProperty);
             }
         }
 
@@ -113,22 +179,40 @@ partial class Navigator
         {
             var dialog = (ContentDialog)sender;
 
-            if (primaryEnabledNotifier is not null && dialog.PrimaryButtonCommand is { } command)
-                primaryEnabledNotifier.Value = command.CanExecute(dialog.PrimaryButtonCommandParameter);
+            if (primaryCommand is not null)
+                dialog.IsPrimaryButtonEnabled = primaryCommand.CanExecute(dialog.PrimaryButtonCommandParameter);
         }
 
         void OnSecondaryButtonCommandParameterChanged(DependencyObject sender, DependencyProperty dp)
         {
             var dialog = (ContentDialog)sender;
 
-            if (secondaryEnabledNotifier is not null && dialog.SecondaryButtonCommand is { } command)
-                secondaryEnabledNotifier.Value = command.CanExecute(dialog.SecondaryButtonCommandParameter);
+            if (secondaryCommand is not null)
+                dialog.IsSecondaryButtonEnabled = secondaryCommand.CanExecute(dialog.SecondaryButtonCommandParameter);
         }
 
-        static bool IsPropertySetOrBound(DependencyObject obj, DependencyProperty dp)
+        // Uno registers x:Bind expressions as regular bindings, so the binding expression check also covers x:Bind values that resolved to nothing.
+        static bool IsPropertySetOrBound(FrameworkElement element, DependencyProperty dp)
         {
-            object localValue = obj.ReadLocalValue(dp);
-            return localValue != DependencyProperty.UnsetValue;
+            return element.ReadLocalValue(dp) != DependencyProperty.UnsetValue || element.GetBindingExpression(dp) is not null;
+        }
+
+        static FrameworkElement? FindTemplateChild(DependencyObject root, string name)
+        {
+            int count = VisualTreeHelper.GetChildrenCount(root);
+
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+
+                if (child is FrameworkElement element && element.Name == name)
+                    return element;
+
+                if (FindTemplateChild(child, name) is { } found)
+                    return found;
+            }
+
+            return null;
         }
 
         void OnPrimaryDialogButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
@@ -524,26 +608,4 @@ partial class Navigator
         }
     }
 #endif
-
-    private sealed partial class BoolNotifier(bool initialValue) : INotifyPropertyChanged
-    {
-        private static readonly PropertyChangedEventArgs ValueChangedEventArgs = new(nameof(Value));
-
-        private bool _value = initialValue;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public bool Value
-        {
-            get => _value;
-            set
-            {
-                if (_value != value)
-                {
-                    _value = value;
-                    PropertyChanged?.Invoke(this, ValueChangedEventArgs);
-                }
-            }
-        }
-    }
 }
