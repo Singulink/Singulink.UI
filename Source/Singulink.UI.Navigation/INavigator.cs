@@ -157,6 +157,32 @@ public interface INavigator : IDialogPresenter, INotifyPropertyChanged
         where TParentViewModel : class;
 
     /// <summary>
+    /// Gets the route that <see cref="NavigatePartialAsync{TParentViewModel}(IConcreteChildRoutePart{TParentViewModel}, string?)"/> would navigate to,
+    /// without navigating. Useful for opening a child route elsewhere, such as in a new window. The current route must contain a view with the specified
+    /// parent view model type otherwise an <see cref="InvalidOperationException"/> is thrown.
+    /// </summary>
+    public string GetPartialRoute<TParentViewModel>(
+        IConcreteChildRoutePart<TParentViewModel> childRoutePart,
+        string? anchor = null)
+        where TParentViewModel : class;
+
+    /// <summary>
+    /// Gets the route that <see cref="NavigatePartialAsync{TParentViewModel}(ConcretePartialRoute{TParentViewModel}, string?)"/> would navigate to,
+    /// without navigating. The current route must contain a view with the specified parent view model type otherwise an
+    /// <see cref="InvalidOperationException"/> is thrown.
+    /// </summary>
+    public string GetPartialRoute<TParentViewModel>(
+        ConcretePartialRoute<TParentViewModel> route,
+        string? anchor = null)
+        where TParentViewModel : class;
+
+    /// <summary>
+    /// Gets the route that <see cref="NavigateToParentAsync{TParentViewModel}(string?)"/> would navigate to, without navigating.
+    /// </summary>
+    public string GetParentRoute<TParentViewModel>(string? anchor = null)
+        where TParentViewModel : class;
+
+    /// <summary>
     /// Pins the current route so that its views and view models are retained (regardless of caching settings and whether the route remains in the navigation
     /// history) until the returned pin is disposed. Navigating to the pinned route again with <see cref="NavigateAsync(NavigatorRoute)"/> reuses them with
     /// their state intact, which is useful for temporarily leaving a view with unsaved state and returning to it later.

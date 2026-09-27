@@ -106,6 +106,38 @@ partial class NavigatorCore
 
     private async Task<NavigationResult> NavigateToParentAsync(Type parentViewModelType, string? anchor = null)
     {
+        return await NavigateNewAsyncCore(GetParentRouteParts(parentViewModelType), anchor);
+    }
+
+    /// <inheritdoc cref="INavigator.GetPartialRoute{TParentViewModel}(IConcreteChildRoutePart{TParentViewModel}, string?)"/>
+    public string GetPartialRoute<TParentViewModel>(IConcreteChildRoutePart<TParentViewModel> childRoutePart, string? anchor = null)
+        where TParentViewModel : class
+    {
+        EnsureThreadAccess();
+        return Route.GetRoute(GetCurrentRoutePartsToParent(typeof(TParentViewModel)).Append(childRoutePart), anchor);
+    }
+
+    /// <inheritdoc cref="INavigator.GetPartialRoute{TParentViewModel}(ConcretePartialRoute{TParentViewModel}, string?)"/>
+    public string GetPartialRoute<TParentViewModel>(ConcretePartialRoute<TParentViewModel> route, string? anchor = null)
+        where TParentViewModel : class
+    {
+        EnsureThreadAccess();
+        return Route.GetRoute(GetCurrentRoutePartsToParent(typeof(TParentViewModel)).Concat(route.ChildRouteParts), anchor);
+    }
+
+    /// <inheritdoc cref="INavigator.GetParentRoute{TParentViewModel}(string?)"/>
+    public string GetParentRoute<TParentViewModel>(string? anchor = null)
+        where TParentViewModel : class
+    {
+        EnsureThreadAccess();
+        return Route.GetRoute(GetParentRouteParts(typeof(TParentViewModel)), anchor);
+    }
+
+    /// <summary>
+    /// Gets the current route parts up to the nearest parent with the specified view model type, not counting the current view itself.
+    /// </summary>
+    private List<IConcreteRoutePart> GetParentRouteParts(Type parentViewModelType)
+    {
         var currentRoute = CurrentRouteCore ?? throw new InvalidOperationException("Cannot navigate to parent before the navigator has a route.");
 
         var routeParts = currentRoute.Items
@@ -118,7 +150,7 @@ partial class NavigatorCore
         if (parentIndex < 0)
             throw new NavigationRouteException($"Current route does not contain a parent view model of type '{parentViewModelType}'.");
 
-        return await NavigateNewAsyncCore(routeParts[..(parentIndex + 1)], anchor);
+        return routeParts[..(parentIndex + 1)];
     }
 
     /// <inheritdoc cref="INavigator.GoBackAsync()"/>
