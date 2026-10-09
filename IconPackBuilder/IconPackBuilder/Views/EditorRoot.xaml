@@ -9,42 +9,13 @@
 
   <UserControl.Resources>
     <FontFamily x:Key="SeagullIconFont">ms-appx:///Assets/Seagull/SeagullFluentIcons.otf#Seagull Fluent Icons</FontFamily>
-    <!--
-      Deliberately lightweight: the default Fluent Button template adds several rounded-clip visuals per tile, and on Uno's Skia renderer each
-      visual pays per-frame damage-region and clip work while scrolling (unoplatform/uno#23984, #24221). One rectangular Border + ContentPresenter
-      with hover/pressed states keeps the grid smooth with ~150 realized tiles.
-    -->
-    <Style x:Key="IconGroupTileStyle" TargetType="Button">
+    <Style x:Key="IconGroupTileStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
       <Setter Property="Padding" Value="0" />
       <Setter Property="MinWidth" Value="0" />
       <Setter Property="MinHeight" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="UseSystemFocusVisuals" Value="True" />
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="Button">
-            <Border x:Name="Root" Background="{TemplateBinding Background}">
-              <VisualStateManager.VisualStateGroups>
-                <VisualStateGroup x:Name="CommonStates">
-                  <VisualState x:Name="Normal" />
-                  <VisualState x:Name="PointerOver">
-                    <VisualState.Setters>
-                      <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
-                    </VisualState.Setters>
-                  </VisualState>
-                  <VisualState x:Name="Pressed">
-                    <VisualState.Setters>
-                      <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}" />
-                    </VisualState.Setters>
-                  </VisualState>
-                  <VisualState x:Name="Disabled" />
-                </VisualStateGroup>
-              </VisualStateManager.VisualStateGroups>
-              <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Padding="{TemplateBinding Padding}" />
-            </Border>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
+      <Setter Property="CornerRadius" Value="0" />
     </Style>
   </UserControl.Resources>
 
@@ -107,16 +78,7 @@
 
     <ScrollViewer x:Name="IconGroupsScrollViewer" Grid.Row="1" Grid.Column="0" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
       <!-- ItemsRepeater is used instead of GridView because GridView does not virtualize on Skia. -->
-      <!--
-        TEMPORARY, revert to the defaults once unoplatform/uno#23984 is fixed (the #23986 backport to a 6.7.x service release).
-        VerticalCacheLength defaults to 2.0, i.e. two viewports of buffer on top of the visible one, so roughly three viewports of tiles are
-        realized. On Uno's Skia heads every realized visual pays per-frame damage-region work while scrolling even when it is off screen, so
-        the buffer is trimmed to cut that population roughly in half. The WinAppSDK head is unaffected and scrolls smoothly either way.
-        The cost of trimming is that fast scrolling can reveal empty tiles, so this is a stopgap and not a setting worth keeping long term.
-        Horizontal scrolling is disabled here, so that buffer is not needed at all.
-      -->
-      <ItemsRepeater ItemsSource="{x:Bind Model.FilteredIconGroups, Mode=OneWay}" Margin="10,0,10,10" XYFocusKeyboardNavigation="Enabled"
-                     VerticalCacheLength="0.5" HorizontalCacheLength="0">
+      <ItemsRepeater ItemsSource="{x:Bind Model.FilteredIconGroups, Mode=OneWay}" Margin="10,0,10,10" XYFocusKeyboardNavigation="Enabled">
         <ItemsRepeater.Layout>
           <UniformGridLayout MinItemWidth="168" MinItemHeight="40" MinRowSpacing="4" MinColumnSpacing="8" ItemsStretch="None" />
         </ItemsRepeater.Layout>
