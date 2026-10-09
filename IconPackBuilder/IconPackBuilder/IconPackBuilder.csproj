@@ -16,6 +16,8 @@
     <ILLinkTreatWarningsAsErrors Condition="$(TargetFramework.Contains('browserwasm'))">false</ILLinkTreatWarningsAsErrors>
     <!-- The WebAssembly head is embedded in the VS Code extension's webview, where the app is not served from a site root, so emit relative paths. -->
     <WasmShellWebAppBasePath Condition="$(TargetFramework.Contains('browserwasm'))">./</WasmShellWebAppBasePath>
+    <!-- Release WebAssembly builds (the web app and the VS Code extension) are compiled ahead of time instead of running in the interpreter. -->
+    <RunAOTCompilation Condition="$(TargetFramework.Contains('browserwasm')) And '$(Configuration)' == 'Release'">true</RunAOTCompilation>
     <!-- Neutral dark splash so the WebAssembly loader does not flash white; inside VS Code the page overrides it with the editor background. -->
     <UnoSplashScreenColor>#202020</UnoSplashScreenColor>
 
@@ -71,15 +73,17 @@
     SkiaSharp 4.x enables Dawn's WebGPU backend by appending its webgpu.cpp source and -std=c++20 to the emcc link command, and a standard
     flag applies to every source in that one invocation. Uno contributes uno_gl_shim.c to the same link, so clang fails with
     "invalid argument '-std=c++20' not allowed with 'C'" whenever both are compiled together. The shim is valid C++20, so emcc is handed a
-    .cpp copy of it instead, which keeps the Dawn backend enabled. The alternative is opting out with _SkiaSharpUseEmdawnwebgpu=false, which
+    .cpp wrapper that includes it instead, which keeps the Dawn backend enabled. The wrapper includes the shim inside extern "C" because its
+    uno_dummy_* stubs are linked by their C names (compiled as plain C++ the names are mangled and the link fails with undefined uno_dummy_*
+    symbols), and includes the shim's system headers first so they keep C++ linkage. The alternative is opting out with _SkiaSharpUseEmdawnwebgpu=false, which
     falls back to emscripten's built-in WebGPU. Remove this once Uno or SkiaSharp scopes the flag to its own source.
   -->
   <Target Name="CompileUnoGlShimAsCxx" BeforeTargets="_UnoAdjustCompatibility" Condition="$(TargetFramework.Contains('browserwasm'))">
     <ItemGroup>
       <_UnoGlShimSource Include="@(WasmShellNativeCompile)" Condition="'%(Filename)%(Extension)' == 'uno_gl_shim.c'" />
     </ItemGroup>
-    <Copy SourceFiles="@(_UnoGlShimSource)" DestinationFiles="$(IntermediateOutputPath)uno_gl_shim.cpp" SkipUnchangedFiles="true"
-          Condition="'@(_UnoGlShimSource)' != ''" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)uno_gl_shim.cpp" Overwrite="true" WriteOnlyWhenDifferent="true" Condition="'@(_UnoGlShimSource)' != ''"
+                      Lines="#include &lt;GLES3/gl3.h&gt;;#include &lt;emscripten.h&gt;;#include &lt;emscripten/html5_webgl.h&gt;;#include &lt;string.h&gt;;#include &lt;stdint.h&gt;;extern &quot;C&quot; {;#include &quot;%(_UnoGlShimSource.FullPath)&quot;;}" />
     <ItemGroup Condition="'@(_UnoGlShimSource)' != ''">
       <WasmShellNativeCompile Remove="@(_UnoGlShimSource)" />
       <WasmShellNativeCompile Include="$(IntermediateOutputPath)uno_gl_shim.cpp" Visible="false" />
