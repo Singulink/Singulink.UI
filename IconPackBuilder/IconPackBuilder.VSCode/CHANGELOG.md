@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Smoother scrolling in the icon grid: updated to a newer Uno Platform build that fixes a scrolling performance regression.
+- The editor is now compiled ahead of time to WebAssembly, so it runs considerably faster once loaded.
+- Fast scrolling no longer briefly shows empty tiles, and the icon tiles use the standard button style again.
+
 ## 1.0.1
 
 - Fixed the editor marking a project as modified as soon as it was opened, and not clearing the modified state after saving.
