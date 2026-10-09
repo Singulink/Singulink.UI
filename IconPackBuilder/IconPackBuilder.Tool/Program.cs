@@ -35,6 +35,9 @@ foreach (string arg in args)
     }
 }
 
+// Bring an association registered by an older version up to date (it may still run this console launcher directly).
+FileAssociation.RefreshIfRegistered();
+
 if (!File.Exists(appDll))
 {
     Console.Error.WriteLine($"Icon Pack Builder app files were not found at '{appDll}'. Reinstall the tool with 'dotnet tool update -g Singulink.IconPackBuilder'.");
@@ -47,6 +50,14 @@ var psi = new ProcessStartInfo(GetDotnetHostPath()) {
 };
 
 psi.ArgumentList.Add(appDll);
+
+// Started from Explorer (or by the file association's opener) rather than a terminal, this process is alone on a console that exists only for it.
+// Release it and start the app without one, so no console window stays open next to the app.
+if (!wait && OperatingSystem.IsWindows() && IsSoleConsoleProcess())
+{
+    FreeConsole();
+    psi.CreateNoWindow = true;
+}
 
 foreach (string arg in appArgs)
     psi.ArgumentList.Add(arg);
@@ -79,6 +90,18 @@ static void PrintUsage()
     Console.WriteLine("  --unregister-file-association   Remove the .ipproj association added by --register-file-association.");
     Console.WriteLine("  -h, --help                      Show this help.");
 }
+
+static bool IsSoleConsoleProcess()
+{
+    uint[] processes = new uint[2];
+    return GetConsoleProcessList(processes, (uint)processes.Length) == 1;
+}
+
+[DllImport("kernel32.dll")]
+static extern uint GetConsoleProcessList(uint[] processList, uint processCount);
+
+[DllImport("kernel32.dll")]
+static extern bool FreeConsole();
 
 static string GetDotnetHostPath()
 {

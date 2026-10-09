@@ -19,7 +19,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>iconpackbuilder</ToolCommandName>
     <PackageId>Singulink.IconPackBuilder</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Description>Singulink Icon Pack Builder: builds trimmed font-based icon packs (with strongly typed C# accessors and right-to-left glyph support) from the Fluent UI System Icons for use with the Singulink.UI.Icons packages.</Description>
     <PackageTags>Icons; IconPackBuilder; Fonts; FluentIcons; Uno; WinUI; WPF; Avalonia; MAUI;</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -30,10 +30,14 @@
     <AppProjectPath>$(MSBuildProjectDirectory)\..\IconPackBuilder\IconPackBuilder.csproj</AppProjectPath>
     <!-- No trailing separator: a trailing backslash would escape the closing quote of the publish -o argument. -->
     <AppPublishDir>$(MSBuildProjectDirectory)\obj\app</AppPublishDir>
+    <OpenerProjectPath>$(MSBuildProjectDirectory)\..\IconPackBuilder.Tool.Opener\IconPackBuilder.Tool.Opener.csproj</OpenerProjectPath>
+    <OpenerPublishDir>$(MSBuildProjectDirectory)\obj\opener</OpenerPublishDir>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <!-- The .ipproj file association's icon (Windows .ico, Linux .png), copied out of the package by FileAssociation at registration. -->
+    <None Include="Assets\IconPackBuilder.ico;Assets\IconPackBuilder.png" Pack="true" PackagePath="tools\$(TargetFramework)\any\icons\" />
   </ItemGroup>
 
   <!--
@@ -44,6 +48,19 @@
   <Target Name="PublishIconPackBuilderApp" BeforeTargets="_GetPackageFiles" Condition="'$(NoBuild)' != 'true'">
     <RemoveDir Directories="$(AppPublishDir)" />
     <Exec Command="dotnet publish &quot;$(AppProjectPath)&quot; -f net10.0-desktop -c $(Configuration) -p:PyFtSubsetAllPlatforms=true -o &quot;$(AppPublishDir)&quot; --nologo" />
+
+    <!--
+      The windowless helper the Windows file association runs (see IconPackBuilder.Tool.Opener), framework-dependent like the tool, with an apphost
+      for each Windows architecture under tools/<tfm>/any/opener/<rid>/.
+    -->
+    <RemoveDir Directories="$(OpenerPublishDir)" />
+    <Exec Command="dotnet publish &quot;$(OpenerProjectPath)&quot; -c $(Configuration) -r win-x64 --self-contained false -o &quot;$(OpenerPublishDir)\win-x64&quot; --nologo" />
+    <Exec Command="dotnet publish &quot;$(OpenerProjectPath)&quot; -c $(Configuration) -r win-arm64 --self-contained false -o &quot;$(OpenerPublishDir)\win-arm64&quot; --nologo" />
+
+    <ItemGroup>
+      <_OpenerFile Include="$(OpenerPublishDir)\**" Exclude="$(OpenerPublishDir)\**\*.pdb;$(OpenerPublishDir)\**\*.xml" />
+      <None Include="@(_OpenerFile)" Pack="true" PackagePath="tools\$(TargetFramework)\any\opener\" />
+    </ItemGroup>
 
     <ItemGroup>
       <_AppFile Include="$(AppPublishDir)\**" Exclude="$(AppPublishDir)\**\*.pdb;$(AppPublishDir)\**\*.xml;$(AppPublishDir)\runtimes\linux-arm\**" />

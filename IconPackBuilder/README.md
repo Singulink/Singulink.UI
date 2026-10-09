@@ -29,6 +29,9 @@ browser app at https://iconpackbuilder.singulink.com/ (`.github/workflows/web-ap
 - **IconPackBuilder.Data** - project file (`.ipproj`) model.
 - **IconPackBuilder.SeagullAssetsGenerator** - maintenance tool that regenerates the Seagull assets (see below).
 - **IconPackBuilder.Tool** - dotnet global tool launcher (`iconpackbuilder`) that bundles the published desktop head.
+- **IconPackBuilder.Tool.Opener** - windowless helper that the tool's Windows file association runs, so opening a `.ipproj` from Explorer does not
+  show a console window; packed into the tool and copied at registration to a stable per-user folder
+  (`%LOCALAPPDATA%\Singulink\IconPackBuilder\FileAssociation`), since the tool's own files move on every update.
 - **IconPackBuilder.VSCode** - Visual Studio Code extension that opens `.ipproj` files in an embedded editor (WebAssembly head); see its README.
 - **Tests/IconPackBuilder.Tests** - tests for the icon source, exporter, recent projects store and view models (run with `dotnet test`).
 

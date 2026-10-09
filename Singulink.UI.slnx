@@ -32,6 +32,7 @@
     <Project Path="Tests/IconPackBuilder.Tests/IconPackBuilder.Tests.csproj" />
     <Project Path="Tests/Singulink.UI.Navigation.Generators.Tests/Singulink.UI.Navigation.Generators.Tests.csproj" />
     <Project Path="IconPackBuilder/IconPackBuilder.Tool/IconPackBuilder.Tool.csproj" />
+    <Project Path="IconPackBuilder/IconPackBuilder.Tool.Opener/IconPackBuilder.Tool.Opener.csproj" />
     <Project Path="Tests/Singulink.UI.Icons.Avalonia.Tests/Singulink.UI.Icons.Avalonia.Tests.csproj" />
     <Project Path="Tests/Singulink.UI.Icons.Maui.Tests/Singulink.UI.Icons.Maui.Tests.csproj" />
     <Project Path="Tests/Singulink.UI.Icons.Tests/Singulink.UI.Icons.Tests.csproj" />

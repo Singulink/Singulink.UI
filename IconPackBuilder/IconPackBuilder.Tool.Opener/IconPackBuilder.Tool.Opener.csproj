@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Windows helper for the tool's .ipproj file association. The command shim that 'dotnet tool install' creates (iconpackbuilder.exe) is a console
+    program, so an association that runs it directly opens a console window. This windowless (WinExe) helper is what the association runs instead:
+    it starts the shim without a console window. IconPackBuilder.Tool publishes it for win-x64 and win-arm64 into its package, and FileAssociation
+    copies it to a stable per-user folder at registration, because the tool's own files move to a new folder on every update.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <AssemblyName>IconPackBuilder.Opener</AssemblyName>
+    <RootNamespace>IconPackBuilder.Opener</RootNamespace>
+    <DebugType>none</DebugType>
+
+    <!-- Explorer shows the executable's icon and description in "Open with" and the file properties. -->
+    <ApplicationIcon>..\IconPackBuilder.Tool\Assets\IconPackBuilder.ico</ApplicationIcon>
+    <AssemblyTitle>Icon Pack Builder</AssemblyTitle>
+    <Product>Singulink Icon Pack Builder</Product>
+    <Company>Singulink</Company>
+  </PropertyGroup>
+</Project>

@@ -28,4 +28,7 @@ iconpackbuilder --register-file-association
 iconpackbuilder --unregister-file-association
 ```
 
+On Windows, projects opened this way start without a console window and `.ipproj` files show the Icon Pack Builder icon. An association
+registered by an older version of the tool is brought up to date the next time the tool runs.
+
 Documentation: https://www.singulink.com/Docs/Singulink.UI/articles/icon-guides/getting-started.html
