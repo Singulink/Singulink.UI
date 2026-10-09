@@ -10,6 +10,9 @@
 //             If omitted, the existing media/app/ contents are used.
 // --targets   Comma-separated subset of the VS Code targets below. Defaults to all of them.
 // --out       Output directory for the .vsix files. Defaults to dist/.
+//
+// The extension version comes from IconPackBuilderVersion in IconPackBuilder/Directory.Build.props, the single version shared by every Icon Pack
+// Builder deliverable: package.json and package-lock.json are updated to it before packaging.
 
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
@@ -32,6 +35,41 @@ const TARGETS = {
 function fail(message) {
     console.error(`error: ${message}`);
     process.exit(1);
+}
+
+/** Sets package.json and package-lock.json to the shared Icon Pack Builder version from Directory.Build.props. */
+function syncVersion() {
+    const propsPath = path.resolve(extensionRoot, '..', 'Directory.Build.props');
+    const match = /<IconPackBuilderVersion>\s*([^<\s]+)\s*<\/IconPackBuilderVersion>/.exec(fs.readFileSync(propsPath, 'utf8'));
+
+    if (!match) {
+        fail(`IconPackBuilderVersion was not found in ${propsPath}.`);
+    }
+
+    const version = match[1];
+
+    // Rewrite only the extension's own version fields, keeping the files' formatting: the first "version" in package.json, and in
+    // package-lock.json the root one and the one under packages[""], the two that follow the extension's name.
+    const setVersions = (file, pattern) => {
+        const text = fs.readFileSync(file, 'utf8');
+        const updated = text.replace(pattern, (_, prefix) => `${prefix}"version": "${version}"`);
+
+        if (updated !== text) {
+            fs.writeFileSync(file, updated);
+            console.log(`Set the version in ${path.basename(file)} to ${version}.`);
+        }
+    };
+
+    setVersions(path.join(extensionRoot, 'package.json'), /^(\{\s*(?:"[^"]+":\s*"[^"]*",\s*)*?)"version":\s*"[^"]*"/);
+    setVersions(path.join(extensionRoot, 'package-lock.json'), /("name":\s*"singulink-icon-pack-builder",\s*)"version":\s*"[^"]*"/g);
+
+    const packageVersion = JSON.parse(fs.readFileSync(path.join(extensionRoot, 'package.json'), 'utf8')).version;
+
+    if (packageVersion !== version) {
+        fail(`package.json version ${packageVersion} does not match IconPackBuilderVersion ${version}.`);
+    }
+
+    console.log(`Packaging version ${version} (IconPackBuilderVersion in Directory.Build.props).`);
 }
 
 function parseArgs(argv) {
@@ -212,6 +250,8 @@ function main() {
 
         sources[target] = source;
     }
+
+    syncVersion();
 
     const vsce = resolveVsce();
     fs.mkdirSync(outDir, { recursive: true });

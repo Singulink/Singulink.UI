@@ -2,6 +2,13 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <PropertyGroup>
+    <!--
+      The Icon Pack Builder release version, shared by everything that ships: the dotnet tool package, the app (desktop and web) and the VS Code
+      extension, whose package script (IconPackBuilder.VSCode/scripts/package.mjs) copies it into package.json. Bump it here for every release.
+    -->
+    <IconPackBuilderVersion>1.0.2</IconPackBuilderVersion>
+    <Version>$(IconPackBuilderVersion)</Version>
+
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>false</IsPackable>
   </PropertyGroup>

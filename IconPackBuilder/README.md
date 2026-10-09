@@ -21,6 +21,12 @@ dotnet pack IconPackBuilder/IconPackBuilder.Tool/IconPackBuilder.Tool.csproj -c 
 The builder is also available as a [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=Singulink.singulink-icon-pack-builder) (`IconPackBuilder.VSCode`, built by `.github/workflows/vscode-extension.yml`) and as a
 browser app at https://iconpackbuilder.singulink.com/ (`.github/workflows/web-app.yml`).
 
+## Versioning
+
+Everything that ships (the dotnet tool package, the desktop and web app, and the VS Code extension) shares one version: `IconPackBuilderVersion` in
+`IconPackBuilder/Directory.Build.props`. Bump it there for every release. The VS Code package script copies it into the extension's `package.json` and
+`package-lock.json` when it packages, so commit those along with the bump.
+
 ## Projects
 
 - **IconPackBuilder** - the Uno Platform app (WinAppSDK and Skia desktop heads). Requires MSBuild to build because of the WinAppSDK head.

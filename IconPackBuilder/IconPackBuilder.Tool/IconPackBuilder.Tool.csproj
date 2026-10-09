@@ -19,7 +19,6 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>iconpackbuilder</ToolCommandName>
     <PackageId>Singulink.IconPackBuilder</PackageId>
-    <Version>1.0.1</Version>
     <Description>Singulink Icon Pack Builder: builds trimmed font-based icon packs (with strongly typed C# accessors and right-to-left glyph support) from the Fluent UI System Icons for use with the Singulink.UI.Icons packages.</Description>
     <PackageTags>Icons; IconPackBuilder; Fonts; FluentIcons; Uno; WinUI; WPF; Avalonia; MAUI;</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>

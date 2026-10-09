@@ -69,6 +69,9 @@ release, plus the committed `Tools/win-x64/pyftsubset.exe`).
    npm run package -- --bin-dir <binaries> --app-dir ../IconPackBuilder/bin/Release/net10.0-browserwasm/publish/wwwroot
    ```
 
+   The script first sets the extension version in `package.json` and `package-lock.json` to `IconPackBuilderVersion` from
+   `IconPackBuilder/Directory.Build.props`, the version every Icon Pack Builder deliverable shares; bump it there, not in `package.json`.
+
    Use `--targets win32-x64,darwin-arm64` to build a subset. One `.vsix` per target is written to `dist/`. Each package
    is platform-specific because it contains a native `pyftsubset` binary; publish all of them to the Marketplace under
    the same version and VS Code picks the right one.
