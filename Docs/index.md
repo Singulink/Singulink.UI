@@ -36,6 +36,10 @@ Provides a DI-friendly and UI framework-agnostic task runner/dispatcher with int
 
 Here are some additonal links to get you started:
 
+<!-- Keep the API link as api/index.html, even though docfx warns "Invalid file link:(~/api/index.html)": it opens the API landing page with all the
+     namespaces listed and collapsed, which suits an API spread over several namespaces. Never link the API index as api/index.md (in toc.yml it drops
+     the landing page's API sidebar, a known docfx issue) or as api/ (docfx leaves that as a bare folder link). -->
+
 - [Getting Started](articles/navigation-guides/getting-started.md) - Visit here first for a quick `Navigation` walkthrough and entry point into additional guides.
 - [Icon Guides](articles/icon-guides/getting-started.md) - Building icon packs with Icon Pack Builder and using them in each UI framework.
 - [API Documentation](api/index.html) - Browse the fully documented API here.
