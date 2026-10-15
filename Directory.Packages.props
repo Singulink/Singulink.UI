@@ -11,7 +11,7 @@
   <ItemGroup Label="Singulink">
     <PackageVersion Include="Singulink.Collections" Version="4.0.2" />
     <PackageVersion Include="Singulink.Enums" Version="3.0.0" />
-    <PackageVersion Include="Singulink.IO.FileSystem" Version="2.4.0" />
+    <PackageVersion Include="Singulink.IO.FileSystem" Version="3.1.2" />
   </ItemGroup>
 
   <ItemGroup Label="Third-Party">
