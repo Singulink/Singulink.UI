@@ -78,7 +78,6 @@ public class TestInfrastructureSmokeTests
     {
     }
 
-
     public class TestDialogVm : IDialogViewModel
     {
     }

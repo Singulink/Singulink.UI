@@ -135,7 +135,6 @@ public class NavigatorDIServicesTests
         public ChildSrvType ChildSrv { get; } = childSrv;
     }
 
-
     private sealed class DictionaryServiceProvider : Dictionary<Type, object>, IServiceProvider
     {
         public object? GetService(Type serviceType) => TryGetValue(serviceType, out object? value) ? value : null;

@@ -27,8 +27,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentIcons.Common" Version="$(FluentIconsCommonVersion)" />
-    <PackageReference Include="WaterTrans.GlyphLoader.Core" Version="2.0.0" />
+    <PackageReference Include="FluentIcons.Common" />
+    <PackageReference Include="WaterTrans.GlyphLoader.Core" />
   </ItemGroup>
 
   <ItemGroup>

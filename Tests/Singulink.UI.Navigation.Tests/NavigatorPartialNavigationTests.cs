@@ -118,5 +118,4 @@ public class NavigatorPartialNavigationTests
     public class C1Vm : RecordedLifecycleViewModel, IRoutedViewModel { }
 
     public class C2Vm : RecordedLifecycleViewModel, IRoutedViewModel { }
-
 }

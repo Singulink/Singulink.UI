@@ -1,4 +1,4 @@
-<Project Sdk="MSTest.Sdk/4.0.2">
+<Project Sdk="MSTest.Sdk/4.5.1">
   <PropertyGroup>
     <RootNamespace>Singulink.UI.Icons.Wpf.Tests</RootNamespace>
     <TargetFramework>net10.0-windows</TargetFramework>

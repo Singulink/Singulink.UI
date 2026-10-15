@@ -1,0 +1,44 @@
+name: build and test
+
+# Builds and runs the test projects (via the Singulink.UI.Tests.slnf solution filter) in Debug and Release. The full solution is not built here
+# because its mobile and browser heads need platform workloads that the test projects do not.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Install workloads
+        run: dotnet workload install maui
+
+      - name: Restore
+        run: dotnet restore Singulink.UI.Tests.slnf
+
+      - name: Build
+        run: dotnet build Singulink.UI.Tests.slnf --configuration ${{ matrix.configuration }} --no-restore
+
+      - name: Test
+        run: dotnet test Singulink.UI.Tests.slnf --configuration ${{ matrix.configuration }} --no-build --verbosity normal

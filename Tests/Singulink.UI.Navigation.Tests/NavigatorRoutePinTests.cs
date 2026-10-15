@@ -525,7 +525,11 @@ public class NavigatorRoutePinTests
     {
         public bool IsDisposed { get; private set; }
 
-        public void Dispose() => IsDisposed = true;
+        public void Dispose()
+        {
+            IsDisposed = true;
+            GC.SuppressFinalize(this);
+        }
     }
 
     public class FormVm : DisposableVm, IRoutedViewModel

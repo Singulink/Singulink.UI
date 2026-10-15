@@ -178,7 +178,6 @@ public class NavigatorLifecycleOrderTests
 
     public class ChildVm : RecordedLifecycleViewModel, IRoutedViewModel { }
 
-
     public class RedirectVm : RecordedLifecycleViewModel, IRoutedViewModel
     {
         public RedirectVm()

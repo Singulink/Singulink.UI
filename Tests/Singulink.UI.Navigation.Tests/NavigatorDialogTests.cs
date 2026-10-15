@@ -19,6 +19,7 @@ public class NavigatorDialogTests
             var task = nav.ShowDialogAsync(dlg);
 
             nav.IsShowingDialog.ShouldBeTrue();
+
             // The root view is what gets covered by a top-level dialog.
             DialogEvents(nav).ShouldBe([new LayerCoveredEvent(null, true), new DialogShownEvent(dlg, null)]);
 

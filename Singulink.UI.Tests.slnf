@@ -1,0 +1,14 @@
+{
+  "solution": {
+    "path": "Singulink.UI.slnx",
+    "projects": [
+      "Tests\\IconPackBuilder.Tests\\IconPackBuilder.Tests.csproj",
+      "Tests\\Singulink.UI.Icons.Avalonia.Tests\\Singulink.UI.Icons.Avalonia.Tests.csproj",
+      "Tests\\Singulink.UI.Icons.Maui.Tests\\Singulink.UI.Icons.Maui.Tests.csproj",
+      "Tests\\Singulink.UI.Icons.Tests\\Singulink.UI.Icons.Tests.csproj",
+      "Tests\\Singulink.UI.Icons.Wpf.Tests\\Singulink.UI.Icons.Wpf.Tests.csproj",
+      "Tests\\Singulink.UI.Navigation.Generators.Tests\\Singulink.UI.Navigation.Generators.Tests.csproj",
+      "Tests\\Singulink.UI.Navigation.Tests\\Singulink.UI.Navigation.Tests.csproj"
+    ]
+  }
+}

@@ -162,8 +162,4 @@ public class NavigatorBasicNavigationTests
     public class DetailsVm : RecordedLifecycleViewModel, IRoutedViewModel
     {
     }
-
-
-
-
 }

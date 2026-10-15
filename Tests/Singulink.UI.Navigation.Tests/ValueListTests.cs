@@ -391,6 +391,5 @@ public class ValueListTests
         public ValueList<int> GetParameter() => this.Parameter;
     }
 
-
     #endregion
 }

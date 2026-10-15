@@ -46,5 +46,4 @@ public class NavigatorRouteBoundaryTests
     public class ParentVm : IRoutedViewModel { }
 
     public class ChildVm : IRoutedViewModel { }
-
 }
