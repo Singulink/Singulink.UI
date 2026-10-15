@@ -5,6 +5,9 @@
 
     <OutputType>Exe</OutputType>
     <UnoSingleProject>true</UnoSingleProject>
+
+    <!-- Overrides Uno.Sdk's implicit Microsoft.Windows.Compatibility version for the WebAssembly target, whose System.Security.Cryptography packages have known vulnerabilities. -->
+    <WindowsCompatibilityVersion>10.0.13</WindowsCompatibilityVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Suppress not implemented in Uno warnings -->
     <NoWarn>$(NoWarn);Uno0001;</NoWarn>
