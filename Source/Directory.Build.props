@@ -3,9 +3,9 @@
 
   <!-- Packages that ship together share a version: the navigation packages, the icon packages and the XAML packages. -->
   <PropertyGroup Label="Package Versions">
-    <NavigationVersion>7.3.1</NavigationVersion>
-    <IconsVersion>1.2.0</IconsVersion>
-    <XamlVersion>3.8.0</XamlVersion>
+    <NavigationVersion>7.4.0</NavigationVersion>
+    <IconsVersion>1.3.0</IconsVersion>
+    <XamlVersion>3.9.0</XamlVersion>
   </PropertyGroup>
 
   <PropertyGroup>
