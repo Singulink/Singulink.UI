@@ -22,7 +22,6 @@
   </PropertyGroup>
 
   <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
-    <PackageReference Remove="Uno.WinUI" />
     <!--
     If you encounter this error message:
 

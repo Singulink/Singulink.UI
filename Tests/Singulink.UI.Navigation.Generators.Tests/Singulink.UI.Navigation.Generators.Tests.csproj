@@ -2,6 +2,9 @@
   <PropertyGroup>
     <RootNamespace>Singulink.UI.Navigation.Generators.Tests</RootNamespace>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Strong-named, since the strong-named Singulink.UI.Navigation.Generators only grants friend access to assemblies signed with its key. -->
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\..\Source\key.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>

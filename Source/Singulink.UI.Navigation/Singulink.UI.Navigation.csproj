@@ -11,6 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Singulink.UI.Navigation.WinUI" />
+    <InternalsVisibleTo Include="Singulink.UI.Navigation.Testing" />
     <InternalsVisibleTo Include="Singulink.UI.Navigation.Tests" />
   </ItemGroup>
   <ItemGroup>

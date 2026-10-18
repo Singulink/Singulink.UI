@@ -20,9 +20,4 @@
   <ItemGroup>
     <ProjectReference Include="..\Singulink.UI.Icons\Singulink.UI.Icons.csproj" />
   </ItemGroup>
-
-  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
-    <PackageReference Remove="Uno.WinUI" />
-    <PackageReference Remove="Uno.WinUI.Graphics2DSK"/>
-  </ItemGroup>
 </Project>

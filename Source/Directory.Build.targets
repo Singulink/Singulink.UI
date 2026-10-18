@@ -11,4 +11,20 @@
     <DefaultItemExcludes Condition="!$(DefaultItemExcludes.Contains('bin/**'))">$(DefaultItemExcludes);bin/**</DefaultItemExcludes>
     <DefaultItemExcludes Condition="!$(DefaultItemExcludes.Contains('obj/**'))">$(DefaultItemExcludes);obj/**</DefaultItemExcludes>
   </PropertyGroup>
+
+  <!-- HACK: Works around Uno.Sdk adding its implicit packages and usings after the project body, where a project can't remove them
+       (unoplatform/uno#18525). The WinAppSDK target doesn't use Uno, so they are dropped there: its package doesn't depend on Uno and
+       its strong-named assembly references only strong-named assemblies (Uno's aren't). Uno.Sdk 6.7+ drops the base packages with
+       DisableImplicitUnoWinAppSdkPackages, but SkiaRenderer still adds Uno.WinUI.Graphics2DSK on WinAppSDK (unoplatform/uno#25570)
+       and the Uno.UI using can't be removed (unoplatform/uno#18525). Remove this once the repo's Uno.Sdk floor includes both fixes. -->
+  <PropertyGroup Condition="'$(UsingUnoSdk)' == 'true' AND $(TargetFramework.Contains('windows10'))">
+    <_UnoWinAppSdkPackagesToRemove>Uno.WinUI;Uno.WinUI.Graphics2DSK;Uno.Resizetizer;Uno.Sdk.Extras;Uno.Settings.DevServer</_UnoWinAppSdkPackagesToRemove>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UsingUnoSdk)' == 'true' AND $(TargetFramework.Contains('windows10'))">
+    <!-- Uno.Sdk's UnoImplicitPackages target re-adds the PackageReference items from _UnoProjectSystemPackageReference, so remove both. -->
+    <_UnoProjectSystemPackageReference Remove="$(_UnoWinAppSdkPackagesToRemove)" />
+    <PackageReference Remove="$(_UnoWinAppSdkPackagesToRemove)" />
+    <Using Remove="Uno.UI" />
+  </ItemGroup>
 </Project>
