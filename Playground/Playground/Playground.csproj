@@ -10,6 +10,8 @@
 
     <!-- Overrides Uno.Sdk's implicit Microsoft.Windows.Compatibility version for the WebAssembly target, whose System.Security.Cryptography packages have known vulnerabilities. -->
     <WindowsCompatibilityVersion>10.0.13</WindowsCompatibilityVersion>
+    <!-- Uno's own assemblies produce trim warnings (IL2104) when the WebAssembly head is published; they must not fail the publish. -->
+    <ILLinkTreatWarningsAsErrors Condition="$(TargetFramework.Contains('browserwasm'))">false</ILLinkTreatWarningsAsErrors>
 
     <!-- Display name -->
     <ApplicationTitle>Playground</ApplicationTitle>
