@@ -26,6 +26,12 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
+  <!-- Uno.Sdk would otherwise give each library a module initializer that sets the app's default font to OpenSans
+       (https://github.com/unoplatform/uno/issues/25635). -->
+  <PropertyGroup Condition="'$(UsingUnoSdk)' == 'true'">
+    <UnoDefaultFont>None</UnoDefaultFont>
+  </PropertyGroup>
+
   <PropertyGroup Label="Strong Naming">
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)key.snk</AssemblyOriginatorKeyFile>
