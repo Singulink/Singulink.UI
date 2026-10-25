@@ -156,10 +156,15 @@ public class DialogInjectionTests
 
             // Receives PageService from the active page.
             var dialog = nav.CreateDialogViewModel<EditDialogVm>(new Item("one"));
+            dialog.PageService.ShouldBeSameAs(nav.ActiveViewModel<PageVm>().PageService);
 
             await nav.NavigateAsync("other");
 
-            var ex = await Should.ThrowAsync<InvalidOperationException>(() => nav.ShowDialogAsync(dialog));
+            // Checked before awaiting, so a regression fails here instead of waiting for a dialog that never closes.
+            var showTask = nav.ShowDialogAsync(dialog);
+            showTask.IsFaulted.ShouldBeTrue();
+
+            var ex = await Should.ThrowAsync<InvalidOperationException>(() => showTask);
             ex.Message.ShouldContain("no longer active");
         });
     }
@@ -205,6 +210,117 @@ public class DialogInjectionTests
         });
     }
 
+    [TestMethod]
+    public void Create_RouteViewModelImplementingParameterType_SuppliesItself()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = BuildNameProviderNav();
+            await nav.NavigateAsync("outer/plain");
+
+            // The leaf does not implement the type, so the root page supplies itself ahead of the root service.
+            var dialog = nav.CreateDialogViewModel<NameDialogVm>();
+
+            dialog.NameProvider.ShouldBeSameAs(nav.ActiveViewModel<OuterVm>());
+
+            var showTask = nav.ShowDialogAsync(dialog);
+            nav.TopDialog.ShouldBeSameAs(dialog);
+            dialog.Navigator.Close();
+            await showTask;
+        });
+    }
+
+    [TestMethod]
+    public void Create_NearestRouteViewModelImplementingParameterType_Wins()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = BuildNameProviderNav();
+            await nav.NavigateAsync("outer/inner");
+
+            var dialog = nav.CreateDialogViewModel<NameDialogVm>();
+
+            dialog.NameProvider.ShouldBeSameAs(nav.ActiveViewModel<InnerVm>());
+        });
+    }
+
+    [TestMethod]
+    public void Create_RegisteredChildService_BeatsSelfImplementationOnSameViewModel()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = BuildNameProviderNav();
+            await nav.NavigateAsync("registering");
+
+            var dialog = nav.CreateDialogViewModel<NameDialogVm>();
+
+            dialog.NameProvider.ShouldBeSameAs(nav.ActiveViewModel<RegisteringVm>().Registered);
+        });
+    }
+
+    [TestMethod]
+    public void Create_NearerSelfImplementation_BeatsFartherRegisteredChildService()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = BuildNameProviderNav();
+            await nav.NavigateAsync("registering/inner");
+
+            var dialog = nav.CreateDialogViewModel<NameDialogVm>();
+
+            dialog.NameProvider.ShouldBeSameAs(nav.ActiveViewModel<InnerVm>());
+        });
+    }
+
+    [TestMethod]
+    public void NestedDialog_ParentDialogImplementingParameterType_SuppliesItself()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = BuildNameProviderNav();
+            await nav.NavigateAsync("outer/inner");
+
+            var parent = nav.CreateDialogViewModel<NameProvidingDialogVm>();
+            var parentTask = nav.ShowDialogAsync(parent);
+
+            // The parent dialog is nearer than the pages that also implement the type.
+            var nested = parent.Navigator.CreateDialogViewModel<NameDialogVm>();
+
+            nested.NameProvider.ShouldBeSameAs(parent);
+
+            var nestedTask = parent.Navigator.ShowDialogAsync(nested);
+            nav.ShowingDialogs.ShouldBe([parent, nested]);
+
+            nested.Navigator.Close();
+            await nestedTask;
+            parent.Navigator.Close();
+            await parentTask;
+        });
+    }
+
+    [TestMethod]
+    public void CreatedDialog_SelfSupplyingProviderNoLongerActive_Throws()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = BuildNameProviderNav();
+            await nav.NavigateAsync("outer/inner");
+
+            var dialog = nav.CreateDialogViewModel<NameDialogVm>();
+            dialog.NameProvider.ShouldBeSameAs(nav.ActiveViewModel<InnerVm>());
+
+            await nav.NavigateAsync("outer/plain");
+
+            // Checked before awaiting, so a regression fails here instead of waiting for a dialog that never closes.
+            var showTask = nav.ShowDialogAsync(dialog);
+            showTask.IsFaulted.ShouldBeTrue();
+
+            var ex = await Should.ThrowAsync<InvalidOperationException>(() => showTask);
+            ex.Message.ShouldContain("no longer active");
+            ex.Message.ShouldContain(nameof(InnerVm));
+        });
+    }
+
     private static TestNavigator BuildNav(RootService rootService) => new(b =>
     {
         b.MapViewModel<PageVm>();
@@ -214,10 +330,76 @@ public class DialogInjectionTests
         b.Services = new SingleServiceProvider(rootService);
     });
 
+    private static TestNavigator BuildNameProviderNav() => new(b =>
+    {
+        b.MapViewModel<OuterVm>();
+        b.MapViewModel<InnerVm>();
+        b.MapViewModel<PlainVm>();
+        b.MapViewModel<RegisteringVm>();
+        b.AddRoute(Routes.Outer);
+        b.AddRoute(Routes.OuterInner);
+        b.AddRoute(Routes.OuterPlain);
+        b.AddRoute(Routes.Registering);
+        b.AddRoute(Routes.RegisteringInner);
+        b.Services = new SingleServiceProvider(new NamedProvider("root"));
+    });
+
     public static class Routes
     {
         public static readonly RootRoutePart<PageVm> Page = Route.Build("page").Root<PageVm>();
         public static readonly RootRoutePart<OtherVm> Other = Route.Build("other").Root<OtherVm>();
+
+        public static readonly RootRoutePart<OuterVm> Outer = Route.Build("outer").Root<OuterVm>();
+        public static readonly ChildRoutePart<OuterVm, InnerVm> OuterInner = Route.Build("inner").Child<OuterVm, InnerVm>();
+        public static readonly ChildRoutePart<OuterVm, PlainVm> OuterPlain = Route.Build("plain").Child<OuterVm, PlainVm>();
+        public static readonly RootRoutePart<RegisteringVm> Registering = Route.Build("registering").Root<RegisteringVm>();
+        public static readonly ChildRoutePart<RegisteringVm, InnerVm> RegisteringInner = Route.Build("inner").Child<RegisteringVm, InnerVm>();
+    }
+
+    public interface INameProvider
+    {
+        public string Name { get; }
+    }
+
+    public sealed class NamedProvider(string name) : INameProvider
+    {
+        public string Name => name;
+    }
+
+    public class OuterVm : IRoutedViewModel, INameProvider
+    {
+        public string Name => "outer";
+    }
+
+    public class InnerVm : IRoutedViewModel, INameProvider
+    {
+        public string Name => "inner";
+    }
+
+    public class PlainVm : IRoutedViewModel
+    {
+    }
+
+    public class RegisteringVm : IRoutedViewModel, INameProvider
+    {
+        public RegisteringVm()
+        {
+            this.SetChildService<INameProvider>(Registered);
+        }
+
+        public NamedProvider Registered { get; } = new("registered");
+
+        public string Name => "self";
+    }
+
+    public class NameDialogVm(INameProvider nameProvider) : IDialogViewModel
+    {
+        public INameProvider NameProvider => nameProvider;
+    }
+
+    public class NameProvidingDialogVm : IDialogViewModel, INameProvider
+    {
+        public string Name => "dialog";
     }
 
     public sealed record Item(string Name);

@@ -83,19 +83,42 @@ internal static class MixinManager
     }
 
     /// <summary>
-    /// Gets a child view model service associated with the specified view model.
+    /// Gets the service of the specified type that a view model provides to its child view models and nested dialogs: a child service associated with it,
+    /// else a service from its <see cref="IServiceProvider"/> implementation, else the view model itself if it is assignable to the service type.
     /// </summary>
-    public static object? GetChildService(object viewModel, Type serviceType)
+    /// <exception cref="InvalidOperationException">The view model's service provider returned a service that is not assignable to the service type.
+    /// </exception>
+    public static object? GetProvidedService(object viewModel, Type serviceType)
     {
-        if (_viewModelToChildServicesTable.TryGetValue(viewModel, out var services) && services.TryGetValue(serviceType, out object service))
-            return service;
+        object? service = GetChildService(viewModel, serviceType) ?? (viewModel as IServiceProvider)?.GetService(serviceType);
 
-        return null;
+        if (service is null)
+            return viewModel.GetType().IsAssignableTo(serviceType) ? viewModel : null;
+
+        if (!service.GetType().IsAssignableTo(serviceType))
+        {
+            throw new InvalidOperationException(
+                $"View model type '{viewModel.GetType()}' returned a service type '{service.GetType()}' " +
+                $"which is not assignable to requested service type '{serviceType}'.");
+        }
+
+        return service;
     }
 
     internal static void SetChildService<TService>(object viewModel, TService service) where TService : notnull
     {
         var services = _viewModelToChildServicesTable.GetOrCreateValue(viewModel);
         services[typeof(TService)] = service;
+    }
+
+    /// <summary>
+    /// Gets a child view model service associated with the specified view model.
+    /// </summary>
+    private static object? GetChildService(object viewModel, Type serviceType)
+    {
+        if (_viewModelToChildServicesTable.TryGetValue(viewModel, out var services) && services.TryGetValue(serviceType, out object service))
+            return service;
+
+        return null;
     }
 }

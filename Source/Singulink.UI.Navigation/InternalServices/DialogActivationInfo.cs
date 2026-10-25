@@ -120,7 +120,8 @@ internal sealed class DialogActivationInfo
                 {
                     throw new InvalidOperationException(
                         $"Cannot resolve required constructor parameter '{param.Name}' of type '{paramType}' for dialog view model type '{_viewModelType}'. " +
-                        "Pass it as an explicit argument or register it as a root or child service.");
+                        "Pass it as an explicit argument, register it as a root or child service, or implement it on a view model in the active route " +
+                        "or a parent dialog.");
                 }
             }
         }

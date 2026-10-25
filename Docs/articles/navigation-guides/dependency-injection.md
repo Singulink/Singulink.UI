@@ -71,7 +71,15 @@ Child services are resolved **ancestor-first**: when a descendant view model is 
 
 In addition to services registered via `SetChildService`, an ancestor view model that **directly implements an interface** also satisfies that interface as a dependency for its descendants. For example, if a parent view hosts a breadcrumb trail and its view model implements `IBreadcrumbConfig`, child view models can take `IBreadcrumbConfig` as a constructor parameter and the navigator will inject the ancestor view model itself, with no `SetChildService` call required.
 
-A parent view model can also act as a full container for its descendants by implementing <xref:System.IServiceProvider>. When a child view model is being constructed and the navigator can't satisfy a dependency from `SetChildService` registrations or directly-implemented interfaces, it walks up the route hierarchy and calls <xref:System.IServiceProvider.GetService(System.Type)> on any ancestor view model that implements <xref:System.IServiceProvider>. This lets a parent integrate an arbitrary DI container (e.g. a per-document scope) into the resolution chain before falling back to <xref:Singulink.UI.Navigation.INavigatorBuilder.Services>.
+A parent view model can also act as a full container for its descendants by implementing <xref:System.IServiceProvider>. The navigator calls its <xref:System.IServiceProvider.GetService(System.Type)> for dependencies of its descendants, which lets a parent integrate an arbitrary DI container (e.g. a per-document scope) into the resolution chain before falling back to <xref:Singulink.UI.Navigation.INavigatorBuilder.Services>.
+
+The navigator checks the ancestors one at a time, starting with the parent, and the first one that provides the dependency supplies it. Each ancestor provides it through, in order:
+
+1. A matching `SetChildService` registration.
+2. The service returned by its <xref:System.IServiceProvider.GetService(System.Type)>, if it implements <xref:System.IServiceProvider> and returns one.
+3. The view model itself, if it implements or derives from the dependency's type.
+
+So a nearer ancestor that implements an interface shadows a farther ancestor's registration of it, while a registration on the same view model takes precedence over the view model itself. Dialog view models created with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> receive services from view models by the same rules (see [Dialogs](dialogs.md#creating-dialogs-with-injected-services)).
 
 Guidelines:
 

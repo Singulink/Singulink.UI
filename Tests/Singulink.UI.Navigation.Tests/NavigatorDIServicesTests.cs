@@ -84,6 +84,50 @@ public class NavigatorDIServicesTests
     }
 
     [TestMethod]
+    public void ParentVmImplementingParameterType_InjectedIntoChildVm()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = new TestNavigator(b =>
+            {
+                b.MapViewModel<ImplementingParentVm>();
+                b.MapViewModel<ProviderConsumerVm>();
+                b.AddRoute(Route.Build("p").Root<ImplementingParentVm>());
+                b.AddRoute(Route.Build("c").Child<ImplementingParentVm, ProviderConsumerVm>());
+            });
+
+            await nav.NavigateAsync("p/c");
+
+            var parent = nav.ActiveViewModel<ImplementingParentVm>();
+            var child = nav.ActiveViewModel<ProviderConsumerVm>();
+
+            child.Provider.ShouldBeSameAs(parent);
+        });
+    }
+
+    [TestMethod]
+    public void ChildService_RegisteredOnParentVm_BeatsParentVmImplementingParameterType()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = new TestNavigator(b =>
+            {
+                b.MapViewModel<RegisteringImplementingParentVm>();
+                b.MapViewModel<ProviderConsumerVm>();
+                b.AddRoute(Route.Build("p").Root<RegisteringImplementingParentVm>());
+                b.AddRoute(Route.Build("c").Child<RegisteringImplementingParentVm, ProviderConsumerVm>());
+            });
+
+            await nav.NavigateAsync("p/c");
+
+            var parent = nav.ActiveViewModel<RegisteringImplementingParentVm>();
+            var child = nav.ActiveViewModel<ProviderConsumerVm>();
+
+            child.Provider.ShouldBeSameAs(parent.Registered);
+        });
+    }
+
+    [TestMethod]
     public void Navigator_PropertyOnVm_ReturnsOwningNavigator()
     {
         NavigationTestContext.Run(async () =>
@@ -133,6 +177,27 @@ public class NavigatorDIServicesTests
     public class ChildConsumerVm(ChildSrvType childSrv) : IRoutedViewModel
     {
         public ChildSrvType ChildSrv { get; } = childSrv;
+    }
+
+    public interface IProvider;
+
+    public sealed class RegisteredProvider : IProvider;
+
+    public class ImplementingParentVm : IRoutedViewModel, IProvider { }
+
+    public class RegisteringImplementingParentVm : IRoutedViewModel, IProvider
+    {
+        public RegisteredProvider Registered { get; } = new();
+
+        public RegisteringImplementingParentVm()
+        {
+            this.SetChildService<IProvider>(Registered);
+        }
+    }
+
+    public class ProviderConsumerVm(IProvider provider) : IRoutedViewModel
+    {
+        public IProvider Provider { get; } = provider;
     }
 
     private sealed class DictionaryServiceProvider : Dictionary<Type, object>, IServiceProvider

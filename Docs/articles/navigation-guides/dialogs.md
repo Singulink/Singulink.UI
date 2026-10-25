@@ -242,16 +242,18 @@ private async Task EditAsync(Item item)
 
 Explicit arguments are matched to constructor parameters by type, positionally among parameters of the same type, and must not be `null`. The remaining parameters are resolved in this order:
 
-1. Child services registered by the dialogs the presenter is nested in, nearest first (see below).
-2. Child services registered by the active route's view models, from the leaf to the root (see [Dependency Injection](dependency-injection.md)).
+1. Services provided by the view models of the dialogs the presenter is nested in, nearest first (see below).
+2. Services provided by the active route's view models, from the leaf to the root.
 3. <xref:Singulink.UI.Navigation.IDialogPresenter.RootServices>.
 4. The parameter's default value, or `null` for nullable parameters.
+
+A view model provides services to a dialog the same way a parent view model provides them to its child view models (see [Dependency Injection](dependency-injection.md#child-services)): a child service registered with `this.SetChildService(...)`, else a service returned by its <xref:System.IServiceProvider> implementation, else the view model itself if it implements or derives from the parameter type. The first view model that provides the service supplies it, so a dialog that takes an interface implemented by several view models in the active route receives the deepest of them.
 
 The view model's `Navigator` is available inside its constructor, just like a routed view model's.
 
 ### Child services for nested dialogs
 
-Dialog view models can register child services with `this.SetChildService(...)` in their constructor or in <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync>. Nested dialogs created through the dialog's `Navigator` receive them, so an editor can share its working state with a picker it opens without passing it explicitly.
+Dialog view models can register child services with `this.SetChildService(...)` in their constructor or in <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync>. Nested dialogs created through the dialog's `Navigator` receive them, so an editor can share its working state with a picker it opens without passing it explicitly. A dialog view model that implements a parameter's type supplies itself to nested dialogs, and one that implements <xref:System.IServiceProvider> can supply them any service, just like a route view model.
 
 ### Rules
 

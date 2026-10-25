@@ -23,7 +23,8 @@ public interface IDialogPresenter
     /// Gets the root service provider. This property can be accessed from any thread.
     /// </summary>
     /// <remarks>
-    /// This service provider is the root provider used to resolve services other than those provided directly by view models in a route.
+    /// This service provider is the root provider used to resolve services other than those provided directly by view models in a route or by the view
+    /// models of the dialogs a dialog is nested in.
     /// </remarks>
     public IServiceProvider RootServices { get; }
 
@@ -34,9 +35,11 @@ public interface IDialogPresenter
 
     /// <summary>
     /// Creates a dialog view model with constructor injection, the same way the navigator creates routed view models. Explicit arguments are matched to
-    /// constructor parameters by type (positionally among parameters of the same type); remaining parameters are resolved from child services registered
-    /// by the dialogs this presenter is nested in and by the active route's view models (nearest first), then from <see cref="RootServices"/>, then from
-    /// parameter default values. The view model's <c>Navigator</c> is available inside its constructor.
+    /// constructor parameters by type (positionally among parameters of the same type); remaining parameters are resolved from services provided by the
+    /// view models of the dialogs this presenter is nested in and of the active route (nearest first), then from <see cref="RootServices"/>, then from
+    /// parameter default values. A view model provides a service the same way a parent routed view model does for its children: a child service registered
+    /// with <c>SetChildService</c>, else a service from its <see cref="IServiceProvider"/> implementation, else the view model itself if it implements or
+    /// derives from the parameter type. The view model's <c>Navigator</c> is available inside its constructor.
     /// </summary>
     /// <remarks>
     /// A dialog view model created by a presenter can only be shown by that presenter, since the services it received were resolved in that presenter's

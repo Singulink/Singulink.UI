@@ -47,24 +47,7 @@ internal sealed class NavigationItem
         if (!IsMaterialized)
             throw new UnreachableException("Attempt to get services from a parent that is not materialized.");
 
-        object? service = MixinManager.GetChildService(ViewModel, serviceType) ??
-            (ViewModel as IServiceProvider)?.GetService(serviceType);
-
-        if (service is not null)
-        {
-            if (!service.GetType().IsAssignableTo(serviceType))
-            {
-                throw new InvalidOperationException(
-                    $"View model type '{ViewModel.GetType()}' returned a service type '{service.GetType()}' " +
-                    $"which is not assignable to requested service type '{serviceType}'.");
-            }
-        }
-        else if (ViewModel.GetType().IsAssignableTo(serviceType))
-        {
-            service = ViewModel;
-        }
-
-        if (service is not null)
+        if (MixinManager.GetProvidedService(ViewModel, serviceType) is { } service)
         {
             HasDependentChildren = true;
             return service;

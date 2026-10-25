@@ -120,8 +120,9 @@ partial class NavigatorCore
     }
 
     /// <summary>
-    /// Resolves a service for a dialog view model being created from the specified presenter: child services of the showing dialogs (top first), then of
-    /// the active route's view models (leaf first), then root services. View models that supplied a service are added to <paramref name="providers"/>.
+    /// Resolves a service for a dialog view model being created from the specified presenter: services provided by the showing dialogs' view models (top
+    /// first), then by the active route's view models (leaf first), then root services. Each view model provides services the same way a parent routed view
+    /// model does for its children. View models that supplied a service (including themselves) are added to <paramref name="providers"/>.
     /// </summary>
     private object? ResolveScopedDialogService(DialogNavigatorCore? requestingParent, Type serviceType, List<object> providers)
     {
@@ -129,7 +130,7 @@ partial class NavigatorCore
         {
             foreach (var entry in _dialogStack)
             {
-                if (GetProvidedService(entry.ViewModel, serviceType) is { } service)
+                if (MixinManager.GetProvidedService(entry.ViewModel, serviceType) is { } service)
                 {
                     providers.Add(entry.ViewModel);
                     return service;
@@ -141,7 +142,7 @@ partial class NavigatorCore
         {
             for (int i = currentRoute.Items.Count - 1; i >= 0; i--)
             {
-                if (currentRoute.Items[i].ViewModel is { } routedViewModel && GetProvidedService(routedViewModel, serviceType) is { } service)
+                if (currentRoute.Items[i].ViewModel is { } routedViewModel && MixinManager.GetProvidedService(routedViewModel, serviceType) is { } service)
                 {
                     providers.Add(routedViewModel);
                     return service;
@@ -150,19 +151,6 @@ partial class NavigatorCore
         }
 
         return RootServices.GetService(serviceType);
-
-        static object? GetProvidedService(object viewModel, Type serviceType)
-        {
-            object? service = MixinManager.GetChildService(viewModel, serviceType) ?? (viewModel as IServiceProvider)?.GetService(serviceType);
-
-            if (service is not null && !service.GetType().IsAssignableTo(serviceType))
-            {
-                throw new InvalidOperationException(
-                    $"View model type '{viewModel.GetType()}' returned a service type '{service.GetType()}' which is not assignable to requested service type '{serviceType}'.");
-            }
-
-            return service;
-        }
     }
 
     /// <summary>
