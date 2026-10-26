@@ -32,6 +32,11 @@ internal static class MixinManager
     }
 
     /// <summary>
+    /// Removes the dialog navigator associated with the specified view model, if any.
+    /// </summary>
+    public static void RemoveNavigator(IDialogViewModel viewModel) => _viewModelToDialogNavigatorTable.Remove(viewModel);
+
+    /// <summary>
     /// Returns the navigator associated with the specified view model.
     /// </summary>
     public static INavigator? GetNavigator(IRoutedViewModelBase viewModel)

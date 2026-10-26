@@ -134,7 +134,7 @@ await this.Navigator.ShowDialogAsync(new InfoDialogViewModel("Saved."));
 `this.Navigator` on a dialog view model returns an <xref:Singulink.UI.Navigation.IDialogNavigator>, which exposes <xref:Singulink.UI.Navigation.IDialogNavigator.Close*>, <xref:Singulink.UI.Navigation.IDialogPresenter.TaskRunner>, and <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*> for nesting additional dialogs (see below).
 
 > [!CAUTION]
-> Unlike routed view models (which the navigator constructs), **dialog view models are instantiated by your code** and only get wired up to a navigator immediately before <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> fires. This means `this.Navigator` and `this.TaskRunner` are **not available in the dialog view model's constructor**, and attempting to access them there will throw. Defer any work that needs them to <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> or to a command/method that runs after the dialog is shown.
+> Unlike routed view models (which the navigator constructs), **a dialog view model you construct yourself** only gets wired up to a navigator when it is shown, immediately before <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> fires. This means `this.Navigator` and `this.TaskRunner` are **not available in its constructor**, and attempting to access them there will throw. Defer any work that needs them to <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> or to a command/method that runs after the dialog is shown. Dialog view models created with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> are different: they get their navigator before their constructor runs (see [Creating Dialogs with Injected Services](#creating-dialogs-with-injected-services)).
 
 ## Dialog with a Result
 
@@ -249,7 +249,7 @@ Explicit arguments are matched to constructor parameters by type, positionally a
 
 A view model provides services to a dialog the same way a parent view model provides them to its child view models (see [Dependency Injection](dependency-injection.md#child-services)): a child service registered with `this.SetChildService(...)`, else a service returned by its <xref:System.IServiceProvider> implementation, else the view model itself if it implements or derives from the parameter type. The first view model that provides the service supplies it, so a dialog that takes an interface implemented by several view models in the active route receives the deepest of them.
 
-The view model's `Navigator` is available inside its constructor, just like a routed view model's.
+The view model's `Navigator` is available inside its constructor, just like a routed view model's. The dialog only receives the view model as its data context once the constructor has finished, so the dialog's `DataContextChanged` handlers always see a fully constructed view model.
 
 ### Child services for nested dialogs
 

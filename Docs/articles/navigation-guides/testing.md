@@ -2,7 +2,7 @@
 
 # Testing View Models
 
-View models built on the framework never depend on a UI framework, but they do depend on a navigator: routed view models get one when the navigator creates them, and dialog view models get one when they are shown. The **Singulink.UI.Navigation.Testing** package provides <xref:Singulink.UI.Navigation.Testing.TestNavigator>, an in-memory navigator that runs the real navigation and dialog engine against placeholder views, so view models are tested exactly as they run in the application, without WinUI or Uno.
+View models built on the framework never depend on a UI framework, but they do depend on a navigator: routed view models get one when the navigator creates them, and dialog view models get one when they are created with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> or, if you construct them yourself, when they are shown. The **Singulink.UI.Navigation.Testing** package provides <xref:Singulink.UI.Navigation.Testing.TestNavigator>, an in-memory navigator that runs the real navigation and dialog engine against placeholder views, so view models are tested exactly as they run in the application, without WinUI or Uno.
 
 Reference the package from your test project:
 

@@ -12,22 +12,11 @@ namespace Singulink.UI.Navigation.WinUI;
 partial class Navigator
 {
     /// <inheritdoc/>
-    protected override void WireDialog(object dialog, IDialogViewModel viewModel, out ITaskRunner taskRunner)
+    protected override void WireDialog(object dialog, out ITaskRunner taskRunner)
     {
         var contentDialog = (ContentDialog)dialog;
 
-        contentDialog.DataContext = viewModel;
         contentDialog.XamlRoot = _viewNavigator.NavigationControl.XamlRoot ?? throw new InvalidOperationException("XamlRoot is not available");
-
-        contentDialog.DataContextChanged += (s, e) => {
-            var contentDialog = (ContentDialog)s;
-
-            if (e.NewValue != viewModel)
-            {
-                contentDialog.DataContext = viewModel;
-                throw new InvalidOperationException("Navigator managed views cannot change their data context.");
-            }
-        };
 
         contentDialog.PrimaryButtonClick += OnPrimaryDialogButtonClick;
         contentDialog.SecondaryButtonClick += OnSecondaryDialogButtonClick;
@@ -304,6 +293,24 @@ partial class Navigator
                 }
             }
         }
+    }
+
+    /// <inheritdoc/>
+    protected override void AttachDialogViewModel(object dialog, IDialogViewModel viewModel)
+    {
+        var contentDialog = (ContentDialog)dialog;
+
+        contentDialog.DataContext = viewModel;
+
+        contentDialog.DataContextChanged += (s, e) => {
+            var contentDialog = (ContentDialog)s;
+
+            if (e.NewValue != viewModel)
+            {
+                contentDialog.DataContext = viewModel;
+                throw new InvalidOperationException("Navigator managed views cannot change their data context.");
+            }
+        };
     }
 
     /// <inheritdoc/>

@@ -197,13 +197,31 @@ public sealed class TestNavigator : NavigatorCore
     }
 
     /// <inheritdoc/>
-    protected override void WireDialog(object dialog, IDialogViewModel viewModel, out ITaskRunner taskRunner)
+    protected override void WireDialog(object dialog, out ITaskRunner taskRunner)
     {
-        ((TestDialog)dialog).DataContext = viewModel;
+        var testDialog = (TestDialog)dialog;
 
-        var dialogTaskRunner = new TaskRunner(busy => _events.Add(new BusyChangedEvent(viewModel, busy)));
-        _dialogTaskRunners.Add(dialogTaskRunner);
+        var dialogTaskRunner = new TaskRunner(busy => {
+            if (testDialog.DataContext is { } viewModel)
+                _events.Add(new BusyChangedEvent(viewModel, busy));
+        });
+
+        testDialog.TaskRunner = dialogTaskRunner;
         taskRunner = dialogTaskRunner;
+    }
+
+    /// <inheritdoc/>
+    protected override void AttachDialogViewModel(object dialog, IDialogViewModel viewModel)
+    {
+        var testDialog = (TestDialog)dialog;
+        var dialogTaskRunner = testDialog.TaskRunner!;
+
+        testDialog.DataContext = viewModel;
+        _dialogTaskRunners.Add(dialogTaskRunner);
+
+        // Busy work the view model's constructor started is recorded once the dialog has its view model.
+        if (dialogTaskRunner.IsBusy)
+            _events.Add(new BusyChangedEvent(viewModel, true));
     }
 
     /// <inheritdoc/>

@@ -1,6 +1,8 @@
 #pragma warning disable SA1402 // File may only contain a single type
 #pragma warning disable SA1649 // File name should match first type name
 
+using Singulink.UI.Tasks;
+
 namespace Singulink.UI.Navigation.Testing;
 
 /// <summary>
@@ -35,4 +37,6 @@ internal sealed class TestViewNavigator
 internal sealed class TestDialog
 {
     public IDialogViewModel? DataContext { get; set; }
+
+    public TaskRunner? TaskRunner { get; set; }
 }

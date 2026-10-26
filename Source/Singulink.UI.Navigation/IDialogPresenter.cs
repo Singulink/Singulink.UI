@@ -39,7 +39,8 @@ public interface IDialogPresenter
     /// view models of the dialogs this presenter is nested in and of the active route (nearest first), then from <see cref="RootServices"/>, then from
     /// parameter default values. A view model provides a service the same way a parent routed view model does for its children: a child service registered
     /// with <c>SetChildService</c>, else a service from its <see cref="IServiceProvider"/> implementation, else the view model itself if it implements or
-    /// derives from the parameter type. The view model's <c>Navigator</c> is available inside its constructor.
+    /// derives from the parameter type. The view model's <c>Navigator</c> is available inside its constructor, and the dialog only receives the view model
+    /// as its data context once the constructor has finished.
     /// </summary>
     /// <remarks>
     /// A dialog view model created by a presenter can only be shown by that presenter, since the services it received were resolved in that presenter's

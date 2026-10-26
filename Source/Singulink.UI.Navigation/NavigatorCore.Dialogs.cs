@@ -27,14 +27,22 @@ partial class NavigatorCore
     }
 
     /// <summary>
-    /// Wires up a newly created framework-specific dialog object with the specified view model. The implementation should attach the view model as the
-    /// dialog's data context, hook up any framework-specific bindings/event handlers, and produce a task runner used to run dialog operations.
+    /// Wires up a newly created framework-specific dialog object. The implementation should hook up any framework-specific bindings/event handlers and
+    /// produce a task runner used to run dialog operations. The task runner can be used before the dialog's view model is attached with
+    /// <see cref="AttachDialogViewModel"/>, since a view model created by the navigator can use it in its constructor.
     /// </summary>
     /// <param name="dialog">The framework-specific dialog object that was created by the registered dialog activator.</param>
-    /// <param name="viewModel">The dialog view model to associate with the dialog.</param>
     /// <param name="taskRunner">The task runner to use for running dialog operations. Typically configured to disable the dialog's interactivity while
     /// busy.</param>
-    protected abstract void WireDialog(object dialog, IDialogViewModel viewModel, out ITaskRunner taskRunner);
+    protected abstract void WireDialog(object dialog, out ITaskRunner taskRunner);
+
+    /// <summary>
+    /// Attaches the specified view model to a dialog object that was wired by <see cref="WireDialog"/>. The implementation should set the view model as
+    /// the dialog's data context. The view model is fully constructed and its navigator is available when this is called.
+    /// </summary>
+    /// <param name="dialog">The framework-specific dialog object that was wired by <see cref="WireDialog"/>.</param>
+    /// <param name="viewModel">The dialog view model to associate with the dialog.</param>
+    protected abstract void AttachDialogViewModel(object dialog, IDialogViewModel viewModel);
 
     /// <summary>
     /// Starts showing the specified framework dialog object. This is invoked in a fire-and-forget manner; awaiting completion of the dialog is handled by
@@ -101,11 +109,11 @@ partial class NavigatorCore
         var providers = new List<object>();
         object?[] args = activationInfo.ResolveArguments(explicitArgs, serviceType => ResolveScopedDialogService(requestingParent, serviceType, providers));
 
-        // The navigator (and with it the dialog's task runner) must exist before the constructor runs so the view model can use it there, which means
-        // the framework dialog object is created and wired to the still-uninitialized view model. Views only read their data context once shown.
+        // The navigator (and with it the dialog's task runner) must exist before the constructor runs so the view model can use it there, which means the
+        // framework dialog object is created and wired first. The view model is only attached to the dialog once its constructor has finished.
         var viewModel = activationInfo.AllocateUninitialized();
         object dialog = CreateDialog(viewModelType);
-        WireDialog(dialog, viewModel, out var taskRunner);
+        WireDialog(dialog, out var taskRunner);
 
         var dialogNavigator = new DialogNavigatorCore(this, dialog, taskRunner) {
             CreatedByNavigator = true,
@@ -114,7 +122,18 @@ partial class NavigatorCore
         };
 
         MixinManager.SetNavigator(viewModel, dialogNavigator);
-        activationInfo.InvokeConstructor(viewModel, args);
+
+        try
+        {
+            activationInfo.InvokeConstructor(viewModel, args);
+            AttachDialogViewModel(dialog, viewModel);
+        }
+        catch
+        {
+            // The view model is never handed out, so nothing is left associated with it.
+            MixinManager.RemoveNavigator(viewModel);
+            throw;
+        }
 
         return viewModel;
     }
@@ -197,9 +216,20 @@ partial class NavigatorCore
         if (MixinManager.GetNavigator(viewModel) is not DialogNavigatorCore dialogNavigator)
         {
             object dialog = CreateDialog(viewModel.GetType());
-            WireDialog(dialog, viewModel, out var taskRunner);
+            WireDialog(dialog, out var taskRunner);
             dialogNavigator = new DialogNavigatorCore(this, dialog, taskRunner);
             MixinManager.SetNavigator(viewModel, dialogNavigator);
+
+            try
+            {
+                AttachDialogViewModel(dialog, viewModel);
+            }
+            catch
+            {
+                // Leaves the view model as it was, so showing it again starts over with a new dialog.
+                MixinManager.RemoveNavigator(viewModel);
+                throw;
+            }
         }
         else if (dialogNavigator.RootNavigator != this)
         {

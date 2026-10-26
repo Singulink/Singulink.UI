@@ -1,6 +1,7 @@
 using PrefixClassName.MsTest;
 using Shouldly;
 using Singulink.UI.Navigation.Testing;
+using Singulink.UI.Tasks;
 
 namespace Singulink.UI.Navigation.Tests;
 
@@ -34,6 +35,65 @@ public class DialogInjectionTests
             nav.TopDialog.ShouldBeSameAs(dialog);
             dialog.Navigator.Close();
             await showTask;
+        });
+    }
+
+    [TestMethod]
+    public void Create_ConstructorRunsBusyWorkOnTaskRunner_RecordedForTheDialog()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = BuildNav(new RootService());
+            await nav.NavigateAsync("page");
+            nav.ClearEvents();
+
+            var work = new TaskCompletionSource();
+            var dialog = nav.CreateDialogViewModel<BusyInCtorDialogVm>(work.Task);
+
+            dialog.TaskRunnerInCtor.ShouldBeSameAs(dialog.Navigator.TaskRunner);
+            dialog.Navigator.TaskRunner.IsBusy.ShouldBeTrue();
+            nav.Events.OfType<BusyChangedEvent>().ShouldBe([new BusyChangedEvent(dialog, true)]);
+
+            work.SetResult();
+            await nav.WaitUntilIdleAsync();
+
+            dialog.Navigator.TaskRunner.IsBusy.ShouldBeFalse();
+            nav.Events.OfType<BusyChangedEvent>().ShouldBe([new BusyChangedEvent(dialog, true), new BusyChangedEvent(dialog, false)]);
+        });
+    }
+
+    [TestMethod]
+    public void Create_ConstructorThrows_LeavesNothingWired()
+    {
+        NavigationTestContext.Run(async () =>
+        {
+            var nav = BuildNav(new RootService());
+            await nav.NavigateAsync("page");
+            nav.ClearEvents();
+
+            var work = new TaskCompletionSource();
+            var leak = new Leak();
+
+            var ex = Should.Throw<Exception>(() => nav.CreateDialogViewModel<ThrowingDialogVm>(work.Task, leak));
+            ex.GetBaseException().Message.ShouldBe(ThrowingDialogVm.ErrorMessage);
+
+            // The constructor leaked itself after starting busy work on its task runner, but neither its navigator nor that work is attributed to it.
+            var leaked = leak.ViewModel.ShouldNotBeNull();
+            Should.Throw<InvalidOperationException>(() => leaked.Navigator);
+            nav.Events.OfType<BusyChangedEvent>().ShouldBeEmpty();
+
+            work.SetResult();
+            await nav.WaitUntilIdleAsync();
+
+            nav.Events.OfType<BusyChangedEvent>().ShouldBeEmpty();
+            nav.CanShowDialog.ShouldBeTrue();
+
+            // Creating and showing dialogs is unaffected.
+            var dialog = nav.CreateDialogViewModel<TwoStringsDialogVm>("a", "b");
+            var task = nav.ShowDialogAsync(dialog);
+            nav.TopDialog.ShouldBeSameAs(dialog);
+            dialog.Navigator.Close();
+            await task;
         });
     }
 
@@ -466,6 +526,35 @@ public class DialogInjectionTests
         public string Title => title;
 
         public string Message => message;
+    }
+
+    public class BusyInCtorDialogVm : IDialogViewModel
+    {
+        public BusyInCtorDialogVm(Task work)
+        {
+            TaskRunnerInCtor = this.TaskRunner;
+            TaskRunnerInCtor.RunAsBusyAndForget(work);
+        }
+
+        public ITaskRunner TaskRunnerInCtor { get; }
+    }
+
+    public sealed class Leak
+    {
+        public ThrowingDialogVm? ViewModel { get; set; }
+    }
+
+    public class ThrowingDialogVm : IDialogViewModel
+    {
+        public const string ErrorMessage = "The dialog view model constructor failed.";
+
+        public ThrowingDialogVm(Task work, Leak leak)
+        {
+            leak.ViewModel = this;
+            this.TaskRunner.RunAsBusyAndForget(work);
+
+            throw new InvalidOperationException(ErrorMessage);
+        }
     }
 
     public class OptionalServicesDialogVm(RootService rootService, Draft? missing = null, int count = 3) : IDialogViewModel
