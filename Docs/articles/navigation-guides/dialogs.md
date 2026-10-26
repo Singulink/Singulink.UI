@@ -112,6 +112,27 @@ public sealed partial class ConfirmDeleteDialog : ContentDialog
 
 The primary button stays disabled until the checkbox is checked (because `DeleteCommand.CanExecute` is false), clicking it runs the command which sets the result and closes the dialog, and clicking "Cancel" closes the dialog with `Confirmed = false`. No code-behind event handlers are involved.
 
+## Creating Dialog View Models
+
+A dialog view model is either created by a presenter with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> or constructed by the caller, and either one is shown with <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*>:
+
+- **<xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*>** creates the view model with constructor injection, the same way the navigator creates routed view models. Explicit arguments are matched to constructor parameters by type, and the remaining parameters are resolved from the view models of the dialogs the presenter is nested in, the active route's view models and <xref:Singulink.UI.Navigation.IDialogPresenter.RootServices> (see [Constructor Injection](#constructor-injection)). The view model gets its navigator before its constructor runs, so `this.Navigator` and `this.TaskRunner` are available inside its constructor.
+- **A view model constructed by the caller** (e.g. with `new`) receives every constructor argument from the caller. It gets wired up to a navigator when it is shown, immediately before <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> fires.
+
+```csharp
+// Created by the presenter: the remaining constructor parameters are injected
+var injected = this.Navigator.CreateDialogViewModel<EditItemDialogViewModel>(item);
+
+// Constructed by the caller: every constructor argument is passed in
+var constructed = new EditItemDialogViewModel(item, itemService, filePickerService);
+
+// Either one is shown the same way
+bool saved = await this.Navigator.ShowDialogAsync(injected);
+```
+
+> [!CAUTION]
+> Since a dialog view model constructed by the caller only gets its navigator when it is shown, `this.Navigator` and `this.TaskRunner` are **not available in its constructor**, and attempting to access them there will throw. Defer any work that needs them to <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> or to a command/method that runs after the dialog is shown.
+
 ## Simple Dialog (no result)
 
 ```csharp
@@ -131,10 +152,7 @@ From a routed view model:
 await this.Navigator.ShowDialogAsync(new InfoDialogViewModel("Saved."));
 ```
 
-`this.Navigator` on a dialog view model returns an <xref:Singulink.UI.Navigation.IDialogNavigator>, which exposes <xref:Singulink.UI.Navigation.IDialogNavigator.Close*>, <xref:Singulink.UI.Navigation.IDialogPresenter.TaskRunner>, and <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*> for nesting additional dialogs (see below).
-
-> [!CAUTION]
-> Unlike routed view models (which the navigator constructs), **a dialog view model you construct yourself** only gets wired up to a navigator when it is shown, immediately before <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> fires. This means `this.Navigator` and `this.TaskRunner` are **not available in its constructor**, and attempting to access them there will throw. Defer any work that needs them to <xref:Singulink.UI.Navigation.IDialogViewModel.OnDialogShownAsync> or to a command/method that runs after the dialog is shown. Dialog view models created with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> are different: they get their navigator before their constructor runs (see [Creating Dialogs with Injected Services](#creating-dialogs-with-injected-services)).
+`this.Navigator` on a dialog view model returns an <xref:Singulink.UI.Navigation.IDialogNavigator>, which exposes <xref:Singulink.UI.Navigation.IDialogNavigator.Close*>, <xref:Singulink.UI.Navigation.IDialogPresenter.TaskRunner>, <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> and <xref:Singulink.UI.Navigation.IDialogPresenter.ShowDialogAsync*> for nesting additional dialogs (see below).
 
 ## Dialog with a Result
 
@@ -205,7 +223,7 @@ A dialog can show another dialog from any method or command using the same <xref
 [RelayCommand]
 private async Task CreateNewItemAsync()
 {
-    var editDialog = new EditItemDialogViewModel();
+    var editDialog = this.Navigator.CreateDialogViewModel<EditItemDialogViewModel>();
     var edited = await this.Navigator.ShowDialogAsync(editDialog);
 
     if (edited is not null)
@@ -220,9 +238,9 @@ There is no limit on dialog nesting depth.
 > [!NOTE]
 > Before 7.0, the parent dialog was hidden while a nested dialog was showing and re-shown when it closed. See [Upgrading to 7.0](upgrading-to-v7.md).
 
-## Creating Dialogs with Injected Services
+## Constructor Injection
 
-Dialog view models are normally constructed by the caller, which means every service the dialog needs has to be passed through by hand. <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> creates a dialog view model the same way the navigator creates routed view models, with constructor injection:
+<xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> creates a dialog view model the same way the navigator creates routed view models, with constructor injection:
 
 ```csharp
 public partial class EditItemDialogViewModel(Item item, IItemService items, IFilePickerService filePicker) : IDialogViewModel<bool>

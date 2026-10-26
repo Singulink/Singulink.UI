@@ -122,14 +122,14 @@ An unscripted message dialog fails the test with the dialog's title and message,
 
 ## Testing a Dialog View Model Directly
 
-Dialog view models don't need routes. Show them through the test navigator and drive them:
+Dialog view models don't need routes. Create them with the test navigator's <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> or construct them directly, then show them through the test navigator and drive them. One created with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> has its navigator inside its constructor and receives its remaining constructor parameters from the active route's view models and <xref:Singulink.UI.Navigation.NavigatorBuilderCore.Services>, as in the application; one constructed directly gets its navigator when it is shown:
 
 ```csharp
 NavigationTestContext.Run(async () =>
 {
     var nav = new TestNavigator(_ => { });
 
-    var dialog = new EditItemDialogModel(item);
+    var dialog = new EditItemDialogModel(item);   // Or nav.CreateDialogViewModel<EditItemDialogModel>(item)
     var showTask = nav.ShowDialogAsync(dialog);   // dialog.Navigator is now live
 
     dialog.Name = "Renamed";
@@ -166,6 +166,6 @@ dialog.SaveCommand.Execute(null);
 navigator.Received().Close();
 ```
 
-This suits dialog view models well, since <xref:Singulink.UI.Navigation.IDialogNavigator> is small. Routed view models are better served by <xref:Singulink.UI.Navigation.Testing.TestNavigator>: <xref:Singulink.UI.Navigation.INavigator> is large, and the application navigator makes the navigator and parameter available before the constructor runs, which an attach-after-construction approach cannot replicate.
+This suits dialog view models well, since <xref:Singulink.UI.Navigation.IDialogNavigator> is small, as long as they don't use their navigator in their constructor (which those created with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> can do). Routed view models are better served by <xref:Singulink.UI.Navigation.Testing.TestNavigator>: <xref:Singulink.UI.Navigation.INavigator> is large, and the application navigator makes the navigator and parameter available before the constructor runs, which an attach-after-construction approach cannot replicate.
 
 </div>

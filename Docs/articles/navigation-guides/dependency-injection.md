@@ -6,7 +6,7 @@ View models get their dependencies through standard constructor injection. This 
 
 ## Registering Root Services
 
-Assign any <xref:System.IServiceProvider> to <xref:Singulink.UI.Navigation.INavigatorBuilder.Services> when configuring the navigator. Services registered here are available to all routed view models via constructor injection:
+Assign any <xref:System.IServiceProvider> to <xref:Singulink.UI.Navigation.INavigatorBuilder.Services> when configuring the navigator. Services registered here are available via constructor injection to all routed view models and to dialog view models created with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*>:
 
 ```csharp
 public App()
@@ -79,7 +79,7 @@ The navigator checks the ancestors one at a time, starting with the parent, and 
 2. The service returned by its <xref:System.IServiceProvider.GetService(System.Type)>, if it implements <xref:System.IServiceProvider> and returns one.
 3. The view model itself, if it implements or derives from the dependency's type.
 
-So a nearer ancestor that implements an interface shadows a farther ancestor's registration of it, while a registration on the same view model takes precedence over the view model itself. Dialog view models created with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> receive services from view models by the same rules (see [Dialogs](dialogs.md#creating-dialogs-with-injected-services)).
+So a nearer ancestor that implements an interface shadows a farther ancestor's registration of it, while a registration on the same view model takes precedence over the view model itself. Dialog view models created with <xref:Singulink.UI.Navigation.IDialogPresenter.CreateDialogViewModel*> receive services from view models by the same rules (see [Dialogs](dialogs.md#constructor-injection)).
 
 Guidelines:
 
