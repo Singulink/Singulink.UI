@@ -142,6 +142,25 @@ public static class TestFiles
 }
 
 /// <summary>
+/// Watches a project file the same way the editor does, so a test can wait until a change has been reported before asserting that the editor ignored it.
+/// </summary>
+public sealed class FileChangeWitness : IDisposable
+{
+    private readonly FileProjectDocument _document;
+    private volatile bool _hasChanged;
+
+    public FileChangeWitness(string path)
+    {
+        _document = new FileProjectDocument(path);
+        _document.Changed += (s, e) => _hasChanged = true;
+    }
+
+    public bool HasChanged => _hasChanged;
+
+    public void Dispose() => _document.Dispose();
+}
+
+/// <summary>
 /// A project document whose persistence is owned by the host (like the VS Code editor), recording how many times it is written.
 /// </summary>
 public sealed class RecordingHostDocumentFactory : IProjectDocumentFactory

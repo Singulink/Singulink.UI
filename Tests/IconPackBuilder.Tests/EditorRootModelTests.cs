@@ -52,6 +52,7 @@ public class EditorRootModelTests
 
             // Clean: silent reload replaces the whole selection.
             TestFiles.WriteProject(path, exports: [("Alert", "Notifications", ["Filled"])]);
+            await WaitUntilAsync(nav, () => Icon(editor, "Alert", "Filled").IsSelected);
             await SettleAsync(nav);
 
             Icon(editor, "Add", "Regular").IsSelected.ShouldBeFalse();
@@ -65,6 +66,7 @@ public class EditorRootModelTests
             editor.IsDirty.ShouldBeTrue();
             answer = 1;
             TestFiles.WriteProject(path, exports: [("Add", string.Empty, ["Regular"])]);
+            await WaitUntilAsync(nav, () => prompts > 0);
             await SettleAsync(nav);
 
             prompts.ShouldBe(1);
@@ -75,6 +77,7 @@ public class EditorRootModelTests
             // Dirty, reload: the file wins.
             answer = 0;
             TestFiles.WriteProject(path, exports: [("Add", "Plus", ["Regular", "Filled"])]);
+            await WaitUntilAsync(nav, () => Group(editor, "Add").ExportName == "Plus");
             await SettleAsync(nav);
 
             prompts.ShouldBe(2);
@@ -101,10 +104,13 @@ public class EditorRootModelTests
 
             Icon(editor, "Save", "Filled").IsSelected = true;
             Group(editor, "Save").ExportName = "Store";
+            using var witness = new FileChangeWitness(path);
             await editor.SaveProjectCommand.ExecuteAsync(null);
 
             editor.IsDirty.ShouldBeFalse();
+            await WaitUntilAsync(nav, () => witness.HasChanged);
             await SettleAsync(nav);
+            witness.HasChanged.ShouldBeTrue();
             prompts.ShouldBe(0);
             Icon(editor, "Save", "Filled").IsSelected.ShouldBeTrue();
             File.Exists(path + ".tmp").ShouldBeFalse();
@@ -122,6 +128,7 @@ public class EditorRootModelTests
         NavigationTestContext.Run(async () =>
         {
             var (nav, _, path) = await OpenEditorAsync(("Add", string.Empty, ["Regular"]));
+            var editor = nav.ActiveViewModel<EditorRootModel>();
             int prompts = 0;
             nav.OnMessageDialog(m =>
             {
@@ -132,9 +139,15 @@ public class EditorRootModelTests
             await nav.NavigateAsync(Routes.StartRoot);
             nav.ActiveViewModel<StartRootModel>().ShouldNotBeNull();
 
+            using var witness = new FileChangeWitness(path);
             TestFiles.WriteProject(path, exports: [("Alert", string.Empty, ["Regular"])]);
+            await WaitUntilAsync(nav, () => witness.HasChanged);
             await SettleAsync(nav);
+            witness.HasChanged.ShouldBeTrue();
             prompts.ShouldBe(0);
+
+            // The closed editor was clean, so it would have reloaded silently had it still been watching.
+            Icon(editor, "Alert", "Regular").IsSelected.ShouldBeFalse();
         });
     }
 
@@ -150,31 +163,25 @@ public class EditorRootModelTests
             Group(editor, "Save").ExportName = "Archive";
 
             // "back" is a keyword of Arrow Left only; "al" prefix-matches the Alert name and nothing else by keyword.
-            editor.NameFilter = "back";
-            await SettleAsync(nav);
+            await SetNameFilterAsync(nav, editor, "back");
             editor.FilteredIconGroups.Select(g => g.Info.Id).ShouldBe(["ArrowLeft"]);
 
-            editor.NameFilter = "al";
-            await SettleAsync(nav);
+            await SetNameFilterAsync(nav, editor, "al");
             editor.FilteredIconGroups.Select(g => g.Info.Id).ShouldBe(["Alert"]);
 
             // "a" matches Add, Alert and Arrow Left by name, and Save only through its export name.
-            editor.NameFilter = "a";
-            await SettleAsync(nav);
+            await SetNameFilterAsync(nav, editor, "a");
             editor.FilteredIconGroups.Select(g => g.Info.Id).ShouldBe(["Add", "Alert", "ArrowLeft", "Save"]);
 
             // Multiple terms must all match; the name match ("arrow") ranks the group even though "previous" is only a keyword.
-            editor.NameFilter = "arrow previous";
-            await SettleAsync(nav);
+            await SetNameFilterAsync(nav, editor, "arrow previous");
             editor.FilteredIconGroups.Select(g => g.Info.Id).ShouldBe(["ArrowLeft"]);
 
             // "store" is only a Save keyword.
-            editor.NameFilter = "store";
-            await SettleAsync(nav);
+            await SetNameFilterAsync(nav, editor, "store");
             editor.FilteredIconGroups.Select(g => g.Info.Id).ShouldBe(["Save"]);
 
-            editor.NameFilter = string.Empty;
-            await SettleAsync(nav);
+            await SetNameFilterAsync(nav, editor, string.Empty);
             editor.FilteredIconGroups.Count.ShouldBe(4);
         });
     }
@@ -365,7 +372,7 @@ public class EditorRootModelTests
 
             // A real edit is pushed to the host.
             Icon(editor, "Alert", "Regular").IsSelected = true;
-            await SettleAsync(nav);
+            await WaitUntilAsync(nav, () => documents.Document.WriteCount > 0);
             documents.Document.WriteCount.ShouldBeGreaterThan(0);
         });
     }
@@ -407,14 +414,40 @@ public class EditorRootModelTests
     });
 
     /// <summary>
-    /// Waits out the file watcher and filter debounce timers and lets the posted work run.
+    /// Waits until the condition holds, letting posted work run in between, or until 15 seconds pass. File watcher events and debounce timers can land
+    /// late on a busy machine, so tests wait for the outcome instead of a fixed time and then assert it as usual, which fails if it never came.
+    /// </summary>
+    private static async Task WaitUntilAsync(TestNavigator nav, Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        await nav.WaitUntilIdleAsync();
+
+        while (!condition() && !timeout.IsCancellationRequested)
+        {
+            await Task.Delay(20);
+            await nav.WaitUntilIdleAsync();
+        }
+    }
+
+    /// <summary>
+    /// Gives late work a short window to run: repeated change notifications for a change that was already handled, so they do not leak into the next
+    /// step, or work that must not happen, before asserting that it did not.
     /// </summary>
     private static async Task SettleAsync(TestNavigator nav)
     {
-        await Task.Delay(1200);
         await nav.WaitUntilIdleAsync();
-        await Task.Delay(200);
+        await Task.Delay(500);
         await nav.WaitUntilIdleAsync();
+    }
+
+    /// <summary>
+    /// Sets the name filter and waits for its debounce timer to apply it, which always replaces the filtered list.
+    /// </summary>
+    private static async Task SetNameFilterAsync(TestNavigator nav, EditorRootModel editor, string filter)
+    {
+        var filtered = editor.FilteredIconGroups;
+        editor.NameFilter = filter;
+        await WaitUntilAsync(nav, () => !ReferenceEquals(editor.FilteredIconGroups, filtered));
     }
 
     private static IconGroupModel Group(EditorRootModel editor, string id) => editor.FilteredIconGroups.First(g => g.Info.Id == id);
