@@ -40,7 +40,7 @@ These packages are part of our **Singulink Libraries** collection. Visit https:/
 
 **Icon Pack Builder** (in the [IconPackBuilder](https://github.com/Singulink/Singulink.UI/tree/main/IconPackBuilder) folder) generates trimmed, strongly-typed font icon packs from Microsoft's Fluent UI System Icons (via the [Seagull Fluent Icons](https://github.com/davidxuang/FluentIcons) font). Pick the icons and variants your app uses and it exports a subset font containing only those glyphs plus a generated C# class with a member per icon, so icons are referenced by name and the font stays tiny. A CSS stylesheet and a JavaScript module (with TypeScript declarations) are exported alongside for web apps.
 
-![Icon Pack Builder](Docs/images/icon-pack-builder.png)
+![Icon Pack Builder](https://raw.githubusercontent.com/Singulink/Singulink.UI/main/Docs/images/icon-pack-builder.png)
 
 **Key Features**:
 
